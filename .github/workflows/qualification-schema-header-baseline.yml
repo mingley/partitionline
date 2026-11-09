@@ -1,0 +1,23 @@
+name: Schema Registry header boundary baseline
+on:
+  push:
+    branches: [qualification/schema-header-baseline-20261109]
+permissions:
+  contents: read
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify expected header boundary failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          if cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib response_header_beyond_limit_is_rejected -- --nocapture > "$RUNNER_TEMP/header-baseline.log" 2>&1; then
+            echo "Baseline unexpectedly rejected the oversized header"
+            exit 1
+          fi
+          grep -F 'header exceeding 64 KiB must be rejected' "$RUNNER_TEMP/header-baseline.log"
+          grep -F '1 failed' "$RUNNER_TEMP/header-baseline.log"

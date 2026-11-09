@@ -3493,3 +3493,31 @@ mod tests {
         RegistryClient::new(RegistryClientConfig::new("http://my_host")).unwrap();
     }
 }
+
+#[cfg(test)]
+mod header_boundary_qualification {
+    use super::*;
+
+    #[tokio::test]
+    async fn response_header_beyond_limit_is_rejected() {
+        let prefix = b"HTTP/1.1 200 OK\r\nX-Long: ";
+        let suffix = b"\r\nContent-Length: 2\r\n\r\n";
+        let mut wire = prefix.to_vec();
+        wire.extend(std::iter::repeat_n(
+            b'a',
+            MAX_HEADER_BYTES + 1 - prefix.len() - suffix.len(),
+        ));
+        wire.extend_from_slice(suffix);
+        wire.extend_from_slice(b"{}");
+        let mut stream = wire.as_slice();
+        let result = read_http_response(
+            &mut stream,
+            Instant::now() + Duration::from_secs(3),
+            1024,
+        ).await;
+        assert!(
+            matches!(result, Err(RegistryError::TooLarge { limit: MAX_HEADER_BYTES })),
+            "header exceeding 64 KiB must be rejected"
+        );
+    }
+}
