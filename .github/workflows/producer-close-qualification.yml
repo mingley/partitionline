@@ -1,0 +1,71 @@
+name: Producer close error qualification
+
+on:
+  push:
+    branches: [qualification/producer-close-20261109]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Close controls (${{ matrix.profile }}, stable, x86_64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: default
+            flags: ""
+          - profile: all-features
+            flags: "--all-features"
+    env:
+      FLAGS: ${{ matrix.flags }}
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+      RUST_BACKTRACE: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 3
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify the pinned baseline controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version
+          git checkout dfe179d7066e2c1afecb88df5ba76d2920308c46 -- src/producer.rs
+          cargo test --locked $FLAGS --test producer_close_errors flush_reports_recorded_failure_and_consumes_it -- --exact --nocapture
+          cargo test --locked $FLAGS --test producer_close_errors successful_close_methods_still_return_ok -- --exact --nocapture
+          for test in close_returns_recorded_failure_after_shutdown close_timeout_returns_recorded_failure_after_shutdown; do
+            log="$RUNNER_TEMP/$test.log"
+            if cargo test --locked $FLAGS --test producer_close_errors "$test" -- --exact --nocapture > "$log" 2>&1; then
+              cat "$log"
+              echo "baseline unexpectedly passed $test"
+              exit 1
+            fi
+            cat "$log"
+            grep -F 'did not report the recorded broker error: Ok(())' "$log"
+            grep -F 'test result: FAILED. 0 passed; 1 failed' "$log"
+          done
+          git checkout HEAD -- src/producer.rs
+      - name: Test candidate public behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked $FLAGS --test producer_close_errors
+          cargo test --locked $FLAGS --test produce_cancel
+          cargo test --locked $FLAGS --test mock_produce
+      - name: Check formatting and targeted lint
+        if: matrix.profile == 'all-features'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo clippy --locked --all-features --test producer_close_errors -- -D warnings
