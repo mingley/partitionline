@@ -1600,7 +1600,8 @@ pub(crate) fn process(
     admitted: Instant,
     active: impl Fn() -> Result<(), Error>,
 ) -> Result<Option<Vec<u8>>, Error> {
-    process_with_offset(catalog, store, input, common, admitted, active).map(|result| result.response)
+    process_with_offset(catalog, store, input, common, admitted, active)
+        .map(|result| result.response)
 }
 
 /// Stage every already-queued produce, synchronize each partition once, then
@@ -1634,7 +1635,10 @@ pub(crate) fn process_queued(
         ) {
             Ok(ProcessOut::Captured(item)) => {
                 captured[index] = Some(item);
-                replies.push(Ok(Produced { response: None, throttle_at: None }));
+                replies.push(Ok(Produced {
+                    response: None,
+                    throttle_at: None,
+                }));
             }
             Ok(ProcessOut::Reply(body)) => replies.push(Ok(body)),
             Err(error) => replies.push(Err(error)),
@@ -1657,10 +1661,7 @@ pub(crate) fn process_queued(
     replies
 }
 
-pub(crate) fn recycle_queued_replies(
-    store: &mut Store,
-    mut replies: Vec<Result<Produced, Error>>,
-) {
+pub(crate) fn recycle_queued_replies(store: &mut Store, mut replies: Vec<Result<Produced, Error>>) {
     replies.clear();
     if replies.capacity() >= store.queued_replies.capacity() {
         store.queued_replies = replies;
@@ -1790,7 +1791,11 @@ fn finish_captured(
         &item.results,
         input,
     );
-    if written.as_ref().ok().is_none_or(|body| body.response.is_none()) {
+    if written
+        .as_ref()
+        .ok()
+        .is_none_or(|body| body.response.is_none())
+    {
         *spare = std::mem::take(&mut writer.bytes);
     }
     written
@@ -2135,7 +2140,11 @@ fn process_inner(
         &results,
         input,
     );
-    if written.as_ref().ok().is_none_or(|body| body.response.is_none()) {
+    if written
+        .as_ref()
+        .ok()
+        .is_none_or(|body| body.response.is_none())
+    {
         store.keep_response_buf(std::mem::take(&mut writer.bytes));
     }
     Ok(ProcessOut::Reply(written?))
@@ -2155,7 +2164,10 @@ fn write_produce_response(
         if results.iter().any(|t| t.parts.iter().any(|p| p.error != 0)) {
             return Err(Error::AcksZeroError);
         }
-        return Ok(Produced { response: None, throttle_at: None });
+        return Ok(Produced {
+            response: None,
+            throttle_at: None,
+        });
     }
     writer.i32(correlation_id)?;
     if flex {
@@ -2518,7 +2530,13 @@ mod tests {
             },
         );
         assert_eq!(calls, [2, 3]);
-        assert!(matches!(replies.first(), Some(Ok(Produced { response: Some(_), .. }))));
+        assert!(matches!(
+            replies.first(),
+            Some(Ok(Produced {
+                response: Some(_),
+                ..
+            }))
+        ));
         assert!(matches!(replies.get(1), Some(Err(Error::Canceled))));
         assert_eq!(store.log_bounds(id, 0), Ok((0, 1)));
         assert_eq!(store.log_bounds(id, 1), Ok((0, 0)));

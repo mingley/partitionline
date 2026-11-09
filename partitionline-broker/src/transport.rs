@@ -306,7 +306,9 @@ pub trait Handler: Send + Sync {
         spare: Vec<u8>,
     ) -> impl Future<Output = Result<ExchangeControl, Self::Error>> + Send {
         async move {
-            self.exchange_request(peer, request, spare).await.map(ExchangeControl::new)
+            self.exchange_request(peer, request, spare)
+                .await
+                .map(ExchangeControl::new)
         }
     }
 }
@@ -339,7 +341,10 @@ fn validate_resume_at(
     resume_at: std::time::Instant,
     now: std::time::Instant,
 ) -> Result<(), ControlDeadlineError> {
-    if resume_at.checked_duration_since(now).is_some_and(|delay| delay > MAX_CONTROL_PAUSE) {
+    if resume_at
+        .checked_duration_since(now)
+        .is_some_and(|delay| delay > MAX_CONTROL_PAUSE)
+    {
         Err(ControlDeadlineError)
     } else {
         Ok(())
@@ -359,7 +364,10 @@ pub struct ExchangeControl {
 impl ExchangeControl {
     /// Return an ordinary response without a read pause.
     pub fn new(outcome: ExchangeOutcome) -> Self {
-        Self { outcome, resume_at: None }
+        Self {
+            outcome,
+            resume_at: None,
+        }
     }
 
     /// Return a response and an absolute read-resumption time.
@@ -371,7 +379,10 @@ impl ExchangeControl {
         resume_at: std::time::Instant,
     ) -> Result<Self, ControlDeadlineError> {
         validate_resume_at(resume_at, std::time::Instant::now())?;
-        Ok(Self { outcome, resume_at: Some(resume_at) })
+        Ok(Self {
+            outcome,
+            resume_at: Some(resume_at),
+        })
     }
 
     /// Recover the response and the optional absolute read-resumption time.
@@ -1543,7 +1554,9 @@ async fn wait_for_resume(
     resume_at: Option<std::time::Instant>,
     authority: Option<Instant>,
 ) -> Result<(), Exit> {
-    let Some(resume_at) = resume_at else { return Ok(()) };
+    let Some(resume_at) = resume_at else {
+        return Ok(());
+    };
     validate_resume_at(resume_at, std::time::Instant::now()).map_err(|_| Exit::HandlerError)?;
     let resume_at = Instant::from_std(resume_at);
     if let Some(deadline) = authority {
@@ -1702,51 +1715,51 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             }
             request_spare = park_request(outcome.request);
             if let Some(response) = outcome.response {
-            if response.len() > config.max_response_bytes {
-                return Exit::OversizedResponse;
-            }
-            if i32::try_from(response.len()).is_err() {
-                return Exit::OversizedResponse;
-            }
-            // Handshake may have just begun a bounded renewal; retain the earlier
-            // operation's deadline and the freshly installed authentication deadline.
-            #[cfg(feature = "sasl")]
-            let write_authority = match (
-                request_authority,
-                auth.as_ref().and_then(|a| a.operation_deadline()),
-            ) {
-                (Some(a), Some(b)) => Some(a.min(b)),
-                (a, b) => a.or(b),
-            };
-            #[cfg(not(feature = "sasl"))]
-            let write_authority = preauth_deadline;
-            let deadline = operation_deadline(write_authority, config.write_timeout);
-            // The peer may observe a partial frame if the deadline or connection
-            // fails during a write. The connection closes on error, allowing the
-            // peer to detect the incomplete frame. Prefetch only when the
-            // connection will stay open for another handler.
-            let prefetch = !close && resume_at.is_none();
-            let write = write_and_prefetch(
-                &mut socket,
-                &response,
-                deadline,
-                &mut ahead,
-                frame_config.max_request_bytes,
-                prefetch,
-            );
-            #[cfg(feature = "oidc")]
-            let write = authorized(auth.as_ref().and_then(|a| a.lease()), write);
-            if let Err(exit) = write.await {
-                return exit;
-            }
-            response_spare = park_response(response, outcome.spare);
-            #[cfg(feature = "sasl")]
-            if let Some(auth) = &mut auth {
-                if auth.response_written().is_err() {
-                    return Exit::HandlerError;
+                if response.len() > config.max_response_bytes {
+                    return Exit::OversizedResponse;
                 }
-                peer.identity = auth.identity();
-            }
+                if i32::try_from(response.len()).is_err() {
+                    return Exit::OversizedResponse;
+                }
+                // Handshake may have just begun a bounded renewal; retain the earlier
+                // operation's deadline and the freshly installed authentication deadline.
+                #[cfg(feature = "sasl")]
+                let write_authority = match (
+                    request_authority,
+                    auth.as_ref().and_then(|a| a.operation_deadline()),
+                ) {
+                    (Some(a), Some(b)) => Some(a.min(b)),
+                    (a, b) => a.or(b),
+                };
+                #[cfg(not(feature = "sasl"))]
+                let write_authority = preauth_deadline;
+                let deadline = operation_deadline(write_authority, config.write_timeout);
+                // The peer may observe a partial frame if the deadline or connection
+                // fails during a write. The connection closes on error, allowing the
+                // peer to detect the incomplete frame. Prefetch only when the
+                // connection will stay open for another handler.
+                let prefetch = !close && resume_at.is_none();
+                let write = write_and_prefetch(
+                    &mut socket,
+                    &response,
+                    deadline,
+                    &mut ahead,
+                    frame_config.max_request_bytes,
+                    prefetch,
+                );
+                #[cfg(feature = "oidc")]
+                let write = authorized(auth.as_ref().and_then(|a| a.lease()), write);
+                if let Err(exit) = write.await {
+                    return exit;
+                }
+                response_spare = park_response(response, outcome.spare);
+                #[cfg(feature = "sasl")]
+                if let Some(auth) = &mut auth {
+                    if auth.response_written().is_err() {
+                        return Exit::HandlerError;
+                    }
+                    peer.identity = auth.identity();
+                }
             } else {
                 response_spare = park_response(outcome.spare, Vec::new());
             }
@@ -1781,26 +1794,40 @@ mod bounded_control_tests {
         ExchangeOutcome, Exit, Handler, Peer, Transport, MAX_CONTROL_PAUSE,
     };
     use std::{io, sync::Arc, time::Duration};
-    use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream, sync::Notify};
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::TcpStream,
+        sync::Notify,
+    };
 
     fn empty() -> ExchangeOutcome {
-        ExchangeOutcome { response: None, request: Vec::new(), spare: Vec::new() }
+        ExchangeOutcome {
+            response: None,
+            request: Vec::new(),
+            spare: Vec::new(),
+        }
     }
 
     #[test]
     fn control_bound_checks_exact_boundary_and_rejects_later_values() {
         let now = std::time::Instant::now();
         let boundary = now.checked_add(MAX_CONTROL_PAUSE).expect("instant range");
-        let over = boundary.checked_add(Duration::from_nanos(1)).expect("instant range");
+        let over = boundary
+            .checked_add(Duration::from_nanos(1))
+            .expect("instant range");
         assert!(validate_resume_at(boundary, now).is_ok());
         assert_eq!(validate_resume_at(over, now), Err(ControlDeadlineError));
-        let far = now.checked_add(Duration::from_secs(61)).expect("instant range");
+        let far = now
+            .checked_add(Duration::from_secs(61))
+            .expect("instant range");
         assert!(ExchangeControl::with_resume_at(empty(), far).is_err());
     }
 
     #[tokio::test]
     async fn a_deadline_that_becomes_stale_does_not_restart_the_pause() {
-        let until = std::time::Instant::now().checked_add(Duration::from_millis(100)).expect("instant range");
+        let until = std::time::Instant::now()
+            .checked_add(Duration::from_millis(100))
+            .expect("instant range");
         let control = ExchangeControl::with_resume_at(empty(), until).expect("bounded");
         let (_, resume) = control.into_parts();
         tokio::time::sleep(Duration::from_millis(150)).await;
@@ -1812,10 +1839,16 @@ mod bounded_control_tests {
 
     #[tokio::test]
     async fn auth_expiry_wins_over_a_later_resume() {
-        let resume = std::time::Instant::now().checked_add(Duration::from_secs(3)).expect("instant range");
+        let resume = std::time::Instant::now()
+            .checked_add(Duration::from_secs(3))
+            .expect("instant range");
         let auth = tokio::time::Instant::now() + Duration::from_millis(30);
         assert!(matches!(
-            tokio::time::timeout(Duration::from_secs(1), wait_for_resume(Some(resume), Some(auth))).await,
+            tokio::time::timeout(
+                Duration::from_secs(1),
+                wait_for_resume(Some(resume), Some(auth))
+            )
+            .await,
             Ok(Err(Exit::HandlerError))
         ));
     }
@@ -1824,7 +1857,9 @@ mod bounded_control_tests {
     #[tokio::test]
     async fn oidc_revocation_interrupts_a_pause() {
         let (lease, authority) = crate::security::oidc::controlled_lease();
-        let resume = std::time::Instant::now().checked_add(Duration::from_secs(3)).expect("instant range");
+        let resume = std::time::Instant::now()
+            .checked_add(Duration::from_secs(3))
+            .expect("instant range");
         let paused = super::authorized(Some(lease), wait_for_resume(Some(resume), None));
         tokio::pin!(paused);
         tokio::select! {
@@ -1832,7 +1867,10 @@ mod bounded_control_tests {
             _ = tokio::task::yield_now() => {}
         }
         authority.revoke();
-        assert!(matches!(tokio::time::timeout(Duration::from_secs(1), paused).await, Ok(Err(Exit::HandlerError))));
+        assert!(matches!(
+            tokio::time::timeout(Duration::from_secs(1), paused).await,
+            Ok(Err(Exit::HandlerError))
+        ));
     }
 
     struct PausedHandler(Arc<Notify>);
@@ -1842,22 +1880,36 @@ mod bounded_control_tests {
             Err(io::Error::other("control required"))
         }
         async fn exchange_with_control(
-            &self, _peer: &Peer, request: Vec<u8>, spare: Vec<u8>,
+            &self,
+            _peer: &Peer,
+            request: Vec<u8>,
+            spare: Vec<u8>,
         ) -> Result<ExchangeControl, io::Error> {
-            let until = std::time::Instant::now().checked_add(Duration::from_secs(3))
+            let until = std::time::Instant::now()
+                .checked_add(Duration::from_secs(3))
                 .ok_or_else(|| io::Error::other("instant overflow"))?;
-            let response = ExchangeOutcome { response: Some(b"ok".to_vec()), request, spare };
-            let control = ExchangeControl::with_resume_at(response, until)
-                .map_err(io::Error::other)?;
+            let response = ExchangeOutcome {
+                response: Some(b"ok".to_vec()),
+                request,
+                spare,
+            };
+            let control =
+                ExchangeControl::with_resume_at(response, until).map_err(io::Error::other)?;
             self.0.notify_one();
             Ok(control)
         }
     }
 
     #[tokio::test]
-    async fn transport_writes_then_shutdown_interrupts_a_pause() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn transport_writes_then_shutdown_interrupts_a_pause(
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let started = Arc::new(Notify::new());
-        let mut server = Transport::bind(([127, 0, 0, 1], 0).into(), super::Config::default(), Arc::new(PausedHandler(started.clone()))).await?;
+        let mut server = Transport::bind(
+            ([127, 0, 0, 1], 0).into(),
+            super::Config::default(),
+            Arc::new(PausedHandler(started.clone())),
+        )
+        .await?;
         let mut socket = TcpStream::connect(server.local_addr()).await?;
         socket.write_all(&1i32.to_be_bytes()).await?;
         socket.write_all(b"x").await?;
@@ -1883,18 +1935,30 @@ mod bounded_control_tests {
             Err(io::Error::other("control required"))
         }
         async fn exchange_with_control(
-            &self, _peer: &Peer, request: Vec<u8>, spare: Vec<u8>,
+            &self,
+            _peer: &Peer,
+            request: Vec<u8>,
+            spare: Vec<u8>,
         ) -> Result<ExchangeControl, io::Error> {
-            let call = self.calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let call = self
+                .calls
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             if call == 0 {
-                let until = std::time::Instant::now().checked_add(Duration::from_secs(2))
+                let until = std::time::Instant::now()
+                    .checked_add(Duration::from_secs(2))
                     .ok_or_else(|| io::Error::other("instant overflow"))?;
                 let _ = self.deadlines.send(until);
-                let outcome = ExchangeOutcome { response: Some(vec![42; 256]), request, spare };
+                let outcome = ExchangeOutcome {
+                    response: Some(vec![42; 256]),
+                    request,
+                    spare,
+                };
                 ExchangeControl::with_resume_at(outcome, until).map_err(io::Error::other)
             } else {
                 Ok(ExchangeControl::new(ExchangeOutcome {
-                    response: Some(b"ok".to_vec()), request, spare,
+                    response: Some(b"ok".to_vec()),
+                    request,
+                    spare,
                 }))
             }
         }
@@ -1906,7 +1970,8 @@ mod bounded_control_tests {
         let (mut client, server) = tokio::io::duplex(64);
         let (deadlines, mut observed) = tokio::sync::mpsc::unbounded_channel();
         let handler = Arc::new(BlockedWriteHandler {
-            calls: std::sync::atomic::AtomicUsize::new(0), deadlines,
+            calls: std::sync::atomic::AtomicUsize::new(0),
+            deadlines,
         });
         let peer = Peer {
             address: "127.0.0.1:9".parse()?,
@@ -1916,18 +1981,23 @@ mod bounded_control_tests {
             tls: None,
         };
         let worker = tokio::spawn(super::exchange(
-            server, super::Config::default(), handler,
-            Arc::new(tokio::sync::Semaphore::new(1)), peer,
+            server,
+            super::Config::default(),
+            handler,
+            Arc::new(tokio::sync::Semaphore::new(1)),
+            peer,
             #[cfg(feature = "sasl")]
             None,
         ));
         client.write_all(&1i32.to_be_bytes()).await?;
         client.write_all(b"a").await?;
         let until = tokio::time::timeout(Duration::from_secs(3), observed.recv())
-            .await?.ok_or("handler did not return a deadline")?;
+            .await?
+            .ok_or("handler did not return a deadline")?;
         // The response cannot fit in the 64-byte duplex buffer. Leave it
         // blocked in the write until after the absolute deadline.
-        tokio::time::sleep_until(tokio::time::Instant::from_std(until) + Duration::from_millis(50)).await;
+        tokio::time::sleep_until(tokio::time::Instant::from_std(until) + Duration::from_millis(50))
+            .await;
         let size = tokio::time::timeout(Duration::from_secs(1), client.read_i32()).await??;
         assert_eq!(size, 256);
         let mut response = vec![0u8; usize::try_from(size)?];
@@ -1944,7 +2014,6 @@ mod bounded_control_tests {
         let _ = tokio::time::timeout(Duration::from_secs(1), worker).await??;
         Ok(())
     }
-
 }
 
 #[cfg(test)]

@@ -1,5 +1,8 @@
 //! Router-wide Produce bandwidth policy used by the opt-in quota router.
-use std::{fmt, time::{Duration, Instant}};
+use std::{
+    fmt,
+    time::{Duration, Instant},
+};
 
 const BYTE_NANOS: u128 = 1_000_000_000;
 const MAX_THROTTLE_MILLIS: u32 = 60_000;
@@ -41,7 +44,11 @@ impl ProduceQuota {
         if rate == 0 || burst == 0 || !(1..=MAX_THROTTLE_MILLIS).contains(&maximum_millis) {
             return Err(QuotaConfigError);
         }
-        Ok(Self { rate, burst, maximum_millis })
+        Ok(Self {
+            rate,
+            burst,
+            maximum_millis,
+        })
     }
 }
 
@@ -66,7 +73,11 @@ pub(super) struct QuotaMeter {
 
 impl QuotaMeter {
     pub(super) fn new(policy: ProduceQuota, now: Instant) -> Self {
-        Self { policy, balance: Balance::Credit(u128::from(policy.burst) * BYTE_NANOS), last: now }
+        Self {
+            policy,
+            balance: Balance::Credit(u128::from(policy.burst) * BYTE_NANOS),
+            last: now,
+        }
     }
 
     pub(super) fn fail(&mut self) {
@@ -74,7 +85,9 @@ impl QuotaMeter {
     }
 
     pub(super) fn charge(&mut self, bytes: usize, now: Instant) -> QuotaMark {
-        self.charge_with(bytes, now, |instant, duration| instant.checked_add(duration))
+        self.charge_with(bytes, now, |instant, duration| {
+            instant.checked_add(duration)
+        })
     }
 
     fn charge_with(
@@ -88,7 +101,9 @@ impl QuotaMeter {
         }
         let elapsed = now.saturating_duration_since(self.last);
         self.last = self.last.max(now);
-        let refill = elapsed.as_nanos().checked_mul(u128::from(self.policy.rate)).unwrap_or(u128::MAX);
+        let refill = elapsed
+            .as_nanos()
+            .saturating_mul(u128::from(self.policy.rate));
         let cap = u128::from(self.policy.burst) * BYTE_NANOS;
         self.balance = match self.balance {
             Balance::Credit(credit) => Balance::Credit(credit.saturating_add(refill).min(cap)),
@@ -105,12 +120,20 @@ impl QuotaMeter {
             Balance::Credit(credit) => Balance::Debt(cost - credit),
             Balance::Debt(debt) => match debt.checked_add(cost) {
                 Some(debt) => Balance::Debt(debt),
-                None => { self.fail(); return QuotaMark::Failed; }
+                None => {
+                    self.fail();
+                    return QuotaMark::Failed;
+                }
             },
             Balance::Failed => return QuotaMark::Failed,
         };
         let debt = match self.balance {
-            Balance::Credit(_) => return QuotaMark::Ready { until: None, millis: 0 },
+            Balance::Credit(_) => {
+                return QuotaMark::Ready {
+                    until: None,
+                    millis: 0,
+                }
+            }
             Balance::Debt(debt) => debt,
             Balance::Failed => return QuotaMark::Failed,
         };
@@ -118,8 +141,14 @@ impl QuotaMeter {
         let rounded = debt / denominator + u128::from(debt % denominator != 0);
         let millis = rounded.min(u128::from(self.policy.maximum_millis)) as u32;
         match deadline(self.last, Duration::from_millis(u64::from(millis))) {
-            Some(until) => QuotaMark::Ready { until: Some(until), millis: millis as i32 },
-            None => { self.fail(); QuotaMark::Failed }
+            Some(until) => QuotaMark::Ready {
+                until: Some(until),
+                millis: millis as i32,
+            },
+            None => {
+                self.fail();
+                QuotaMark::Failed
+            }
         }
     }
 }
@@ -130,7 +159,10 @@ mod tests {
     use super::*;
 
     fn ms(mark: QuotaMark) -> i32 {
-        match mark { QuotaMark::Ready { millis, .. } => millis, QuotaMark::Failed => panic!("meter failed") }
+        match mark {
+            QuotaMark::Ready { millis, .. } => millis,
+            QuotaMark::Failed => panic!("meter failed"),
+        }
     }
 
     #[test]
@@ -163,10 +195,19 @@ mod tests {
         let mut meter = QuotaMeter::new(ProduceQuota::new(1, 1, 1).unwrap(), now);
         meter.balance = Balance::Debt(u128::MAX);
         assert!(matches!(meter.charge(1, now), QuotaMark::Failed));
-        assert!(matches!(meter.charge(1, now + Duration::from_secs(1)), QuotaMark::Failed));
+        assert!(matches!(
+            meter.charge(1, now + Duration::from_secs(1)),
+            QuotaMark::Failed
+        ));
 
         let mut meter = QuotaMeter::new(ProduceQuota::new(1, 1, 1).unwrap(), now);
-        assert!(matches!(meter.charge_with(2, now, |_, _| None), QuotaMark::Failed));
-        assert!(matches!(meter.charge(1, now + Duration::from_secs(1)), QuotaMark::Failed));
+        assert!(matches!(
+            meter.charge_with(2, now, |_, _| None),
+            QuotaMark::Failed
+        ));
+        assert!(matches!(
+            meter.charge(1, now + Duration::from_secs(1)),
+            QuotaMark::Failed
+        ));
     }
 }

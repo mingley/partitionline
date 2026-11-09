@@ -22,11 +22,11 @@ jobs:
       - name: Verify pinned draft inputs
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD:partitionline-broker/src/metadata.rs)" = 068398b7286d71e86dbb1a935405e22e4fd44ce8
-          test "$(git rev-parse HEAD:partitionline-broker/src/produce.rs)" = 1e3c33b71e02c5e3abf749f2c390201c26037faf
-          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = 716224559aff2b10819ecd05d6d67bfd2a5483ca
-          test "$(git rev-parse HEAD:partitionline-broker/src/metadata/bandwidth.rs)" = 4bee5c86adbf4e82609428fcdcf09e7e43ee0885
-          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_quota.rs)" = 0e4d8269eee157cf337d5e31934c874c0908212c
+          test "$(git rev-parse HEAD:partitionline-broker/src/metadata.rs)" = 26e34d621e35c7641124e53a4ce1fac1a1e64d74
+          test "$(git rev-parse HEAD:partitionline-broker/src/produce.rs)" = 5338acb770c23094c4bd7418835e10ce8ec42904
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = ab9ec08cea10495f44a5abfd9e87a04a683ce8c8
+          test "$(git rev-parse HEAD:partitionline-broker/src/metadata/bandwidth.rs)" = 8e4176496062b2f1295ed73a37011d6055ca83e6
+          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_quota.rs)" = b7ee3e04ff8daf2cefc643431525407b6483c4cf
           test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
           rustc -Vv
           sha256sum partitionline-broker/src/metadata.rs partitionline-broker/src/produce.rs partitionline-broker/src/transport.rs partitionline-broker/src/metadata/bandwidth.rs partitionline-broker/tests/produce_quota.rs partitionline-broker/Cargo.lock
