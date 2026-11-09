@@ -1,0 +1,72 @@
+diff --git a/partitionline-broker/src/transport.rs b/partitionline-broker/src/transport.rs
+--- a/partitionline-broker/src/transport.rs
++++ b/partitionline-broker/src/transport.rs
+@@ -297,8 +297,11 @@ pub trait Handler: Send + Sync {
+     ///
+     /// Existing handlers default to no pause. A handler supplying a deadline
+     /// must also write any protocol-specific throttle field itself. The
+-    /// transport writes the response promptly, performs no read-ahead during
+-    /// the pause, and honors shutdown and authentication expiry.
++    /// transport writes the response promptly. During the pause it reads at
++    /// most one additional application byte to detect an idle peer close and
++    /// retains that byte for the next frame. A close behind buffered input may
++    /// be noticed only after the pause. Shutdown and authentication expiry
++    /// remain effective.
+     fn exchange_with_control(
+         &self,
+         peer: &Peer,
+@@ -1547,7 +1550,7 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
+     }
+ }
+ 
+-// No reads or handler permits are held while paused. Authentication expiry
++// No handler permits are held while paused. Authentication expiry
+ // remains a separate absolute deadline; a revoked OIDC lease is handled by
+ // the existing authorized wrapper around this future.
+ async fn wait_for_resume(
+@@ -1572,6 +1575,29 @@ async fn wait_for_resume(
+     Ok(())
+ }
+ 
++// Probe only an otherwise idle stream. If one application byte arrives, keep
++// it for the next frame and stop reading until the pause ends. EOF behind that
++// byte, or behind existing read-ahead, remains unobservable during the pause.
++async fn watch_idle_pause<S: AsyncRead + Unpin>(socket: &mut S, ahead: &mut ReadAhead) -> Exit {
++    if !ahead.is_empty() {
++        return std::future::pending().await;
++    }
++    let mut byte = [0u8; 1];
++    match socket.read(&mut byte).await {
++        Ok(0) => Exit::PeerClosed,
++        Ok(_) => {
++            ahead.compact();
++            let bytes = frame_mut(&mut ahead.bytes);
++            if bytes.try_reserve(1).is_err() {
++                return Exit::Io;
++            }
++            bytes.push(byte[0]);
++            std::future::pending().await
++        }
++        Err(error) => read_error(error),
++    }
++}
++
+ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
+     mut socket: S,
+     config: Config,
+@@ -1774,8 +1800,13 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
+                 let pause = wait_for_resume(resume_at, authority);
+                 #[cfg(feature = "oidc")]
+                 let pause = authorized(auth.as_ref().and_then(|a| a.lease()), pause);
+-                if let Err(exit) = pause.await {
+-                    return exit;
++                tokio::select! {
++                    result = pause => {
++                        if let Err(exit) = result {
++                            return exit;
++                        }
++                    }
++                    exit = watch_idle_pause(&mut socket, &mut ahead) => return exit,
+                 }
+             }
+         }

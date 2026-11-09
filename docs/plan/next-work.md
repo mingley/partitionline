@@ -85,7 +85,9 @@ runs and their limits.
    was not compiled because its workflows started no jobs. A newer
    [quota candidate](../evidence/broker/produce-quota-candidate-20261109/README.md)
    passed focused controls but failed its full all-feature suite; it remains
-   unmerged. The
+   unmerged. A [live Kafka timing probe and idle-close control](../evidence/broker/produce-quota-live-idle-20261109/README.md)
+   add scoped evidence. A related EOF refinement passed focused controls but
+   failed formatting and remains unapplied. The
    [quota handoff plan](../evidence/broker/quota-handoff-20261109/README.md)
    describes the accounting, transport and authentication boundaries they
    need to satisfy.

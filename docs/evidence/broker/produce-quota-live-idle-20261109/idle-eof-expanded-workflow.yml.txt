@@ -1,0 +1,47 @@
+name: Quota idle EOF and prefix controls
+on:
+  push:
+    branches: [qualification/produce-quota-idle-eof-20261109]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: partitionline-broker
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Default-feature controls
+        run: cargo test --locked --test quota_pause_reuse
+      - name: All-feature controls
+        if: always()
+        run: cargo test --locked --all-features --test quota_pause_reuse
+      - name: Default quota controls
+        if: always()
+        run: cargo test --locked --test produce_quota
+      - name: All-feature quota controls
+        if: always()
+        run: cargo test --locked --all-features --test produce_quota
+      - name: Controlled transport tests
+        if: always()
+        run: cargo test --locked --all-features --lib bounded_control_tests
+      - name: Authenticated quota control
+        if: always()
+        run: cargo test --locked --all-features --test sasl_sessions quota_sasl_authenticated_mute_and_expiry
+      - name: Format check
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: All-target Clippy
+        if: always()
+        run: cargo clippy --locked --all-features --all-targets -- -D warnings
+      - name: Show rustfmt suggestion for new test
+        if: always()
+        run: |
+          cp tests/quota_pause_reuse.rs /tmp/quota_pause_reuse.rs
+          rustfmt --edition 2021 /tmp/quota_pause_reuse.rs
+          cat /tmp/quota_pause_reuse.rs
