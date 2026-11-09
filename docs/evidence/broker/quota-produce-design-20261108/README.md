@@ -1,5 +1,10 @@
 # Produce bandwidth quotas: integration design
 
+> Update: The transport now applies backpressure when read-ahead is full.
+> A close behind the full buffer may be observed only after the active handler
+> finishes; the handler deadline and shutdown remain effective. The behavior
+> described below refers to the pinned source baseline.
+
 Status: design and local controls only. The broker does not yet apply
 `quotas::Window` to listener traffic or send nonzero Kafka throttle times.
 No wire implementation or real-client interoperability result is claimed here.
