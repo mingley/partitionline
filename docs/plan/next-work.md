@@ -11,15 +11,15 @@ an established fastest-in-the-world result. Client 0.1.0 is published; the
 next client release must be at least 0.2.0. The experimental broker and schema
 companion are unpublished.
 
-The latest complete [main CI record](../evidence/releases/main-ci-f1be-20261109/README.md)
-is for `f1be3052aac5ec70a424ac951fe1189c27a31417`. Linux client libraries
-reported 2,309 passes and 19 failures with default features and 2,315 passes
-and 13 failures with all features. Windows reported 2,310 passes and 18
-failures; macOS reported 2,315 passes and 13 failures. All three current Kafka
-compatibility jobs and both historical smoke jobs failed. The broker default
-suite stopped after 579 passes, two failures and four ignored tests across the
-targets reached; its all-feature and strict checks did not run. Short resource
-tests passed; a sustained campaign has not.
+The latest complete [main CI record](../evidence/releases/main-ci-71c-20261109/README.md)
+is for `71c847f74bab5384ab614e1486b0dc4c7c893bef`. Linux client libraries
+reported 2,309 passes and 19 failures with default features and 2,305 passes
+and 23 failures with all features. Windows reported 2,313 passes and 15
+failures; macOS reported 2,320 passes and eight failures. All three current
+Kafka compatibility jobs and both historical smoke jobs failed. The broker
+passed 814 default and 962 all-feature tests, with four ignored in each profile;
+this does not explain the [preceding broker failure](../evidence/releases/main-ci-f1be-20261109/README.md).
+Short resource tests passed; a sustained campaign has not.
 
 Separate [combined-head checks](../evidence/ci/combined-a7b6-20261109/README.md)
 at `a7b6edc1645e3a4789cf699a3b9e7656c55a3d10` passed focused Admin, producer
