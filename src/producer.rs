@@ -1148,6 +1148,17 @@ struct CoordinatorConnection {
 /// copy the topic name on every batch.
 type SequenceMap = HashMap<Arc<str>, HashMap<i32, i32>>;
 
+// Call while holding the sequence map lock. Once exhausted, no further
+// idempotent batches may reserve or rewind under a reused generation.
+fn advance_sequence_generation(generation: &AtomicU64) {
+    let previous = generation.load(Ordering::SeqCst);
+    generation.store(previous.saturating_add(1), Ordering::SeqCst);
+}
+
+fn sequence_generation_current(generation: &AtomicU64, expected: u64) -> bool {
+    expected != u64::MAX && generation.load(Ordering::SeqCst) == expected
+}
+
 const TXN_ERROR_KIND_MASK: u64 = 7;
 const TXN_ERROR_NONE: u64 = 0;
 const TXN_ERROR_ABORT_PENDING: u64 = 1;
@@ -1459,11 +1470,12 @@ impl Shared {
         {
             return;
         }
+        let mut sequences = self.seqs.lock();
         let old_pid = self.producer_id.load(Ordering::SeqCst);
         let old_epoch = self.producer_epoch.load(Ordering::SeqCst);
         if producer_id != old_pid || producer_epoch != old_epoch {
-            self.seqs.lock().clear();
-            let _ = self.epoch_gen.fetch_add(1, Ordering::SeqCst);
+            sequences.clear();
+            advance_sequence_generation(&self.epoch_gen);
         }
         self.producer_id.store(producer_id, Ordering::SeqCst);
         self.producer_epoch.store(producer_epoch, Ordering::SeqCst);
@@ -1480,14 +1492,15 @@ impl Shared {
     /// (`InitProducerId` re-init or `EndTxn` v5+ response); retries reuse the
     /// broker-authorized identity and never invent one.
     fn bump_idempotent_epoch(&self) {
+        let mut sequences = self.seqs.lock();
         let epoch = self.producer_epoch.load(Ordering::SeqCst);
         if epoch <= RecordBatch::NO_PRODUCER_EPOCH || epoch == i16::MAX {
             return;
         }
         self.producer_epoch
             .store(epoch.saturating_add(1), Ordering::SeqCst);
-        self.seqs.lock().clear();
-        let _ = self.epoch_gen.fetch_add(1, Ordering::SeqCst);
+        sequences.clear();
+        advance_sequence_generation(&self.epoch_gen);
     }
 
     /// Fail with the remembered error while fatal or abort-required.
@@ -3507,6 +3520,7 @@ impl Producer {
     /// to exercise epoch-exhaustion renewal (KL03-09).
     #[doc(hidden)]
     pub fn __test_set_producer_epoch(&self, epoch: i16) {
+        let _sequences = self.inner.shared.seqs.lock();
         self.inner
             .shared
             .producer_epoch
@@ -5492,9 +5506,10 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
     if new_pid < 0 {
         return Err(Error::protocol("InitProducerId returned producer_id=-1"));
     }
+    let mut sequences = shared.seqs.lock();
     if new_pid != pid || new_epoch != epoch {
-        shared.seqs.lock().clear();
-        let _ = shared.epoch_gen.fetch_add(1, Ordering::SeqCst);
+        sequences.clear();
+        advance_sequence_generation(&shared.epoch_gen);
     }
     shared.producer_id.store(new_pid, Ordering::SeqCst);
     shared.producer_epoch.store(new_epoch, Ordering::SeqCst);
@@ -5535,10 +5550,11 @@ async fn renew_nontransactional_identity(shared: &Shared) -> Result<()> {
     if new_pid < 0 {
         return Err(Error::protocol("InitProducerId returned producer_id=-1"));
     }
-    shared.seqs.lock().clear();
+    let mut sequences = shared.seqs.lock();
+    sequences.clear();
     shared.producer_id.store(new_pid, Ordering::SeqCst);
     shared.producer_epoch.store(new_epoch, Ordering::SeqCst);
-    let _ = shared.epoch_gen.fetch_add(1, Ordering::SeqCst);
+    advance_sequence_generation(&shared.epoch_gen);
     Ok(())
 }
 
@@ -8354,10 +8370,28 @@ impl Worker {
         } else {
             ProduceTopicIds::Empty
         };
-        let producer_id = self.shared.producer_id.load(Ordering::SeqCst);
-        let producer_epoch = self.shared.producer_epoch.load(Ordering::SeqCst);
-        let epoch_gen = self.shared.epoch_gen.load(Ordering::SeqCst);
-        assign_sequences(&mut groups, producer_id, &self.shared.seqs, epoch_gen).await;
+        let (producer_id, producer_epoch, epoch_gen) = {
+            let _sequences = self.shared.seqs.lock();
+            (
+                self.shared.producer_id.load(Ordering::SeqCst),
+                self.shared.producer_epoch.load(Ordering::SeqCst),
+                self.shared.epoch_gen.load(Ordering::SeqCst),
+            )
+        };
+        if let Err(error) = assign_sequences(
+            &mut groups,
+            producer_id,
+            &self.shared.seqs,
+            epoch_gen,
+            &self.shared.epoch_gen,
+        )
+        .await
+        {
+            rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
+            self.fail_kept_groups(groups, clone_err(&error)).await;
+            self.note_fail(error.clone());
+            return Err(error);
+        }
 
         let fault = {
             let mut g = self.shared.pre_send_fault.lock();
@@ -8382,13 +8416,13 @@ impl Worker {
                 crate::error::OPERATION_NOT_ATTEMPTED,
                 "injected transaction partition failure",
             );
-            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
             self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
         }
         if let Err(e) = self.add_txn_partitions(&groups).await {
-            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
             self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
@@ -8416,7 +8450,7 @@ impl Worker {
 
         if fault == Some(PreSendFault::Encode) {
             let e = Error::protocol("injected produce encode failure");
-            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
             self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
@@ -8428,7 +8462,7 @@ impl Worker {
             correlation,
             Some(self.conn.client_id()),
         ) {
-            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
             self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
@@ -8450,7 +8484,7 @@ impl Worker {
         )
         .await
         {
-            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
             self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
@@ -8459,14 +8493,14 @@ impl Worker {
             match crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4)) {
                 Ok(s) => s,
                 Err(e) => {
-                    rollback_sequences(&groups, producer_id, &self.shared.seqs);
+                    rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
                     self.fail_kept_groups(groups, clone_err(&e)).await;
                     self.note_fail(e.clone());
                     return Err(e);
                 }
             };
         if let Err(e) = crate::protocol::buf::patch_i32(&mut self.write_buf, 0, size) {
-            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
             self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
@@ -8477,7 +8511,7 @@ impl Worker {
                 std::io::ErrorKind::ConnectionReset,
                 "injected socket write failure",
             ));
-            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
             self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
@@ -8489,9 +8523,21 @@ impl Worker {
         }
         let now_inst = Instant::now();
         if now_inst >= batch_deadline {
-            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
             self.fail_kept_groups(groups, Error::Timeout).await;
             return Ok(());
+        }
+        let current_identity = {
+            let _sequences = self.shared.seqs.lock();
+            producer_id <= RecordBatch::NO_PRODUCER_ID
+                || sequence_generation_current(&self.shared.epoch_gen, epoch_gen)
+        };
+        if !current_identity {
+            let error = Error::protocol("producer identity changed while preparing a batch");
+            rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
+            self.fail_kept_groups(groups, clone_err(&error)).await;
+            self.note_fail(error.clone());
+            return Err(error);
         }
         let write_timeout = self
             .shared
@@ -8513,7 +8559,12 @@ impl Worker {
                 self.requeue_pendings(pending).await;
                 return Ok(());
             }
-            rollback_sequences(&groups, producer_id, &self.shared.seqs);
+            // Closed is returned by write_all_deadline before it offers any
+            // request bytes. Other non-retriable errors are not assumed safe
+            // to rewind if the write API changes.
+            if matches!(&e, Error::Closed) {
+                rollback_sequences(&groups, producer_id, &self.shared.seqs, &self.shared.epoch_gen);
+            }
             self.fail_kept_groups(groups, clone_err(&e)).await;
             self.note_fail(e.clone());
             return Err(e);
@@ -10407,19 +10458,23 @@ async fn assign_sequences(
     producer_id: i64,
     seqs: &parking_lot::Mutex<SequenceMap>,
     epoch_gen: u64,
-) {
+    current_gen: &AtomicU64,
+) -> Result<()> {
     if producer_id <= RecordBatch::NO_PRODUCER_ID {
-        return;
+        return Ok(());
     }
     let one_topic = groups
         .first()
         .is_some_and(|(topic, _, _)| groups.iter().all(|(name, _, _)| Arc::ptr_eq(name, topic)));
     if one_topic {
         let Some(topic) = groups.first().map(|(topic, _, _)| Arc::clone(topic)) else {
-            return;
+            return Ok(());
         };
         {
             let mut map = seqs.lock();
+            if !sequence_generation_current(current_gen, epoch_gen) {
+                return Err(Error::protocol("producer identity changed while preparing a batch"));
+            }
             if !map.contains_key(topic.as_ref()) {
                 let _ = map.insert(Arc::clone(&topic), HashMap::new());
             }
@@ -10427,42 +10482,77 @@ async fn assign_sequences(
         for (_, partition, pendings) in groups.iter_mut() {
             refresh_sequence_epoch(pendings, epoch_gen).await;
             if sequences_already_assigned(pendings).await {
+                let _map = seqs.lock();
+                if !sequence_generation_current(current_gen, epoch_gen) {
+                    return Err(Error::protocol("producer identity changed while preparing a batch"));
+                }
                 continue;
             }
             let base = {
                 let mut map = seqs.lock();
+                if !sequence_generation_current(current_gen, epoch_gen) {
+                    return Err(Error::protocol("producer identity changed while preparing a batch"));
+                }
                 let Some(parts) = map.get_mut(topic.as_ref()) else {
-                    return;
+                    return Err(Error::protocol("producer sequence map changed"));
                 };
                 sequence_in(parts, *partition, pendings.len())
             };
             stamp_sequences(pendings, base).await;
         }
-        return;
-    }
-    for (topic, partition, pendings) in groups.iter_mut() {
-        refresh_sequence_epoch(pendings, epoch_gen).await;
-        if sequences_already_assigned(pendings).await {
-            continue;
+    } else {
+        for (topic, partition, pendings) in groups.iter_mut() {
+            refresh_sequence_epoch(pendings, epoch_gen).await;
+            if sequences_already_assigned(pendings).await {
+                let _map = seqs.lock();
+                if !sequence_generation_current(current_gen, epoch_gen) {
+                    return Err(Error::protocol("producer identity changed while preparing a batch"));
+                }
+                continue;
+            }
+            let base = {
+                let mut map = seqs.lock();
+                if !sequence_generation_current(current_gen, epoch_gen) {
+                    return Err(Error::protocol("producer identity changed while preparing a batch"));
+                }
+                sequence_of(&mut map, topic, *partition, pendings.len())
+            };
+            stamp_sequences(pendings, base).await;
         }
-        let base = {
-            let mut map = seqs.lock();
-            sequence_of(&mut map, topic, *partition, pendings.len())
-        };
-        stamp_sequences(pendings, base).await;
     }
+    let _map = seqs.lock();
+    if !sequence_generation_current(current_gen, epoch_gen) {
+        return Err(Error::protocol("producer identity changed while preparing a batch"));
+    }
+    Ok(())
 }
 
-fn rewind_sequence(parts: &mut HashMap<i32, i32>, partition: i32, pendings: &[Pending]) {
+fn rewind_sequence(parts: &mut HashMap<i32, i32>, partition: i32, pendings: &[Pending], generation: u64) {
     let Some(first) = pendings.first() else {
         return;
     };
     let Some(base) = first.seq else {
         return;
     };
-    let count = i32::try_from(pendings.len()).unwrap_or(0);
+    // A retry may already have been written. A partial batch or stale
+    // generation cannot prove a definitely-unwritten tail either.
+    if first.epoch_gen != generation || first.retry != 0 || first.batch_len != pendings.len() {
+        return;
+    }
+    let Ok(count) = i32::try_from(pendings.len()) else { return; };
+    let Some(end) = base.checked_add(count) else { return; };
+    if pendings.iter().enumerate().any(|(index, pending)| {
+        let Ok(offset) = i32::try_from(index) else { return true; };
+        pending.epoch_gen != generation
+            || pending.retry != 0
+            || pending.batch_len != pendings.len()
+            || pending.batch_base_seq != Some(base)
+            || base.checked_add(offset) != pending.seq
+    }) {
+        return;
+    }
     if let Some(curr) = parts.get_mut(&partition) {
-        if *curr == base.saturating_add(count) {
+        if *curr == end {
             *curr = base;
         }
     }
@@ -10472,11 +10562,16 @@ fn rollback_sequences(
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     producer_id: i64,
     seqs: &parking_lot::Mutex<SequenceMap>,
+    current_gen: &AtomicU64,
 ) {
     if producer_id <= RecordBatch::NO_PRODUCER_ID {
         return;
     }
     let mut g = seqs.lock();
+    let generation = current_gen.load(Ordering::SeqCst);
+    if generation == u64::MAX {
+        return;
+    }
     // A produce batch is one topic. Load that partition map once.
     let one_topic = groups
         .first()
@@ -10489,7 +10584,7 @@ fn rollback_sequences(
             return;
         };
         for (_, partition, pendings) in groups {
-            rewind_sequence(parts, *partition, pendings);
+            rewind_sequence(parts, *partition, pendings, generation);
         }
         return;
     }
@@ -10497,7 +10592,7 @@ fn rollback_sequences(
         let Some(parts) = g.get_mut(topic.as_ref()) else {
             continue;
         };
-        rewind_sequence(parts, *partition, pendings);
+        rewind_sequence(parts, *partition, pendings, generation);
     }
 }
 
@@ -18722,6 +18817,92 @@ mod rediscover_stop_tests {
         );
         drop(producer);
         peer.abort();
+    }
+
+    #[test]
+    fn sequence_guard_rewinds_only_an_unwritten_current_tail() {
+        let name: Arc<str> = Arc::from("t");
+        for (pending_gen, current_gen, retry, recorded_len, next, expected) in [
+            (1, 1, 0, 1, 1, 0), // current, definitely unwritten
+            (0, 1, 0, 1, 1, 1), // stale identity
+            (1, 1, 1, 1, 1, 1), // retry may already be written
+            (1, 1, 0, 2, 1, 1), // incomplete retained batch
+            (1, 1, 0, 1, 2, 2), // another reservation followed
+            (u64::MAX, u64::MAX, 0, 1, 1, 1), // generation exhaustion
+        ] {
+            let mut pending = queued("t", Some(0));
+            pending.seq = Some(0);
+            pending.batch_base_seq = Some(0);
+            pending.batch_len = recorded_len;
+            pending.epoch_gen = pending_gen;
+            pending.retry = retry;
+            let groups = [(Arc::clone(&name), 0, vec![pending])];
+            let mut map = SequenceMap::new();
+            let _ = map.entry(Arc::clone(&name)).or_default().insert(0, next);
+            let sequences = parking_lot::Mutex::new(map);
+            let generation = AtomicU64::new(current_gen);
+            rollback_sequences(&groups, 1000, &sequences, &generation);
+            assert_eq!(sequences.lock().get(name.as_ref()).and_then(|p| p.get(&0)).copied(), Some(expected));
+        }
+        let generation = AtomicU64::new(u64::MAX - 1);
+        advance_sequence_generation(&generation);
+        advance_sequence_generation(&generation);
+        assert_eq!(generation.load(Ordering::SeqCst), u64::MAX);
+        assert!(!sequence_generation_current(&generation, u64::MAX));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn sequence_guard_detects_identity_change_during_assignment() {
+        use std::task::{Context, Poll, Wake, Waker};
+        struct Noop;
+        impl Wake for Noop {
+            fn wake(self: Arc<Self>) {}
+        }
+        let name: Arc<str> = Arc::from("t");
+        let pending: Vec<_> = (0..8193).map(|_| queued("t", Some(0))).collect();
+        let mut groups = vec![(Arc::clone(&name), 0, pending)];
+        let sequences = parking_lot::Mutex::new(SequenceMap::new());
+        let generation = AtomicU64::new(0);
+        let mut assignment = Box::pin(assign_sequences(&mut groups, 1000, &sequences, 0, &generation));
+        let waker = Waker::from(Arc::new(Noop));
+        let mut cx = Context::from_waker(&waker);
+        assert!(matches!(assignment.as_mut().poll(&mut cx), Poll::Pending));
+        {
+            let mut map = sequences.lock();
+            map.clear();
+            advance_sequence_generation(&generation);
+        }
+        assert!(matches!(assignment.await, Err(Error::Protocol(_))));
+        assert!(sequences.lock().is_empty());
+        assert!(groups[0].2.iter().all(|pending| pending.seq.is_none()));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn sequence_guard_handles_identity_change_and_current_rollback() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        let conn = BrokerConn::connect(&address, "sequence-identity", Duration::from_secs(1)).await.unwrap();
+        let (_peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(ProducerConfig::default(), conn);
+        shared.producer_id.store(1000, Ordering::SeqCst);
+        shared.producer_epoch.store(0, Ordering::SeqCst);
+        let name: Arc<str> = Arc::from("t");
+        let mut pending = queued("t", Some(0));
+        pending.seq = Some(0);
+        pending.batch_base_seq = Some(0);
+        pending.batch_len = 1;
+        pending.epoch_gen = 0;
+        let groups = [(Arc::clone(&name), 0, vec![pending])];
+        let _ = shared.seqs.lock().entry(Arc::clone(&name)).or_default().insert(0, 1);
+        shared.apply_end_txn_identity(5, 1000, 1);
+        assert_eq!(shared.epoch_gen.load(Ordering::SeqCst), 1);
+        assert!(shared.seqs.lock().is_empty());
+        let _ = shared.seqs.lock().entry(Arc::clone(&name)).or_default().insert(0, 1);
+        rollback_sequences(&groups, 1000, &shared.seqs, &shared.epoch_gen);
+        assert_eq!(shared.seqs.lock().get(name.as_ref()).and_then(|p| p.get(&0)).copied(), Some(1));
+        shared.bump_idempotent_epoch();
+        assert_eq!(shared.epoch_gen.load(Ordering::SeqCst), 2);
+        assert!(shared.seqs.lock().is_empty());
     }
 }
 
