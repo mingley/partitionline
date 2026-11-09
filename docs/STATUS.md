@@ -105,7 +105,9 @@ and [work plan][next] retain those results and earlier evidence.
   some non-adjacent repeats with bounded history. It can reject a transient
   repeat that would later have progressed; raw page requests remain available.
   Focused checks passed, while broad Admin timing tests failed in both baseline
-  and candidate. The [protocol gaps](gaps.md) describe the individual APIs.
+  and candidate. An [Admin response diagnostic][admin-growth] observed long
+  map-growth polls in a synthetic debug fixture; it did not explain those
+  earlier timing failures. The [protocol gaps](gaps.md) describe the APIs.
 - **Broker durability and limits.** Partition replication, native KRaft,
   authenticated network leadership, transaction marker propagation and a
   process-wide memory bound remain open. Kafka wire throttling is not
@@ -155,7 +157,7 @@ results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/b78c9cfd89bd02a35ac04040ba9be43041cb0364/docs/evidence/releases/main-ci-71c-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/b78c9cfd89bd02a35ac04040ba9be43041cb0364/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/3590bdab599875cdea560590353999e26cf28f2b/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -190,3 +192,4 @@ results and experiments.
 [json-balanced]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/schema/json-balanced-index-20261109/README.md
 [json-incremental]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/schema/json-incremental-index-20261109/README.md
 [ci-previous]: https://github.com/mingley/partitionline/blob/b78c9cfd89bd02a35ac04040ba9be43041cb0364/docs/evidence/releases/main-ci-f1be-20261109/README.md
+[admin-growth]: https://github.com/mingley/partitionline/blob/658620ca4681aefe208aab9aa486ecb7a4afe89e/docs/evidence/client/admin-response-growth-20261109/README.md
