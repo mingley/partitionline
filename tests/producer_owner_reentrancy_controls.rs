@@ -111,9 +111,10 @@ struct Gate {
 impl Gate {
     fn release(&self) {
         *self.open.lock() = true;
-        self.changed.notify_all();
+        let _notified = self.changed.notify_all();
     }
 
+    #[expect(clippy::expect_used, reason = "A test gate must fail if the callback does not enter.")]
     async fn wait_entered(&self) {
         tokio::time::timeout(LIMIT, async {
             while !self.entered.load(Ordering::SeqCst) {
@@ -156,6 +157,7 @@ impl Drop for ReleaseOnDrop {
     }
 }
 
+#[expect(clippy::expect_used, reason = "The fixture must fail if producer setup fails.")]
 async fn gated_producer() -> (common::Mock, Producer, Arc<Gate>, ReleaseOnDrop) {
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 1);
@@ -203,7 +205,10 @@ async fn cancelling_one_flush_does_not_complete_another_early() {
     };
     tokio::time::sleep(Duration::from_millis(100)).await;
     assert!(!sender.is_finished(), "receipt preceded the callback");
-    assert!(!retained_flush.is_finished(), "flush completed while its callback was blocked");
+    assert!(
+        !retained_flush.is_finished(),
+        "flush completed while its callback was blocked"
+    );
     cancelled_flush.abort();
     gate.release();
 
@@ -245,7 +250,10 @@ async fn close_waits_for_a_blocked_callback_when_its_budget_allows() {
     };
     tokio::time::sleep(Duration::from_millis(100)).await;
     assert!(!sender.is_finished(), "receipt preceded the callback");
-    assert!(!closer.is_finished(), "close completed while its callback was blocked");
+    assert!(
+        !closer.is_finished(),
+        "close completed while its callback was blocked"
+    );
     gate.release();
 
     let metadata = tokio::time::timeout(LIMIT, sender)
