@@ -35,6 +35,8 @@ pub(super) struct Owner {
     changed: Notify,
     closed: Arc<AtomicBool>,
     sealed: AtomicBool,
+    close_requested: AtomicBool,
+    close_finished: AtomicBool,
 }
 
 impl Owner {
@@ -45,6 +47,8 @@ impl Owner {
             changed: Notify::new(),
             closed,
             sealed: AtomicBool::new(false),
+            close_requested: AtomicBool::new(false),
+            close_finished: AtomicBool::new(false),
         }
     }
 
@@ -130,6 +134,25 @@ impl Owner {
 
     pub(super) fn is_sealed(&self) -> bool {
         self.sealed.load(Ordering::SeqCst)
+    }
+
+    pub(super) fn request_interceptor_close(&self) {
+        self.close_requested.store(true, Ordering::SeqCst);
+        self.changed.notify_waiters();
+    }
+
+    pub(super) async fn wait_interceptor_close(&self, deadline: Instant) -> Result<()> {
+        loop {
+            let notified = self.changed.notified();
+            tokio::pin!(notified);
+            let _registered = notified.as_mut().enable();
+            if self.close_finished.load(Ordering::SeqCst) {
+                return Ok(());
+            }
+            tokio::time::timeout_at(deadline.into(), notified)
+                .await
+                .map_err(|_| Error::Timeout)?;
+        }
     }
 
     pub(super) fn cutoff(&self) -> u64 {
@@ -314,9 +337,150 @@ pub(super) async fn supervise(shared: Arc<Shared>, owner: Arc<Owner>) {
             fail_pendings(&shared, vec![pending], Error::Closed);
             continue;
         }
-        if owner.sealed.load(Ordering::SeqCst) && owner.state.lock().slots.is_empty() {
+        let ready_to_close = {
+            let state = owner.state.lock();
+            owner.sealed.load(Ordering::SeqCst)
+                && owner.close_requested.load(Ordering::SeqCst)
+                && state.slots.is_empty()
+        };
+        if ready_to_close {
+            let _closed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                shared.interceptors.close();
+            }));
+            owner.close_finished.store(true, Ordering::SeqCst);
+            owner.changed.notify_waiters();
             break;
         }
         notified.await;
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    #[derive(Default)]
+    struct DropGate {
+        entered: AtomicBool,
+        timed_out: AtomicBool,
+        open: parking_lot::Mutex<bool>,
+        changed: parking_lot::Condvar,
+    }
+
+    impl DropGate {
+        fn release(&self) {
+            *self.open.lock() = true;
+            let _notified = self.changed.notify_all();
+        }
+    }
+
+    struct ReleaseOnDrop(Arc<DropGate>);
+
+    impl Drop for ReleaseOnDrop {
+        fn drop(&mut self) {
+            self.0.release();
+        }
+    }
+
+    struct BlockingBytes {
+        bytes: Vec<u8>,
+        gate: Arc<DropGate>,
+    }
+
+    impl AsRef<[u8]> for BlockingBytes {
+        fn as_ref(&self) -> &[u8] {
+            &self.bytes
+        }
+    }
+
+    impl Drop for BlockingBytes {
+        fn drop(&mut self) {
+            self.gate.entered.store(true, Ordering::SeqCst);
+            let mut open = self.gate.open.lock();
+            while !*open {
+                if self
+                    .gate
+                    .changed
+                    .wait_for(&mut open, Duration::from_secs(5))
+                    .timed_out()
+                {
+                    self.gate.timed_out.store(true, Ordering::SeqCst);
+                    break;
+                }
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn cutoff_waits_for_payload_destruction_outside_owner_lock() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .unwrap();
+        let address = listener.local_addr().unwrap().to_string();
+        let conn = BrokerConn::connect(&address, "owner-drop", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(ProducerConfig::default(), conn);
+        shared.buffered_bytes.store(1, Ordering::SeqCst);
+        let owner = Arc::new(Owner::new(1, Arc::clone(&shared.closed)));
+        let gate = Arc::new(DropGate::default());
+        let _release = ReleaseOnDrop(Arc::clone(&gate));
+        let now = Instant::now();
+        let data = PendingData {
+            sticky_record: None,
+            sticky: None,
+            rec: ProduceRecord::to("t")
+                .partition(0)
+                .value(Bytes::from_owner(BlockingBytes {
+                    bytes: vec![1],
+                    gate: Arc::clone(&gate),
+                })),
+            tx: None,
+            seq: None,
+            batch_base_seq: None,
+            batch_len: 1,
+            epoch_gen: 0,
+            deadline: now + Duration::from_secs(5),
+            queued_at: now,
+            retry: 0,
+            skip_meta_refresh: false,
+            retry_after: now,
+        };
+        let permit = Arc::clone(&owner.permits).try_acquire_owned().unwrap();
+        let pending = owner.prepare(Pending::inline(data), permit).unwrap();
+        pending.admit().unwrap();
+        let cutoff = owner.cutoff();
+        assert_eq!(cutoff, 1);
+        let worker_shared = Arc::clone(&shared);
+        let worker = std::thread::spawn(move || {
+            complete_without_consumer(&worker_shared, pending);
+        });
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !gate.entered.load(Ordering::SeqCst) {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(owner.cutoff(), cutoff);
+        assert!(Arc::clone(&owner.permits).try_acquire_owned().is_err());
+        assert!(tokio::time::timeout(
+            Duration::from_millis(100),
+            owner.wait_through(cutoff, Instant::now() + Duration::from_secs(2)),
+        )
+        .await
+        .is_err());
+        gate.release();
+        worker.join().unwrap();
+        owner
+            .wait_through(cutoff, Instant::now() + Duration::from_secs(2))
+            .await
+            .unwrap();
+        assert!(!gate.timed_out.load(Ordering::SeqCst));
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert!(Arc::clone(&owner.permits).try_acquire_owned().is_ok());
     }
 }

@@ -50,7 +50,11 @@ jobs:
           check timeout 180 cargo test --locked --test buffer_ownership
           check timeout 180 cargo test --locked --all-features --test producer_close_errors
           check timeout 180 cargo test --locked --all-features --test producer_owner_reentrancy_controls -- --nocapture --test-threads=1
-          check cargo clippy --locked --all-features --test producer_owner_bounded_controls -- -D warnings
+          check timeout 180 cargo test --locked --test producer_owner_close_callback -- --nocapture
+          check timeout 180 cargo test --locked --all-features --test producer_owner_close_callback -- --nocapture
+          check timeout 180 cargo test --locked --lib cutoff_waits_for_payload_destruction_outside_owner_lock -- --nocapture
+          check timeout 180 cargo test --locked --all-features --lib cutoff_waits_for_payload_destruction_outside_owner_lock -- --nocapture
+          check cargo clippy --locked --all-targets --all-features -- -D warnings
           check cargo fmt --all -- --check
           printf '\nFAILED_COMMANDS=%s\n' "$failures"
           test "$failures" -eq 0
