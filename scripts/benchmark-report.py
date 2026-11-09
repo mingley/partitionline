@@ -758,12 +758,16 @@ class BenchmarkValidator:
                     )
 
                 summary["has_retained_integrity_failure"] = has_integrity_failure_in_attempts
-                if has_integrity_failure_in_attempts:
-                    if require_clean:
-                        errors.append(
-                            "Integrity policy violation: repetition history contains a failed attempt "
-                            "with an integrity failure. A subsequent successful rerun does not erase an earlier integrity failure."
-                        )
+                if require_clean and has_integrity_failure_in_attempts:
+                    errors.append(
+                        "Integrity policy violation: repetition history contains a failed attempt "
+                        "with an integrity failure. A subsequent successful rerun does not erase an earlier integrity failure."
+                    )
+                elif require_clean and actual_failed:
+                    errors.append(
+                        "Benchmark policy violation: repetition history contains a failed attempt. "
+                        "A subsequent successful rerun does not erase an earlier failed attempt."
+                    )
 
         is_valid = len(errors) == 0
         return is_valid, errors, summary
@@ -884,7 +888,7 @@ def main() -> int:
     parser.add_argument(
         "--require-clean",
         action="store_true",
-        help="Fail closed if any prior attempt suffered an integrity failure (no rerun erasure)",
+        help="Fail closed if any prior attempt failed or recorded an integrity failure (no rerun erasure)",
     )
     parser.add_argument(
         "--json",

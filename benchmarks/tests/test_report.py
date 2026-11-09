@@ -816,6 +816,22 @@ class BenchmarkIntegrityRegressionTests(unittest.TestCase):
                     data["integrity"]["record_ids"][field] = 1
                 self.assertFalse(self.validator.validate(data)[0])
 
+    def test_clean_qualification_retains_all_failed_attempts(self):
+        for status in ("failed_broker_error", "failed_timeout", "failed_abort"):
+            with self.subTest(status=status):
+                data = build_valid_fixture()
+                history = data["repetition_history"]
+                original = history["attempts"][0]
+                failed = dict(original, attempt_number=1, status=status,
+                              error_message="retained failure")
+                passed = dict(original, attempt_number=2)
+                history.update(total_attempts=2, failed_attempts=1, attempts=[failed, passed])
+                valid, errors, _ = self.validator.validate(data)
+                self.assertTrue(valid, errors)
+                valid, errors, _ = self.validator.validate(data, require_clean=True)
+                self.assertFalse(valid)
+                self.assertTrue(any("earlier failed attempt" in error for error in errors), errors)
+
     def test_transaction_control_records_can_advance_offsets(self):
         data = build_valid_fixture()
         data["scenario"]["profile"] = "transactional"
