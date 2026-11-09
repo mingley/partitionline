@@ -21,6 +21,11 @@ const MAX_THROTTLE_MILLIS: u32 = 60_000;
 /// and sets an absolute resume deadline. Time spent delivering the reply and
 /// writing the response consumes that interval; the remaining pause after a
 /// response may be shorter than the advertised throttle or already elapsed.
+///
+/// The transport writes Produce responses before waiting for the pause for
+/// every supported version. Apache clients apply response throttling only from
+/// Produce version 6. Timing compatibility, especially with older clients, has
+/// not been verified against a running Kafka broker.
 #[derive(Debug, Clone, Copy)]
 pub struct ProduceQuota {
     rate: u64,

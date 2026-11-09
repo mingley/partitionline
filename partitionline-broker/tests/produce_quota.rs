@@ -321,42 +321,49 @@ async fn acks_zero_mutes_a_pipelined_request_then_resumes() -> Result {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn throttle_response_is_prompt_and_pipelined_response_follows_resume() -> Result {
-    let root = scratch()?;
-    let router = Arc::new(open(&root, 1_500).await?);
-    let Observations {
-        handler,
-        mut started,
-        mut deadlines,
-    } = observing(&router, false);
-    let mut transport = Transport::bind(
-        ([127, 0, 0, 1], 0).into(),
-        transport::Config::default(),
-        handler,
-    )
-    .await?;
-    let mut socket = TcpStream::connect(transport.local_addr()).await?;
-    send(&mut socket, &fixture("produce-v6-acks1", "request").await?).await?;
-    started_request(&mut started, 0).await?;
-    let deadline = produce_deadline(&mut deadlines).await?;
-    let response = tokio::time::timeout(Duration::from_millis(500), receive(&mut socket)).await??;
-    assert_eq!(
-        i32::from_be_bytes(response[response.len() - 4..].try_into()?),
-        1_500
-    );
-    send(&mut socket, &metadata_request()).await?;
-    let response = tokio::time::timeout(
-        Duration::from_secs(4),
-        receive_after_mute(&mut socket, deadline),
-    )
-    .await??;
-    assert_eq!(&response[..4], &77i32.to_be_bytes());
-    assert!(
-        started_request(&mut started, 3).await? >= deadline,
-        "Metadata reached the handler before resume"
-    );
-    transport.shutdown().await?;
-    router.shutdown().await?;
-    fs::remove_dir_all(root)?;
+    for version in [3, 5, 6] {
+        let root = scratch()?;
+        let router = Arc::new(open(&root, 1_000).await?);
+        let Observations {
+            handler,
+            mut started,
+            mut deadlines,
+        } = observing(&router, false);
+        let mut transport = Transport::bind(
+            ([127, 0, 0, 1], 0).into(),
+            transport::Config::default(),
+            handler,
+        )
+        .await?;
+        let mut socket = TcpStream::connect(transport.local_addr()).await?;
+        send(
+            &mut socket,
+            &fixture(&format!("produce-v{version}-acks1"), "request").await?,
+        )
+        .await?;
+        started_request(&mut started, 0).await?;
+        let deadline = produce_deadline(&mut deadlines).await?;
+        let response = tokio::time::timeout(Duration::from_millis(500), receive(&mut socket)).await??;
+        assert!(Instant::now() < deadline, "v{version} response was delayed through the mute");
+        assert_eq!(
+            i32::from_be_bytes(response[response.len() - 4..].try_into()?),
+            1_000
+        );
+        send(&mut socket, &metadata_request()).await?;
+        let response = tokio::time::timeout(
+            Duration::from_secs(4),
+            receive_after_mute(&mut socket, deadline),
+        )
+        .await??;
+        assert_eq!(&response[..4], &77i32.to_be_bytes());
+        assert!(
+            started_request(&mut started, 3).await? >= deadline,
+            "Metadata reached the handler before resume (version {version})"
+        );
+        transport.shutdown().await?;
+        router.shutdown().await?;
+        fs::remove_dir_all(root)?;
+    }
     Ok(())
 }
 
