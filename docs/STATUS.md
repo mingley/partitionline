@@ -24,19 +24,19 @@ the current TLS and OIDC behavior.
 ## Validation
 
 The latest complete recorded snapshot is main commit
-`731eb97a08445a18da0b043986ae192397ba176a`; the [CI record][ci] links
+`f1be3052aac5ec70a424ac951fe1189c27a31417`; the [CI record][ci] links
 the individual runs and results. The current branch contains later changes.
 
-| Check at `731eb97` | Result |
+| Check at `f1be305` | Result |
 | --- | --- |
-| Client library, Linux default | 2,311 passed, 17 failed; later targets did not run. |
-| Client library, Linux all features | 2,311 passed, 17 failed; later targets did not run. |
-| Client library, Windows default | 2,312 passed, 16 failed; later runtime and package steps did not run. |
+| Client library, Linux default | 2,309 passed, 19 failed; later targets did not run. |
+| Client library, Linux all features | 2,315 passed, 13 failed; later targets did not run. |
+| Client library, Windows default | 2,310 passed, 18 failed; later runtime and package steps did not run. |
 | Client library, macOS arm64 default | 2,315 passed, 13 failed; later runtime and package steps did not run. |
 | Kafka compatibility | 4.1.2, 4.2.1 and 4.3.1 profiles failed; 3.9.1 and 4.1.0 smoke jobs failed. |
 | Resource-soak job | The driver and 11 short tests passed; no sustained campaign was completed. |
-| Broker targets | 814 default and 962 all-feature tests passed, with four ignored in each profile. |
-| Broker strict checks, inventory and fuzz supervision | Passed. |
+| Broker default targets | 581 passed, two failed and four ignored across the targets reached; later targets did not run. |
+| Broker all-feature and strict checks | Not run after the default failure. Inventory and fuzz supervision passed separately. |
 | Client capability profiles | Both selected profiles passed; their archives were not independently inspected. |
 | Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
 | Instruction-count gate | No baseline for this Rust version; no regression comparison. |
@@ -46,7 +46,7 @@ focused Admin, producer and broker transport tests in both feature profiles,
 and packed-crate checks. The latter compiled 24 documented examples in each
 of four feature configurations.
 
-A later [partial CI record][ci-partial] on `0bed184` lists 13 successful
+An earlier [partial CI record][ci-partial] on `0bed184` lists 13 successful
 client jobs and nine failures; six jobs from the preceding full run are not
 listed. Its broker behavioral job passed both profiles, but the broker and
 capability workflows reported failure with jobs missing from the available
@@ -78,7 +78,10 @@ and [work plan][next] retain those results and earlier evidence.
   maps the required admission, retry, completion and shutdown changes. In a
   later [instrumented mock][owner-baseline], 8,193 records had no callbacks
   and 65,544 bytes remained accounted for within a four-second observation
-  after abort or timed close; this does not establish a permanent leak.
+  after abort or timed close; this does not establish a permanent leak. An
+  [ownership attempt][owner-attempt] passed selected cancellation controls
+  but failed retry during close; a separate [sealed-retry experiment][sealed-retry]
+  lacks partition and identity fences. Neither is applied.
   [Seeded retry controls][retry-membership] also show that equal numeric bases
   can group records from different topics, partitions or identity generations;
   they do not establish a natural Kafka history. A
@@ -105,8 +108,9 @@ and [work plan][next] retain those results and earlier evidence.
   process-wide memory bound remain open. Kafka wire throttling is not
   implemented; the [quota design][quota] and [handoff plan][quota-handoff]
   describe the remaining work. The initial [quota draft][quota-draft] was
-  uncompiled and had an unbounded resume deadline. Newer isolated revisions
-  passed focused controls, but a broader run failed; none is applied. The
+  uncompiled and had an unbounded resume deadline. A newer [quota candidate][quota-candidate]
+  passed focused controls but failed its full all-feature suite; it is not
+  applied. The
   [transport fix][transport-fix] backpressures valid pipelines when read-ahead
   is full. A disconnect behind that buffer may be
   observed only after the active handler completes or reaches its deadline.
@@ -124,7 +128,10 @@ and [work plan][next] retain those results and earlier evidence.
   [producer comparison harness repair][sampler-exp] also remains isolated
   pending integrated testing. A [JSON object index experiment][json-index]
   improved large parses but introduced slowdowns at its tested thresholds. A
-  [compact follow-up][json-compact] retained the slowdown; neither is applied.
+  [compact follow-up][json-compact] retained the slowdown. [Balanced-tree
+  experiments][json-balanced] also slowed ordinary objects. An [incremental
+  index][json-incremental] slowed a 96-key fixture and lacks a worst-case
+  collision bound; none is applied.
   A [producer socket trace][cold-trace] measured the cost of an artificial
   handshake delay in a mock; no socket-reuse optimization is applied. A
   [Produce request encoding experiment][produce-plan-exp] improved several
@@ -143,9 +150,9 @@ The [work plan][next] and its linked evidence track the outstanding work.
 The [previous detailed status][history] preserves earlier qualification
 results and experiments.
 
-[ci]: https://github.com/mingley/partitionline/blob/bcc3c8afa7d60263ffdc133ae8d15ffbac35c42e/docs/evidence/releases/main-ci-731-20261109/README.md
+[ci]: https://github.com/mingley/partitionline/blob/8d4993badb960025c9301b7e6c4db2c9f5b58754/docs/evidence/releases/main-ci-f1be-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/268e54f410a2b8a661aeb3c9d770eb1950c6ffb7/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -174,3 +181,8 @@ results and experiments.
 [produce-plan-refined]: https://github.com/mingley/partitionline/blob/af33269d4c35c84daa6a1395558ed03f73893cd6/docs/evidence/client/produce-request-uncompressed-length-20261109/README.md
 [schema-http]: https://github.com/mingley/partitionline/blob/172ce91a2c279446caa8de7ac0fd2d6c9e9304ac/docs/evidence/schema/registry-http-streaming-20261109/README.md
 [retry-membership]: https://github.com/mingley/partitionline/blob/2e039416e19d049aee12dbff1e442f26d0088dd2/docs/evidence/client/producer-retry-membership-20261109/README.md
+[owner-attempt]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/client/producer-bounded-ownership-attempt-20261109/README.md
+[sealed-retry]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/client/producer-sealed-retry-experiment-20261109/README.md
+[quota-candidate]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/broker/produce-quota-candidate-20261109/README.md
+[json-balanced]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/schema/json-balanced-index-20261109/README.md
+[json-incremental]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/schema/json-incremental-index-20261109/README.md
