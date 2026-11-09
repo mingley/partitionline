@@ -32,10 +32,25 @@ The 4.1.2 default profile also rejected deliberate changes from error 31 to 30
 in each direction. The run logs contain source and fixture hashes; the
 uploaded artifact was not independently inspected.
 
-The later runner adds a bounded timeout-cleanup control and the workflow adds
-path-filtered main and pull request triggers plus manual dispatch. Results for
-that changed source must be recorded separately. The runner checks that each
-owned process group is gone without reading `/proc`, and on a timeout
-escalates from TERM to KILL. A process that escapes its group, permission
-errors, kernel failures or abrupt termination of the runner can prevent
-cleanup from being proved.
+The [third run](https://github.com/mingley/partitionline/actions/runs/42703525892)
+on `ccf5361b255f3ab86a2fc895b87af13d67b7eddb` passed the comparison,
+formatting and Clippy, plus a timeout control where a descendant ignored TERM
+after its parent exited. Its process group was gone after KILL.
+
+The [fourth run](https://github.com/mingley/partitionline/actions/runs/42704216370)
+on `3c462e2b2355c7001ee3eeb1938bb4e0ffce1bbe` also passed and printed the
+bounded synthetic corpora. The five [Apache pairs](apache-pairs.txt) and five
+[Rust pairs](rust-pairs.txt) were extracted from those logs; their independently
+recomputed SHA-256 values are respectively
+`0f0e18942643b10ef0cd3512c9e97e8b237921cca64906710d8f509ce54cacc9`
+and `3a1ef65a8406a184b59112c704a0377d1cea3bf5fd9d514ff8bd81cdbb9e45c4`.
+These match the per-peer and per-profile run receipts. The uploaded artifacts
+were not independently inspected.
+
+A later runner version adds a separately bounded readiness handshake and a
+startup-timeout control; its results must be recorded separately. The workflow
+is also configured to compare regenerated corpora byte-for-byte with these
+retained files. The runner checks its owned process groups without reading
+`/proc` and escalates from TERM to KILL on timeout. A process that escapes
+its group, permission errors, kernel failures or abrupt termination of the
+runner can prevent cleanup from being proved.

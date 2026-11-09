@@ -96,28 +96,66 @@ def stop_group(child):
             signal.signal(sig, handler)
 
 
+class StartupTimeout(TimeoutError):
+    """A supervised child did not report readiness before its deadline."""
+
+
+def wait_for_marker(child, path, marker, seconds):
+    deadline = min(END, time.monotonic() + seconds)
+    while True:
+        if path.stat().st_size > 65536:
+            raise ValueError("readiness output exceeds budget")
+        if marker in path.read_text():
+            return
+        if child.poll() is not None:
+            raise RuntimeError("child exited before readiness")
+        if time.monotonic() >= deadline:
+            raise StartupTimeout("child readiness deadline")
+        time.sleep(0.02)
+
+
 def run(command, out, env=None, timeout=30, expect_failure=False, marker=None,
-        expect_timeout=False):
+        expect_timeout=False, expect_startup_timeout=False, startup_seconds=20,
+        preflight_marker=None):
     global CHILD
     remaining = min(timeout, END - time.monotonic())
     if remaining <= 0:
         raise TimeoutError("overall Metadata deadline")
     cleanup = None
     timed_out = False
+    startup_timed_out = False
+    preflight_completed = preflight_marker is None
     with out.open("x") as stream:
         CHILD = subprocess.Popen(
             command, cwd=ROOT, env=env, stdout=stream, stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL, start_new_session=True,
         )
         child = CHILD
+        cleanup_started = False
         try:
+            if expect_timeout:
+                if marker is None:
+                    raise ValueError("timeout control requires a readiness marker")
+                if preflight_marker is not None:
+                    wait_for_marker(child, out, preflight_marker, 20)
+                    preflight_completed = True
+                wait_for_marker(child, out, marker, startup_seconds)
+                remaining = min(timeout, END - time.monotonic())
+                if remaining <= 0:
+                    raise TimeoutError("overall Metadata deadline")
             try:
                 child.wait(timeout=remaining)
             except subprocess.TimeoutExpired:
                 timed_out = True
+                cleanup_started = True
                 cleanup = stop_group(child)
-            except BaseException:
+        except BaseException as error:
+            if not cleanup_started:
+                cleanup_started = True
                 cleanup = stop_group(child)
+            if expect_startup_timeout and preflight_completed and isinstance(error, StartupTimeout):
+                startup_timed_out = True
+            else:
                 raise
         finally:
             CHILD = None
@@ -127,17 +165,21 @@ def run(command, out, env=None, timeout=30, expect_failure=False, marker=None,
     if out.stat().st_size > 1_048_576:
         raise ValueError("process output exceeds budget")
     contents = out.read_text()
-    if timed_out != expect_timeout:
-        print(contents[-8192:], flush=True)
-        raise RuntimeError("unexpected timeout state in " + str(out) + ": " + str(cleanup))
-    if not timed_out and (child.returncode != 0) != expect_failure:
-        print(contents[-8192:], flush=True)
-        raise RuntimeError("unexpected exit " + str(child.returncode) + " in " + str(out))
-    if marker and marker not in contents:
-        print(contents[-8192:], flush=True)
-        raise RuntimeError("missing output marker in " + str(out))
+    if startup_timed_out != expect_startup_timeout:
+        raise RuntimeError("unexpected startup timeout state in " + str(out))
+    if not startup_timed_out:
+        if timed_out != expect_timeout:
+            print(contents[-8192:], flush=True)
+            raise RuntimeError("unexpected timeout state in " + str(out) + ": " + str(cleanup))
+        if not timed_out and (child.returncode != 0) != expect_failure:
+            print(contents[-8192:], flush=True)
+            raise RuntimeError("unexpected exit " + str(child.returncode) + " in " + str(out))
+        if marker and marker not in contents:
+            print(contents[-8192:], flush=True)
+            raise RuntimeError("missing output marker in " + str(out))
     return {"exit_code": child.returncode, "log": str(out), "group_empty": True,
-            "direct_child_waited": child.returncode is not None, "timeout_cleanup": cleanup}
+            "direct_child_waited": child.returncode is not None, "timeout_cleanup": cleanup,
+            "startup_timed_out": startup_timed_out}
 
 
 def verify_timeout_cleanup(output):
@@ -151,14 +193,20 @@ def verify_timeout_cleanup(output):
               "group=int(p.stdout.readline()); "
               "assert group == os.getpgrp(); "
               "print('descendant-ready',flush=True); time.sleep(60)")
-    result = run([sys.executable, "-c", parent, descendant], output / "timeout-control.log",
-                 timeout=2, expect_timeout=True, marker="descendant-ready")
-    cleanup = result["timeout_cleanup"]
-    if not (cleanup["sigkill_used"] and cleanup["parent_exited_group_still_present"]
-            and cleanup["group_empty"] and cleanup["direct_child_waited"]):
-        raise RuntimeError("descendant cleanup control did not exercise escalation")
-    print(json.dumps({"timeout_descendant_control": cleanup}), flush=True)
-    return result
+    command = [sys.executable, "-c", parent, descendant]
+    runtime = run(command, output / "timeout-control.log", timeout=1,
+                  expect_timeout=True, marker="descendant-ready")
+    startup = run(command, output / "startup-timeout-control.log", timeout=1,
+                  expect_timeout=True, expect_startup_timeout=True, startup_seconds=0.25,
+                  preflight_marker="descendant-ready", marker="deliberately-absent")
+    for result in (runtime, startup):
+        cleanup = result["timeout_cleanup"]
+        if not (cleanup["sigkill_used"] and cleanup["parent_exited_group_still_present"]
+                and cleanup["group_empty"] and cleanup["direct_child_waited"]):
+            raise RuntimeError("descendant cleanup control did not exercise escalation")
+    print(json.dumps({"runtime_descendant_control": runtime["timeout_cleanup"],
+                      "startup_descendant_control": startup["timeout_cleanup"]}), flush=True)
+    return {"runtime": runtime, "startup": startup}
 
 
 def peer(cache, release):

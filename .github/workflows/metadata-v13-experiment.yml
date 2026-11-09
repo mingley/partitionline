@@ -14,6 +14,8 @@ on:
       - 'tests/conformance/java/ConformanceMetadataWire.java'
       - 'tests/conformance/java/generate_metadata_wire.py'
       - 'tests/metadata_wire_conformance.rs'
+      - 'docs/evidence/conformance/q-conf-metadatawire/apache-pairs.txt'
+      - 'docs/evidence/conformance/q-conf-metadatawire/rust-pairs.txt'
       - '.github/workflows/metadata-v13-experiment.yml'
   pull_request:
     paths:
@@ -25,6 +27,8 @@ on:
       - 'tests/conformance/java/ConformanceMetadataWire.java'
       - 'tests/conformance/java/generate_metadata_wire.py'
       - 'tests/metadata_wire_conformance.rs'
+      - 'docs/evidence/conformance/q-conf-metadatawire/apache-pairs.txt'
+      - 'docs/evidence/conformance/q-conf-metadatawire/rust-pairs.txt'
       - '.github/workflows/metadata-v13-experiment.yml'
 permissions:
   contents: read
@@ -60,14 +64,22 @@ jobs:
           peers = ("4.1.2", "4.2.1", "4.3.1")
           apache = (root / peers[0] / "apache.txt").read_bytes()
           rust = (root / peers[0] / "default-rust.txt").read_bytes()
+          evidence = Path("docs/evidence/conformance/q-conf-metadatawire")
+          if apache != (evidence / "apache-pairs.txt").read_bytes():
+              raise ValueError("Apache corpus differs from retained bytes")
+          if rust != (evidence / "rust-pairs.txt").read_bytes():
+              raise ValueError("Rust corpus differs from retained bytes")
           for peer in peers:
-              assert (root / peer / "apache.txt").read_bytes() == apache
+              if (root / peer / "apache.txt").read_bytes() != apache:
+                  raise ValueError("Apache peer corpus differs")
               for profile in ("default", "all-features"):
-                  assert (root / peer / (profile + "-rust.txt")).read_bytes() == rust
+                  if (root / peer / (profile + "-rust.txt")).read_bytes() != rust:
+                      raise ValueError("Rust profile corpus differs")
           for label, body in (("APACHE", apache), ("RUST", rust)):
-              assert len(body) <= 32768 and body.endswith(b"\n")
-              assert len(body.splitlines()) == 5
-              assert all(len(line.split()) == 3 for line in body.splitlines())
+              if len(body) > 32768 or not body.endswith(b"\n"):
+                  raise ValueError("corpus size or terminator")
+              if len(body.splitlines()) != 5 or any(len(line.split()) != 3 for line in body.splitlines()):
+                  raise ValueError("corpus shape")
               print(label + "_SHA256 " + hashlib.sha256(body).hexdigest())
               print("BEGIN_" + label + "_CORPUS")
               print(body.decode("ascii"), end="")
