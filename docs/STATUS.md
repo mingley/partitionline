@@ -24,31 +24,31 @@ the current TLS and OIDC behavior.
 ## Validation
 
 The latest complete recorded snapshot is main commit
-`133d2413217cee4130bca2267e4e36b7225ff86f`; the [CI record][ci] links
+`a7b6edc1645e3a4789cf699a3b9e7656c55a3d10`; the [CI record][ci] links
 the individual runs and results. The current branch contains later changes.
 
-| Check at `133d241` | Result |
+| Check at `a7b6edc` | Result |
 | --- | --- |
-| Client library, Linux default | 2,299 passed, 18 failed; later targets did not run. |
-| Client library, Linux all features | 2,302 passed, 15 failed; later targets did not run. |
-| Client library, Windows and macOS | 2,296 passed and 21 failed on each platform. |
+| Client library, Linux default | 2,309 passed, 19 failed; later targets did not run. |
+| Client library, Linux all features | 2,318 passed, ten failed; later targets did not run. |
+| Client library, Windows default | 2,314 passed, 14 failed. |
+| Client library, macOS arm64 default | 2,320 passed, eight failed. |
 | Kafka compatibility | 4.1.2, 4.2.1 and 4.3.1 profiles failed; 3.9.1 and 4.1.0 smoke jobs failed. |
-| Resource-soak job | A child exited with code 1; the cause is unknown. |
-| Broker targets | 806 default and 954 all-feature tests passed, with four ignored in each profile. |
+| Resource-soak job | The driver and 11 short tests passed; no sustained campaign was completed. |
+| Broker targets | 814 default and 962 all-feature tests passed, with four ignored in each profile. |
 | Broker strict checks, inventory and fuzz supervision | Passed. |
 | Client capability profiles | Both selected profiles passed; their archives were not independently inspected. |
 | Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
 | Instruction-count gate | No baseline for this Rust version; no regression comparison. |
 
-A later [partial client run][partial] on `6ae6c675` passed 15 jobs. The
-Windows and macOS jobs and three current Kafka compatibility jobs failed;
-seven jobs were canceled and one was skipped. Its short resource-soak driver
-tests passed, without qualifying a sustained campaign. The [broker run][broker-run]
-passed 806 default and 954 all-feature tests, with four ignored per profile,
-plus strict checks, inventory and fuzz supervision. Both selected
-[capability profiles][caps-run] passed; their archives were not independently
-inspected. A separate [package documentation check][package-docs] passed;
-it did not compile examples.
+The [combined-head checks][combined] passed formatting, strict client checks,
+focused Admin, producer and broker transport tests in both feature profiles,
+and packed-crate checks. The latter compiled 24 documented examples in each
+of four feature configurations.
+
+An [earlier broker run][broker-earlier] on `ba893560` stopped in the default
+library after 492 passes, one failure and four ignored. The cause is unknown;
+the later broker pass does not explain it.
 
 A focused [Schema Registry retry fix][schema-retry] now honors HTTP 429
 `Retry-After` delay-seconds across the supported response framings. Its mock
@@ -81,8 +81,8 @@ and [work plan][next] retain those results and earlier evidence.
 - **Broker durability and limits.** Partition replication, native KRaft,
   authenticated network leadership, transaction marker propagation and a
   process-wide memory bound remain open. Kafka wire throttling is not
-  implemented; the [quota design][quota] describes the remaining accounting
-  and transport work. The [transport fix][transport-fix] backpressures valid
+  implemented; the [quota design][quota] and [handoff plan][quota-handoff]
+  describe the remaining accounting and transport work. The [transport fix][transport-fix] backpressures valid
   pipelines when read-ahead is full. A disconnect behind that buffer may be
   observed only after the active handler completes or reaches its deadline.
   Both full broker feature profiles and strict checks passed on its candidate.
@@ -98,8 +98,8 @@ and [work plan][next] retain those results and earlier evidence.
   it is not applied. A
   [producer comparison harness repair][sampler-exp] also remains isolated
   pending integrated testing. A [JSON object index experiment][json-index]
-  improved large parses but introduced slowdowns at its tested thresholds;
-  it is not applied. The [benchmark contract](benchmark-contract.md) sets
+  improved large parses but introduced slowdowns at its tested thresholds. A
+  [compact follow-up][json-compact] retained the slowdown; neither is applied. The [benchmark contract](benchmark-contract.md) sets
   out the measurement requirements.
 
 An automatic security review stopped specific segmented-log recovery and
@@ -111,12 +111,9 @@ The [work plan][next] and its linked evidence track the outstanding work.
 The [previous detailed status][history] preserves earlier qualification
 results and experiments.
 
-[ci]: https://github.com/mingley/partitionline/blob/d0c001b65353f865604e6cf16c94bd0d4482aa08/docs/evidence/releases/main-ci-133d-20261108/README.md
-[partial]: https://github.com/mingley/partitionline/actions/runs/42665925257
-[broker-run]: https://github.com/mingley/partitionline/actions/runs/42665925222
-[caps-run]: https://github.com/mingley/partitionline/actions/runs/42665925203
+[ci]: https://github.com/mingley/partitionline/blob/2f5f6b2742e15aa6d22a89af4b3cd81bb34c0e09/docs/evidence/releases/main-ci-a7b6-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/d3bed8c7f61d541899c455b62595fff4650d4b9c/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/2f5f6b2742e15aa6d22a89af4b3cd81bb34c0e09/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -125,8 +122,11 @@ results and experiments.
 [schema-retry]: https://github.com/mingley/partitionline/blob/ef20cb151dc7d310ab6f16d72b82ebc6c1071574/docs/evidence/schema/retry-after-20261109/README.md
 [fetch-exp]: https://github.com/mingley/partitionline/blob/b0ae69f703bc1cec5ae3d8ce860035f08a37cb93/docs/evidence/broker/fetch-indexed-vectored-20261109/README.md
 [sampler-exp]: https://github.com/mingley/partitionline/blob/b0ae69f703bc1cec5ae3d8ce860035f08a37cb93/docs/evidence/perf/kafka-ack-sampling-20261109/README.md
-[package-docs]: https://github.com/mingley/partitionline/actions/runs/42666130286
 [close-fix]: https://github.com/mingley/partitionline/blob/d3bed8c7f61d541899c455b62595fff4650d4b9c/docs/evidence/client/producer-close-errors-20261109/README.md
 [cursor-fix]: https://github.com/mingley/partitionline/blob/d3bed8c7f61d541899c455b62595fff4650d4b9c/docs/evidence/client/admin-cursor-history-20261109/README.md
 [transport-fix]: https://github.com/mingley/partitionline/blob/d3bed8c7f61d541899c455b62595fff4650d4b9c/docs/evidence/broker/transport-backpressure-20261109/README.md
 [json-index]: https://github.com/mingley/partitionline/blob/d3bed8c7f61d541899c455b62595fff4650d4b9c/docs/evidence/schema/json-duplicate-index-20261109/README.md
+[combined]: https://github.com/mingley/partitionline/blob/2f5f6b2742e15aa6d22a89af4b3cd81bb34c0e09/docs/evidence/ci/combined-a7b6-20261109/README.md
+[broker-earlier]: https://github.com/mingley/partitionline/actions/runs/42667809972
+[quota-handoff]: https://github.com/mingley/partitionline/blob/2f5f6b2742e15aa6d22a89af4b3cd81bb34c0e09/docs/evidence/broker/quota-handoff-20261109/README.md
+[json-compact]: https://github.com/mingley/partitionline/blob/2f5f6b2742e15aa6d22a89af4b3cd81bb34c0e09/docs/evidence/schema/json-compact-index-20261109/README.md
