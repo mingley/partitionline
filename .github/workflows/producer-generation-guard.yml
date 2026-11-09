@@ -29,15 +29,12 @@ jobs:
             examples
             .qualification
       - uses: dtolnay/rust-toolchain@stable
-      - name: Format and identify source
+      - name: Identify exact source
         shell: bash
         run: |
           set -euo pipefail
           rustc -Vv
-          cargo fmt --all
-          printf '\nFORMATTED_DIFF_BEGIN\n'
-          git diff -- src/producer.rs
-          printf '\nFORMATTED_DIFF_END\n'
+          git status --short
           git hash-object src/producer.rs
           sha256sum src/producer.rs Cargo.lock tests/common/mod.rs tests/stale_identity_rollback.rs
           cp src/producer.rs "$RUNNER_TEMP/producer-clean.rs"
