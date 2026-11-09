@@ -1,0 +1,82 @@
+name: Validate current documentation
+on:
+  push:
+    branches: [qualification/final-docs-71c-20261109]
+permissions:
+  contents: read
+jobs:
+  docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 71c847f74bab5384ab614e1486b0dc4c7c893bef
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 71c847f74bab5384ab614e1486b0dc4c7c893bef
+          test "$(git rev-parse HEAD:docs/STATUS.md)" = 0ff820a23d7898096920995bf1a2dceaa681f53e
+          test "$(git rev-parse HEAD:docs/plan/next-work.md)" = b8ccefe79f4989f4e791062a1ccdb27104861a4a
+          test "$(git rev-parse HEAD:docs/evidence/releases/main-ci-f1be-20261109/README.md)" = 27e8772155acbf341cf500783f5d2d805df5ec5e
+          test "$(git rev-parse HEAD:partitionline-schema/README.md)" = f1ad99fb7fc71b6716bac1653a586e8085f884c6
+          rustc -Vv
+          cargo -V
+      - name: Check current navigation and evidence links
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          root = Path.cwd()
+          spec = importlib.util.spec_from_file_location("docs_check", root / "scripts/check-doc-examples.py")
+          docs = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(docs)
+          paths = [
+              "docs/STATUS.md",
+              "docs/plan/next-work.md",
+              "partitionline-schema/README.md",
+              "docs/evidence/releases/main-ci-f1be-20261109/README.md",
+              "docs/evidence/client/producer-ownership-baseline-731eb97/README.md",
+              "docs/evidence/client/produce-request-first-length-20261109/README.md",
+              "docs/evidence/client/produce-request-uncompressed-length-20261109/README.md",
+              "docs/evidence/client/producer-retry-membership-20261109/README.md",
+              "docs/evidence/client/producer-bounded-ownership-attempt-20261109/README.md",
+              "docs/evidence/client/producer-sealed-retry-experiment-20261109/README.md",
+              "docs/evidence/broker/produce-quota-candidate-20261109/README.md",
+              "docs/evidence/schema/registry-http-streaming-20261109/README.md",
+              "docs/evidence/schema/json-balanced-index-20261109/README.md",
+              "docs/evidence/schema/json-incremental-index-20261109/README.md",
+          ]
+          total = 0
+          for path in paths:
+              count = docs.check_links(root, [root / path])
+              total += count
+              print(f"navigation: {path}: {count} local links passed")
+          status = (root / "docs/STATUS.md").read_text()
+          targets = {target for _, target in docs.link_targets(status)}
+          assert "https://github.com/mingley/partitionline/blob/47938c4811e44972e7f8e9b014e553125bcba50a/docs/plan/next-work.md" in targets
+          assert "https://github.com/mingley/partitionline/blob/47938c4811e44972e7f8e9b014e553125bcba50a/docs/evidence/releases/main-ci-f1be-20261109/README.md" in targets
+          print(f"navigation: {len(paths)} documents, {total} local links; external links not fetched")
+          PY
+      - name: Markdown checker controls
+        run: python3 -B -m unittest discover -s tests/docs -p 'test_*.py'
+      - name: Check docs in the extracted crate
+        run: |
+          set -euo pipefail
+          cargo package --locked --no-verify
+          archive=target/package/partitionline-0.1.0.crate
+          test -f "$archive"
+          mkdir -p "$RUNNER_TEMP/packed-docs"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/packed-docs"
+          python3 -B scripts/check-package-docs.py "$RUNNER_TEMP/packed-docs/partitionline-0.1.0"
+          python3 - "$RUNNER_TEMP/packed-docs/partitionline-0.1.0" <<'PY'
+          import json, sys
+          from pathlib import Path
+          root = Path(sys.argv[1])
+          vcs = json.loads((root / ".cargo_vcs_info.json").read_text())
+          assert vcs["git"]["sha1"] == "71c847f74bab5384ab614e1486b0dc4c7c893bef", vcs
+          assert not (root / "docs/plan").exists()
+          print("packed-source:", vcs["git"]["sha1"], "plan_excluded=true")
+          PY
