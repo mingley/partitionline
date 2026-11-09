@@ -1,0 +1,70 @@
+name: Producer retry membership controls
+
+on:
+  push:
+    branches: [qualification/producer-retry-membership-20261109]
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run positive and expected-negative controls
+        shell: bash
+        run: |
+          set -uo pipefail
+          rustc -Vv
+          git rev-parse HEAD
+          git hash-object src/producer.rs Cargo.lock
+          sha256sum src/producer.rs Cargo.lock
+          mkdir -p target/retry-membership
+          failures=0
+          positive() {
+            local name="$1"
+            shift
+            local log="target/retry-membership/$name.log"
+            if timeout 180s "$@" >"$log" 2>&1; then status=0; else status=$?; fi
+            cat "$log"
+            printf 'POSITIVE_STATUS %s %s\n' "$name" "$status"
+            if [[ "$status" -ne 0 ]]; then failures=$((failures + 1)); fi
+          }
+          negative() {
+            local name="$1" marker="$2" testname="$3"
+            shift 3
+            local log="target/retry-membership/$name.log"
+            if timeout 180s "$@" >"$log" 2>&1; then status=0; else status=$?; fi
+            cat "$log"
+            printf 'EXPECTED_NEGATIVE_STATUS %s %s\n' "$name" "$status"
+            if [[ "$status" -ne 101 ]] || ! grep -Fq "$marker" "$log" || ! grep -Fq "test producer::tests::$testname ... FAILED" "$log"; then
+              printf 'EXPECTED_NEGATIVE_MISMATCH %s\n' "$name"
+              failures=$((failures + 1))
+            fi
+          }
+          for profile in default all; do
+            flags=()
+            if [[ "$profile" == all ]]; then flags+=(--all-features); fi
+            positive "$profile-complete" cargo test --locked "${flags[@]}" --lib retry_membership_guard_accepts_complete_one_partition_batch -- --nocapture
+            negative "$profile-topic" RETRY_MEMBERSHIP_TOPIC_COLLISION retry_membership_guard_rejects_same_base_from_another_topic cargo test --locked "${flags[@]}" --lib retry_membership_guard_rejects_same_base_from_another_topic -- --nocapture
+            negative "$profile-partition" RETRY_MEMBERSHIP_PARTITION_COLLISION retry_membership_guard_rejects_same_base_from_another_partition cargo test --locked "${flags[@]}" --lib retry_membership_guard_rejects_same_base_from_another_partition -- --nocapture
+            negative "$profile-generation" RETRY_MEMBERSHIP_GENERATION_COLLISION retry_membership_guard_rejects_same_base_from_another_generation cargo test --locked "${flags[@]}" --lib retry_membership_guard_rejects_same_base_from_another_generation -- --nocapture
+            negative "$profile-selection" RETRY_MEMBERSHIP_INCOMPLETE_SELECTION retry_membership_guard_selects_no_incomplete_sequenced_group cargo test --locked "${flags[@]}" --lib retry_membership_guard_selects_no_incomplete_sequenced_group -- --nocapture
+          done
+          printf 'MEMBERSHIP_HARNESS_FAILURES=%s\n' "$failures"
+          test "$failures" -eq 0

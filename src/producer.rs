@@ -15666,6 +15666,69 @@ mod tests {
         );
     }
 
+    // Synthetic queue states: these do not claim a naturally reached broker history.
+    fn retry_membership_witness(topic: &str, partition: i32, epoch_gen: u64, seq: i32) -> Pending {
+        let mut pending = queued(topic, Some(partition));
+        pending.seq = Some(seq);
+        pending.batch_base_seq = Some(7);
+        pending.batch_len = 2;
+        pending.epoch_gen = epoch_gen;
+        pending
+    }
+
+    #[test]
+    fn retry_membership_guard_accepts_complete_one_partition_batch() {
+        let first = retry_membership_witness("orders", 0, 0, 7);
+        let second = retry_membership_witness("orders", 0, 0, 8);
+        let batch = vec![first, second];
+        assert_eq!(block_on_take(count_leading_sequence(&batch, 7)), 2);
+        assert_eq!(take_count(&batch, 2, usize::MAX), 2);
+    }
+
+    #[test]
+    fn retry_membership_guard_rejects_same_base_from_another_topic() {
+        let batch = vec![
+            retry_membership_witness("orders", 0, 0, 7),
+            retry_membership_witness("payments", 0, 0, 7),
+        ];
+        let observed = block_on_take(count_leading_sequence(&batch, 7));
+        println!("RETRY_MEMBERSHIP topic_collision observed={observed} expected=1");
+        assert_eq!(observed, 1, "RETRY_MEMBERSHIP_TOPIC_COLLISION");
+    }
+
+    #[test]
+    fn retry_membership_guard_rejects_same_base_from_another_partition() {
+        let batch = vec![
+            retry_membership_witness("orders", 0, 0, 7),
+            retry_membership_witness("orders", 1, 0, 7),
+        ];
+        let observed = block_on_take(count_leading_sequence(&batch, 7));
+        println!("RETRY_MEMBERSHIP partition_collision observed={observed} expected=1");
+        assert_eq!(observed, 1, "RETRY_MEMBERSHIP_PARTITION_COLLISION");
+    }
+
+    #[test]
+    fn retry_membership_guard_rejects_same_base_from_another_generation() {
+        let batch = vec![
+            retry_membership_witness("orders", 0, 0, 7),
+            retry_membership_witness("orders", 0, 1, 7),
+        ];
+        let observed = block_on_take(count_leading_sequence(&batch, 7));
+        println!("RETRY_MEMBERSHIP generation_collision observed={observed} expected=1");
+        assert_eq!(observed, 1, "RETRY_MEMBERSHIP_GENERATION_COLLISION");
+    }
+
+    #[test]
+    fn retry_membership_guard_selects_no_incomplete_sequenced_group() {
+        let batch = vec![
+            retry_membership_witness("orders", 0, 0, 7),
+            retry_membership_witness("payments", 0, 0, 7),
+        ];
+        let selected = take_count(&batch, 2, usize::MAX);
+        println!("RETRY_MEMBERSHIP selected={selected} expected=0");
+        assert_eq!(selected, 0, "RETRY_MEMBERSHIP_INCOMPLETE_SELECTION");
+    }
+
     fn queued(topic: &str, partition: Option<i32>) -> Pending {
         let now = Instant::now();
         let mut rec = ProduceRecord::to(topic);
