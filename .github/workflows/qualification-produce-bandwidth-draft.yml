@@ -26,7 +26,7 @@ jobs:
           test "$(git rev-parse HEAD:partitionline-broker/src/produce.rs)" = 5338acb770c23094c4bd7418835e10ce8ec42904
           test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = ab9ec08cea10495f44a5abfd9e87a04a683ce8c8
           test "$(git rev-parse HEAD:partitionline-broker/src/metadata/bandwidth.rs)" = 93057aa5e51a217ae780eacd33ed21bcf53e9f9d
-          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_quota.rs)" = b322268551d2a873104ac5e8c2943fdf283fc81f
+          test "$(git rev-parse HEAD:partitionline-broker/tests/produce_quota.rs)" = 001c1824705a329c9082188f4ed8d099a22bed37
           test "$(git rev-parse HEAD:partitionline-broker/tests/sasl_sessions.rs)" = 24924aca1f4d7d014fd011d228ce2f59583c727c
           test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
           rustc -Vv

@@ -343,8 +343,12 @@ async fn throttle_response_is_prompt_and_pipelined_response_follows_resume() -> 
         .await?;
         started_request(&mut started, 0).await?;
         let deadline = produce_deadline(&mut deadlines).await?;
-        let response = tokio::time::timeout(Duration::from_millis(500), receive(&mut socket)).await??;
-        assert!(Instant::now() < deadline, "v{version} response was delayed through the mute");
+        let response =
+            tokio::time::timeout(Duration::from_millis(500), receive(&mut socket)).await??;
+        assert!(
+            Instant::now() < deadline,
+            "v{version} response was delayed through the mute"
+        );
         assert_eq!(
             i32::from_be_bytes(response[response.len() - 4..].try_into()?),
             1_000
