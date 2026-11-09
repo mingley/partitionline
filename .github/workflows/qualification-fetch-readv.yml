@@ -11,7 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: partitionline-broker
+          sparse-checkout: |
+            partitionline-broker
+            src
       - uses: dtolnay/rust-toolchain@stable
       - name: Environment
         run: |
@@ -71,10 +73,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: partitionline-broker
+          sparse-checkout: |
+            partitionline-broker
+            src
       - uses: dtolnay/rust-toolchain@stable
       - name: Check ordinary Fetch on Windows
+        shell: pwsh
         run: |
           rustc -Vv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo test --manifest-path partitionline-broker/Cargo.toml --locked --lib indexed_fetch_
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch global_first_batch_exception_and_request_order_preserve_capped_reads
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
