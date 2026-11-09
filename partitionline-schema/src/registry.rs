@@ -19,7 +19,11 @@
 //! `Connection: close`, no keep-alive pooling, no redirect following, no
 //! request body. Responses may use `Content-Length`, `chunked`
 //! `Transfer-Encoding`, or close-delimited framing, all capped by
-//! [`RegistryClientConfig::max_body_bytes`].
+//! [`RegistryClientConfig::max_body_bytes`] after decoding. Response headers,
+//! each chunk-size line and the trailer section are capped at 64 KiB. Total
+//! chunk framing overhead is capped at five times the body limit plus 64 KiB.
+//! A continuously ready response reader offers an executor turn after 256 KiB
+//! or 256 reads. These turns do not bound one read or synchronous JSON parsing.
 //!
 //! # TLS
 //!
@@ -1163,14 +1167,40 @@ async fn http_roundtrip<S: AsyncReadExt + AsyncWriteExt + Unpin>(
     read_http_response(stream, deadline, max_body).await
 }
 
+// Bound work on an always-ready stream without penalizing every short read.
+#[derive(Default)]
+struct ResponseReadBudget {
+    bytes: usize,
+    reads: usize,
+}
+
+impl ResponseReadBudget {
+    fn account(&mut self, bytes: usize) -> bool {
+        self.bytes += bytes;
+        self.reads += 1;
+        if self.bytes >= 32 * READ_CHUNK || self.reads >= 256 {
+            self.bytes = 0;
+            self.reads = 0;
+            true
+        } else {
+            false
+        }
+    }
+}
+
 async fn read_http_response<S: AsyncReadExt + Unpin>(
     stream: &mut S,
     deadline: Instant,
     max_body: usize,
 ) -> Result<HttpResponse, RegistryError> {
     let mut buf = Vec::new();
+    let mut search_from = 0usize;
+    let mut budget = ResponseReadBudget::default();
     let end = loop {
-        if let Some(end) = find_header_end(&buf) {
+        if let Some(end) = find_header_end(&buf[search_from..]).map(|end| search_from + end) {
+            if end > MAX_HEADER_BYTES {
+                return Err(RegistryError::TooLarge { limit: MAX_HEADER_BYTES });
+            }
             break end;
         }
         if buf.len() > MAX_HEADER_BYTES {
@@ -1179,6 +1209,7 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
             });
         }
         let left = time_left(deadline).ok_or(RegistryError::Timeout)?;
+        let previous_len = buf.len();
         let mut tmp = [0u8; READ_CHUNK];
         let n = match timeout(left, stream.read(&mut tmp)).await {
             Ok(Ok(0)) => {
@@ -1192,6 +1223,10 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
             .get(..n)
             .ok_or_else(|| RegistryError::malformed("short socket read"))?;
         buf.extend_from_slice(chunk);
+        search_from = previous_len.saturating_sub(3);
+        if budget.account(n) {
+            arm_yield().await;
+        }
     };
 
     let head = buf
@@ -1234,6 +1269,9 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
                 .get(..n)
                 .ok_or_else(|| RegistryError::malformed("short socket read"))?;
             buf.extend_from_slice(chunk);
+            if buf.len().saturating_sub(end) < content_len && budget.account(n) {
+                arm_yield().await;
+            }
         }
         let body_end = end.saturating_add(content_len);
         let body = buf
@@ -1264,6 +1302,9 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
             .get(..n)
             .ok_or_else(|| RegistryError::malformed("short socket read"))?;
         buf.extend_from_slice(chunk);
+        if budget.account(n) {
+            arm_yield().await;
+        }
     }
     let body = buf
         .get(end..)
@@ -1285,24 +1326,18 @@ async fn read_chunked_body<S: AsyncReadExt + Unpin>(
     deadline: Instant,
     max_body: usize,
 ) -> Result<HttpResponse, RegistryError> {
+    let mut decoder = ChunkedDecoder::new(max_body);
+    if decoder.feed(buf.get(end..).unwrap_or(&[]))? {
+        return Ok(HttpResponse { status, retry_after_secs, body: decoder.body });
+    }
+    // The completed headers and first read are no longer needed.
+    buf.clear();
+    let mut budget = ResponseReadBudget::default();
     loop {
-        if buf.len() > max_body.saturating_add(MAX_HEADER_BYTES) {
-            return Err(RegistryError::TooLarge { limit: max_body });
-        }
-        let raw = buf.get(end..).unwrap_or(&[]);
-        if let Some(body) = try_decode_chunked_body(raw, max_body)? {
-            return Ok(HttpResponse {
-                status,
-                retry_after_secs,
-                body,
-            });
-        }
         let left = time_left(deadline).ok_or(RegistryError::Timeout)?;
         let mut tmp = [0u8; READ_CHUNK];
         let n = match timeout(left, stream.read(&mut tmp)).await {
-            Ok(Ok(0)) => {
-                return Err(RegistryError::malformed("truncated chunked body"));
-            }
+            Ok(Ok(0)) => return Err(RegistryError::malformed("truncated chunked body")),
             Ok(Ok(n)) => n,
             Ok(Err(err)) => return Err(RegistryError::transport(err)),
             Err(_) => return Err(RegistryError::Timeout),
@@ -1310,7 +1345,12 @@ async fn read_chunked_body<S: AsyncReadExt + Unpin>(
         let chunk = tmp
             .get(..n)
             .ok_or_else(|| RegistryError::malformed("short socket read"))?;
-        buf.extend_from_slice(chunk);
+        if decoder.feed(chunk)? {
+            return Ok(HttpResponse { status, retry_after_secs, body: decoder.body });
+        }
+        if budget.account(n) {
+            arm_yield().await;
+        }
     }
 }
 
@@ -1405,58 +1445,122 @@ fn parse_retry_after(head: &[u8]) -> Option<u64> {
     None
 }
 
-/// Decode one possibly-partial chunked body: `Ok(None)` means more bytes
-/// are needed. Mirrors the core crate's strict chunked reader.
-fn try_decode_chunked_body(raw: &[u8], max_body: usize) -> Result<Option<Vec<u8>>, RegistryError> {
-    let mut cursor = 0usize;
-    let mut decoded = Vec::new();
-    loop {
-        let remaining = raw.get(cursor..).unwrap_or(&[]);
-        let Some(pos) = remaining.windows(2).position(|w| w == b"\r\n") else {
-            return Ok(None);
-        };
-        let line = remaining.get(..pos).unwrap_or(&[]);
-        let line_str =
-            std::str::from_utf8(line).map_err(|_| RegistryError::malformed("bad chunk size"))?;
-        let size_str = match line_str.split_once(';') {
-            Some((size, _)) => size.trim(),
-            None => line_str.trim(),
-        };
-        if size_str.is_empty() || !size_str.bytes().all(|b| b.is_ascii_hexdigit()) {
-            return Err(RegistryError::malformed("bad chunk size"));
+// Incremental HTTP/1.1 chunk framing reader. Payload is retained only once;
+// line/trailer storage and total non-payload framing work have separate caps.
+#[derive(Clone, Copy)]
+enum ChunkState {
+    Size,
+    Data(usize),
+    DataCrlf(u8),
+    Trailer,
+    Done,
+}
+
+struct ChunkedDecoder {
+    state: ChunkState,
+    line: Vec<u8>,
+    body: Vec<u8>,
+    max_body: usize,
+    framing_bytes: usize,
+    framing_limit: usize,
+}
+
+impl ChunkedDecoder {
+    fn new(max_body: usize) -> Self {
+        Self {
+            state: ChunkState::Size,
+            line: Vec::new(),
+            body: Vec::new(),
+            max_body,
+            framing_bytes: 0,
+            framing_limit: max_body.saturating_mul(5).saturating_add(MAX_HEADER_BYTES),
         }
-        let chunk_size = usize::from_str_radix(size_str, 16)
-            .map_err(|_| RegistryError::malformed("bad chunk size"))?;
-        cursor = cursor.saturating_add(pos).saturating_add(2);
-        if chunk_size == 0 {
-            let trailer = raw.get(cursor..).unwrap_or(&[]);
-            if trailer.starts_with(b"\r\n") {
-                return Ok(Some(decoded));
+    }
+
+    fn framing_byte(&mut self) -> Result<(), RegistryError> {
+        self.framing_bytes = self.framing_bytes.saturating_add(1);
+        if self.framing_bytes > self.framing_limit {
+            return Err(RegistryError::TooLarge { limit: self.framing_limit });
+        }
+        Ok(())
+    }
+
+    fn feed(&mut self, input: &[u8]) -> Result<bool, RegistryError> {
+        let mut position = 0;
+        while position < input.len() {
+            match self.state {
+                ChunkState::Size => {
+                    self.framing_byte()?;
+                    self.line.push(input[position]);
+                    position += 1;
+                    if self.line.len() > MAX_HEADER_BYTES {
+                        return Err(RegistryError::TooLarge { limit: MAX_HEADER_BYTES });
+                    }
+                    if self.line.ends_with(b"\r\n") {
+                        let line = &self.line[..self.line.len() - 2];
+                        let line = std::str::from_utf8(line)
+                            .map_err(|_| RegistryError::malformed("bad chunk size"))?;
+                        let size = match line.split_once(';') {
+                            Some((size, _)) => size.trim(),
+                            None => line.trim(),
+                        };
+                        if size.is_empty() || !size.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+                            return Err(RegistryError::malformed("bad chunk size"));
+                        }
+                        let size = usize::from_str_radix(size, 16)
+                            .map_err(|_| RegistryError::malformed("bad chunk size"))?;
+                        self.line.clear();
+                        if size == 0 {
+                            self.state = ChunkState::Trailer;
+                        } else {
+                            if size > self.max_body.saturating_sub(self.body.len()) {
+                                return Err(RegistryError::TooLarge { limit: self.max_body });
+                            }
+                            self.state = ChunkState::Data(size);
+                        }
+                    }
+                }
+                ChunkState::Data(remaining) => {
+                    let count = remaining.min(input.len() - position);
+                    self.body.extend_from_slice(&input[position..position + count]);
+                    position += count;
+                    self.state = if count == remaining {
+                        ChunkState::DataCrlf(0)
+                    } else {
+                        ChunkState::Data(remaining - count)
+                    };
+                }
+                ChunkState::DataCrlf(matched) => {
+                    self.framing_byte()?;
+                    let expected = if matched == 0 { b'\r' } else { b'\n' };
+                    if input[position] != expected {
+                        return Err(RegistryError::malformed("bad chunk framing"));
+                    }
+                    position += 1;
+                    self.state = if matched == 0 {
+                        ChunkState::DataCrlf(1)
+                    } else {
+                        ChunkState::Size
+                    };
+                }
+                ChunkState::Trailer => {
+                    self.framing_byte()?;
+                    self.line.push(input[position]);
+                    position += 1;
+                    if self.line.len() > MAX_HEADER_BYTES {
+                        return Err(RegistryError::TooLarge { limit: MAX_HEADER_BYTES });
+                    }
+                    if (self.line.len() == 2 && self.line == b"\r\n")
+                        || self.line.ends_with(b"\r\n\r\n")
+                    {
+                        self.state = ChunkState::Done;
+                        return Ok(true);
+                    }
+                }
+                ChunkState::Done => return Ok(true),
             }
-            if trailer.windows(4).any(|w| w == b"\r\n\r\n") {
-                return Ok(Some(decoded));
-            }
-            return Ok(None);
         }
-        if chunk_size > max_body || decoded.len().saturating_add(chunk_size) > max_body {
-            return Err(RegistryError::TooLarge { limit: max_body });
-        }
-        let chunk_end = cursor.saturating_add(chunk_size);
-        let crlf_end = chunk_end.saturating_add(2);
-        if raw.len() < crlf_end {
-            return Ok(None);
-        }
-        let data = raw
-            .get(cursor..chunk_end)
-            .ok_or_else(|| RegistryError::malformed("truncated chunk"))?;
-        let crlf = raw
-            .get(chunk_end..crlf_end)
-            .ok_or_else(|| RegistryError::malformed("truncated chunk"))?;
-        if crlf != b"\r\n" {
-            return Err(RegistryError::malformed("bad chunk framing"));
-        }
-        decoded.extend_from_slice(data);
-        cursor = crlf_end;
+        Ok(matches!(self.state, ChunkState::Done))
     }
 }
 
@@ -1959,6 +2063,239 @@ mod tests {
     use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
     use tokio::net::TcpListener;
     use tokio::sync::Mutex;
+
+
+    struct FragmentedResponse<'a> {
+        bytes: &'a [u8],
+        position: usize,
+        max_read: usize,
+    }
+
+    impl AsyncRead for FragmentedResponse<'_> {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            out: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let count = this.max_read.min(out.remaining()).min(this.bytes.len() - this.position);
+            out.put_slice(&this.bytes[this.position..this.position + count]);
+            this.position += count;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[test]
+    fn chunked_decoder_handles_every_split_and_extensions() {
+        let wire = b"3;name=value\r\nabc\r\n2\r\nde\r\n0\r\nX-Test: ok\r\n\r\n";
+        for split in 0..=wire.len() {
+            let mut decoder = ChunkedDecoder::new(1024);
+            assert_eq!(decoder.feed(&wire[..split]).unwrap(), split == wire.len());
+            assert!(decoder.feed(&wire[split..]).unwrap());
+            assert_eq!(decoder.body, b"abcde");
+        }
+        for width in 1..=wire.len() {
+            let mut decoder = ChunkedDecoder::new(1024);
+            for part in wire.chunks(width) {
+                decoder.feed(part).unwrap();
+            }
+            assert!(matches!(decoder.state, ChunkState::Done));
+            assert_eq!(decoder.body, b"abcde");
+        }
+    }
+
+    #[test]
+    fn chunked_decoder_rejects_malformed_lengths_and_terminators() {
+        for wire in [
+            &b"z\r\n"[..],
+            &b"\r\n"[..],
+            &b"ffffffffffffffffffffffffffffffff\r\n"[..],
+            &b"1\r\nxNO"[..],
+            &b"1\r\nx\rX"[..],
+        ] {
+            let error = ChunkedDecoder::new(1024).feed(wire).unwrap_err();
+            assert!(matches!(error, RegistryError::Malformed { .. }));
+        }
+        let error = ChunkedDecoder::new(1024).feed(b"401\r\n").unwrap_err();
+        assert!(matches!(error, RegistryError::TooLarge { limit: 1024 }));
+    }
+
+    #[test]
+    fn chunked_decoder_enforces_line_trailer_and_total_framing_limits() {
+        let mut line = ChunkedDecoder::new(1024);
+        assert!(!line.feed(&vec![b'a'; MAX_HEADER_BYTES]).unwrap());
+        assert!(matches!(line.feed(b"a"), Err(RegistryError::TooLarge { limit: MAX_HEADER_BYTES })));
+
+        let mut trailer = ChunkedDecoder::new(1024);
+        assert!(!trailer.feed(b"0\r\n").unwrap());
+        assert!(!trailer.feed(&vec![b'a'; MAX_HEADER_BYTES]).unwrap());
+        assert!(matches!(trailer.feed(b"a"), Err(RegistryError::TooLarge { limit: MAX_HEADER_BYTES })));
+
+        let limit = MAX_HEADER_BYTES + 5 * 1024;
+        for extra in 0..=1 {
+            let extension = limit - 17 + extra;
+            let left = extension / 2;
+            let right = extension - left;
+            let mut wire = Vec::new();
+            for count in [left, right] {
+                wire.extend_from_slice(b"1;");
+                wire.extend(std::iter::repeat_n(b'a', count));
+                wire.extend_from_slice(b"\r\nx\r\n");
+            }
+            wire.extend_from_slice(b"0\r\n\r\n");
+            assert_eq!(wire.len() - 2, limit + extra);
+            let result = ChunkedDecoder::new(1024).feed(&wire);
+            if extra == 0 {
+                assert!(matches!(result, Ok(true)));
+            } else {
+                assert!(matches!(result, Err(RegistryError::TooLarge { limit: got }) if got == limit));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn chunked_http_fragmented_headers_and_trailers_keep_retry_after() {
+        let wire = b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\nTransfer-Encoding: chunked\r\n\r\n3;name=value\r\nabc\r\n2\r\nde\r\n0\r\nX-Test: ok\r\n\r\n";
+        for width in [1, 2, 3, 7, 17, 8192] {
+            let mut stream = FragmentedResponse { bytes: wire, position: 0, max_read: width };
+            let response = read_http_response(
+                &mut stream,
+                Instant::now() + Duration::from_secs(3),
+                1024,
+            ).await.unwrap();
+            assert_eq!(response.status, 429);
+            assert_eq!(response.retry_after_secs, Some(7));
+            assert_eq!(response.body, b"abcde");
+        }
+    }
+
+    #[tokio::test]
+    async fn response_header_ending_past_limit_is_rejected() {
+        for extra in [0, 1] {
+            let prefix = b"HTTP/1.1 200 OK\r\nX-Long: ";
+            let suffix = b"\r\nContent-Length: 2\r\n\r\n";
+            let mut wire = prefix.to_vec();
+            wire.extend(std::iter::repeat_n(
+                b'a',
+                MAX_HEADER_BYTES + extra - prefix.len() - suffix.len(),
+            ));
+            wire.extend_from_slice(suffix);
+            wire.extend_from_slice(b"{}");
+            let mut stream = wire.as_slice();
+            let result = read_http_response(
+                &mut stream,
+                Instant::now() + Duration::from_secs(3),
+                1024,
+            ).await;
+            if extra == 0 {
+                assert!(result.is_ok());
+            } else {
+                assert!(matches!(result, Err(RegistryError::TooLarge { limit: MAX_HEADER_BYTES })));
+            }
+        }
+    }
+
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn always_ready_fragmented_responses_yield_before_completion() {
+        let mut long_header = b"HTTP/1.1 200 OK\r\nX-Long: ".to_vec();
+        long_header.extend(std::iter::repeat_n(b'a', 2048));
+        long_header.extend_from_slice(b"\r\nContent-Length: 2\r\n\r\n{}");
+
+        let mut fixed = b"HTTP/1.1 200 OK\r\nContent-Length: 1024\r\n\r\n".to_vec();
+        fixed.extend(std::iter::repeat_n(b'a', 1024));
+
+        let mut close = b"HTTP/1.1 200 OK\r\n\r\n".to_vec();
+        close.extend(std::iter::repeat_n(b'a', 1024));
+
+        let mut chunked = b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n400\r\n".to_vec();
+        chunked.extend(std::iter::repeat_n(b'a', 1024));
+        chunked.extend_from_slice(b"\r\n0\r\n\r\n");
+
+        for wire in [&long_header, &fixed, &close, &chunked] {
+            let mut stream = FragmentedResponse { bytes: wire, position: 0, max_read: 1 };
+            let mut call = Box::pin(read_http_response(
+                &mut stream,
+                Instant::now() + Duration::from_secs(3),
+                2048,
+            ));
+            let (done_tx, done_rx) = tokio::sync::oneshot::channel();
+            tokio::spawn(async move { let _sent = done_tx.send(()); });
+            tokio::select! {
+                biased;
+                _ = &mut call => panic!("always-ready reader finished without offering a turn"),
+                done = done_rx => done.unwrap(),
+            }
+            assert!(call.await.is_ok());
+        }
+    }
+
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn always_ready_large_responses_yield_before_completion() {
+        const SIZE: usize = 512 * 1024;
+        let mut fixed = format!("HTTP/1.1 200 OK\r\nContent-Length: {SIZE}\r\n\r\n").into_bytes();
+        fixed.extend(std::iter::repeat_n(b'a', SIZE));
+        let mut close = b"HTTP/1.1 200 OK\r\n\r\n".to_vec();
+        close.extend(std::iter::repeat_n(b'a', SIZE));
+        let mut chunked = format!("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n{SIZE:x}\r\n").into_bytes();
+        chunked.extend(std::iter::repeat_n(b'a', SIZE));
+        chunked.extend_from_slice(b"\r\n0\r\n\r\n");
+
+        for wire in [&fixed, &close, &chunked] {
+            let mut stream = FragmentedResponse { bytes: wire, position: 0, max_read: READ_CHUNK };
+            let mut call = Box::pin(read_http_response(
+                &mut stream,
+                Instant::now() + Duration::from_secs(3),
+                1024 * 1024,
+            ));
+            let (done_tx, done_rx) = tokio::sync::oneshot::channel();
+            tokio::spawn(async move { let _sent = done_tx.send(()); });
+            tokio::select! {
+                biased;
+                _ = &mut call => panic!("always-ready large response finished without offering a turn"),
+                done = done_rx => done.unwrap(),
+            }
+            assert_eq!(call.await.unwrap().body.len(), SIZE);
+        }
+    }
+
+    struct SlowReadyResponse<'a> {
+        bytes: &'a [u8],
+        position: usize,
+    }
+
+    impl AsyncRead for SlowReadyResponse<'_> {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            out: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.position < this.bytes.len() && out.remaining() > 0 {
+                let start = Instant::now();
+                while start.elapsed() < Duration::from_millis(2) {}
+                out.put_slice(&this.bytes[this.position..this.position + 1]);
+                this.position += 1;
+            }
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn always_ready_fragmented_header_obeys_deadline() {
+        let mut wire = b"HTTP/1.1 200 OK\r\nX-Long: ".to_vec();
+        wire.extend(std::iter::repeat_n(b'a', 1024));
+        wire.extend_from_slice(b"\r\nContent-Length: 2\r\n\r\n{}");
+        let mut stream = SlowReadyResponse { bytes: &wire, position: 0 };
+        let result = read_http_response(
+            &mut stream,
+            Instant::now() + Duration::from_millis(100),
+            1024,
+        ).await;
+        assert!(matches!(result, Err(RegistryError::Timeout)));
+        assert!(stream.position > 0 && stream.position < wire.len());
+    }
 
     /// Accepts every offered byte and spends time in proportion to that copy.
     struct GreedyRegistry;
