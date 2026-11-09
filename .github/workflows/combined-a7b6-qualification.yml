@@ -1,0 +1,396 @@
+name: Exact combined Admin producer broker qualification
+on:
+  push:
+    branches: [qualification/combined-a7b6-20261109]
+permissions:
+  contents: read
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: never
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - id: pin
+        name: Verify combined head and source blobs
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD:Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git hash-object Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git rev-parse HEAD:Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          test "$(git hash-object Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git hash-object src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git hash-object src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git rev-parse HEAD:src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
+          test "$(git hash-object src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
+          test "$(git rev-parse HEAD:tests/produce_cancel.rs)" = 65b44339a6fac2d7946298d5130e6bf8572ef69b
+          test "$(git hash-object tests/produce_cancel.rs)" = 65b44339a6fac2d7946298d5130e6bf8572ef69b
+          test "$(git rev-parse HEAD:tests/producer_close_errors.rs)" = 3244d743442dec21fcf3159e9855157bc813abc6
+          test "$(git hash-object tests/producer_close_errors.rs)" = 3244d743442dec21fcf3159e9855157bc813abc6
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          test "$(git hash-object partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git hash-object partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = 7d43efab6f3e929611ed2df1def5f2edb96f475a
+          test "$(git hash-object partitionline-broker/src/transport.rs)" = 7d43efab6f3e929611ed2df1def5f2edb96f475a
+          test "$(git rev-parse HEAD:partitionline-broker/tests/transport.rs)" = ca949f3566eefe0a59e5abdaae24dbc16bd6d97b
+          test "$(git hash-object partitionline-broker/tests/transport.rs)" = ca949f3566eefe0a59e5abdaae24dbc16bd6d97b
+          test "$(git rev-parse HEAD:partitionline-broker/tests/transport_backpressure.rs)" = 2fc5613de332cd47396847f1778f69d33a5897a4
+          test "$(git hash-object partitionline-broker/tests/transport_backpressure.rs)" = 2fc5613de332cd47396847f1778f69d33a5897a4
+          test "$(git rev-parse HEAD:README.md)" = 1da3b31dfe117e4c7e3a9ac41af422fa67f59587
+          test "$(git hash-object README.md)" = 1da3b31dfe117e4c7e3a9ac41af422fa67f59587
+          test "$(git rev-parse HEAD:docs/guide.md)" = 1cc100190b7011b566de0558242c180baffe362d
+          test "$(git hash-object docs/guide.md)" = 1cc100190b7011b566de0558242c180baffe362d
+          test "$(git rev-parse HEAD:docs/index.md)" = fbb9f38aba97f01e783d96247a7baa5f932461ef
+          test "$(git hash-object docs/index.md)" = fbb9f38aba97f01e783d96247a7baa5f932461ef
+          test "$(git rev-parse HEAD:docs/STATUS.md)" = 77743d82d964a395f81d56fa4d521e93fac937cc
+          test "$(git hash-object docs/STATUS.md)" = 77743d82d964a395f81d56fa4d521e93fac937cc
+          test "$(git rev-parse HEAD:scripts/check-package-docs.py)" = f8d2d1c262383d09cc7e19d1db399556e4be9271
+          test "$(git hash-object scripts/check-package-docs.py)" = f8d2d1c262383d09cc7e19d1db399556e4be9271
+          test "$(git rev-parse HEAD:scripts/check-doc-examples.py)" = 88bd6a3af39efac6f2a93b555024eda70a668b21
+          test "$(git hash-object scripts/check-doc-examples.py)" = 88bd6a3af39efac6f2a93b555024eda70a668b21
+          test "$(git rev-parse HEAD:scripts/ci-crate-consumer.sh)" = e3eb377b60d4076c37b47d7676c3e512187d78c2
+          test "$(git hash-object scripts/ci-crate-consumer.sh)" = e3eb377b60d4076c37b47d7676c3e512187d78c2
+          test "$(git rev-parse HEAD:scripts/ci-docs.sh)" = 11d0e053cf094ca02490d81b684686b9714f3f4d
+          test "$(git hash-object scripts/ci-docs.sh)" = 11d0e053cf094ca02490d81b684686b9714f3f4d
+          git rev-parse HEAD
+          rustc -Vv
+          cargo -V
+          uname -sm
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Format client
+        run: cargo fmt --all -- --check
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Format broker
+        run: cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+  client-strict:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - id: pin
+        name: Verify combined head and source blobs
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD:Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git hash-object Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git rev-parse HEAD:Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          test "$(git hash-object Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git hash-object src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git hash-object src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git rev-parse HEAD:src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
+          test "$(git hash-object src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
+          test "$(git rev-parse HEAD:tests/produce_cancel.rs)" = 65b44339a6fac2d7946298d5130e6bf8572ef69b
+          test "$(git hash-object tests/produce_cancel.rs)" = 65b44339a6fac2d7946298d5130e6bf8572ef69b
+          test "$(git rev-parse HEAD:tests/producer_close_errors.rs)" = 3244d743442dec21fcf3159e9855157bc813abc6
+          test "$(git hash-object tests/producer_close_errors.rs)" = 3244d743442dec21fcf3159e9855157bc813abc6
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          test "$(git hash-object partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git hash-object partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = 7d43efab6f3e929611ed2df1def5f2edb96f475a
+          test "$(git hash-object partitionline-broker/src/transport.rs)" = 7d43efab6f3e929611ed2df1def5f2edb96f475a
+          test "$(git rev-parse HEAD:partitionline-broker/tests/transport.rs)" = ca949f3566eefe0a59e5abdaae24dbc16bd6d97b
+          test "$(git hash-object partitionline-broker/tests/transport.rs)" = ca949f3566eefe0a59e5abdaae24dbc16bd6d97b
+          test "$(git rev-parse HEAD:partitionline-broker/tests/transport_backpressure.rs)" = 2fc5613de332cd47396847f1778f69d33a5897a4
+          test "$(git hash-object partitionline-broker/tests/transport_backpressure.rs)" = 2fc5613de332cd47396847f1778f69d33a5897a4
+          test "$(git rev-parse HEAD:README.md)" = 1da3b31dfe117e4c7e3a9ac41af422fa67f59587
+          test "$(git hash-object README.md)" = 1da3b31dfe117e4c7e3a9ac41af422fa67f59587
+          test "$(git rev-parse HEAD:docs/guide.md)" = 1cc100190b7011b566de0558242c180baffe362d
+          test "$(git hash-object docs/guide.md)" = 1cc100190b7011b566de0558242c180baffe362d
+          test "$(git rev-parse HEAD:docs/index.md)" = fbb9f38aba97f01e783d96247a7baa5f932461ef
+          test "$(git hash-object docs/index.md)" = fbb9f38aba97f01e783d96247a7baa5f932461ef
+          test "$(git rev-parse HEAD:docs/STATUS.md)" = 77743d82d964a395f81d56fa4d521e93fac937cc
+          test "$(git hash-object docs/STATUS.md)" = 77743d82d964a395f81d56fa4d521e93fac937cc
+          test "$(git rev-parse HEAD:scripts/check-package-docs.py)" = f8d2d1c262383d09cc7e19d1db399556e4be9271
+          test "$(git hash-object scripts/check-package-docs.py)" = f8d2d1c262383d09cc7e19d1db399556e4be9271
+          test "$(git rev-parse HEAD:scripts/check-doc-examples.py)" = 88bd6a3af39efac6f2a93b555024eda70a668b21
+          test "$(git hash-object scripts/check-doc-examples.py)" = 88bd6a3af39efac6f2a93b555024eda70a668b21
+          test "$(git rev-parse HEAD:scripts/ci-crate-consumer.sh)" = e3eb377b60d4076c37b47d7676c3e512187d78c2
+          test "$(git hash-object scripts/ci-crate-consumer.sh)" = e3eb377b60d4076c37b47d7676c3e512187d78c2
+          test "$(git rev-parse HEAD:scripts/ci-docs.sh)" = 11d0e053cf094ca02490d81b684686b9714f3f4d
+          test "$(git hash-object scripts/ci-docs.sh)" = 11d0e053cf094ca02490d81b684686b9714f3f4d
+          git rev-parse HEAD
+          rustc -Vv
+          cargo -V
+          uname -sm
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Client all-target all-feature Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Client all-feature Rustdoc
+        env:
+          RUSTDOCFLAGS: '-D warnings'
+        run: cargo doc --locked --all-features --no-deps
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Client all-feature doctests
+        run: cargo test --locked --all-features --doc
+  client-behavior:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - id: pin
+        name: Verify combined head and source blobs
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD:Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git hash-object Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git rev-parse HEAD:Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          test "$(git hash-object Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git hash-object src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git hash-object src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git rev-parse HEAD:src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
+          test "$(git hash-object src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
+          test "$(git rev-parse HEAD:tests/produce_cancel.rs)" = 65b44339a6fac2d7946298d5130e6bf8572ef69b
+          test "$(git hash-object tests/produce_cancel.rs)" = 65b44339a6fac2d7946298d5130e6bf8572ef69b
+          test "$(git rev-parse HEAD:tests/producer_close_errors.rs)" = 3244d743442dec21fcf3159e9855157bc813abc6
+          test "$(git hash-object tests/producer_close_errors.rs)" = 3244d743442dec21fcf3159e9855157bc813abc6
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          test "$(git hash-object partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git hash-object partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = 7d43efab6f3e929611ed2df1def5f2edb96f475a
+          test "$(git hash-object partitionline-broker/src/transport.rs)" = 7d43efab6f3e929611ed2df1def5f2edb96f475a
+          test "$(git rev-parse HEAD:partitionline-broker/tests/transport.rs)" = ca949f3566eefe0a59e5abdaae24dbc16bd6d97b
+          test "$(git hash-object partitionline-broker/tests/transport.rs)" = ca949f3566eefe0a59e5abdaae24dbc16bd6d97b
+          test "$(git rev-parse HEAD:partitionline-broker/tests/transport_backpressure.rs)" = 2fc5613de332cd47396847f1778f69d33a5897a4
+          test "$(git hash-object partitionline-broker/tests/transport_backpressure.rs)" = 2fc5613de332cd47396847f1778f69d33a5897a4
+          test "$(git rev-parse HEAD:README.md)" = 1da3b31dfe117e4c7e3a9ac41af422fa67f59587
+          test "$(git hash-object README.md)" = 1da3b31dfe117e4c7e3a9ac41af422fa67f59587
+          test "$(git rev-parse HEAD:docs/guide.md)" = 1cc100190b7011b566de0558242c180baffe362d
+          test "$(git hash-object docs/guide.md)" = 1cc100190b7011b566de0558242c180baffe362d
+          test "$(git rev-parse HEAD:docs/index.md)" = fbb9f38aba97f01e783d96247a7baa5f932461ef
+          test "$(git hash-object docs/index.md)" = fbb9f38aba97f01e783d96247a7baa5f932461ef
+          test "$(git rev-parse HEAD:docs/STATUS.md)" = 77743d82d964a395f81d56fa4d521e93fac937cc
+          test "$(git hash-object docs/STATUS.md)" = 77743d82d964a395f81d56fa4d521e93fac937cc
+          test "$(git rev-parse HEAD:scripts/check-package-docs.py)" = f8d2d1c262383d09cc7e19d1db399556e4be9271
+          test "$(git hash-object scripts/check-package-docs.py)" = f8d2d1c262383d09cc7e19d1db399556e4be9271
+          test "$(git rev-parse HEAD:scripts/check-doc-examples.py)" = 88bd6a3af39efac6f2a93b555024eda70a668b21
+          test "$(git hash-object scripts/check-doc-examples.py)" = 88bd6a3af39efac6f2a93b555024eda70a668b21
+          test "$(git rev-parse HEAD:scripts/ci-crate-consumer.sh)" = e3eb377b60d4076c37b47d7676c3e512187d78c2
+          test "$(git hash-object scripts/ci-crate-consumer.sh)" = e3eb377b60d4076c37b47d7676c3e512187d78c2
+          test "$(git rev-parse HEAD:scripts/ci-docs.sh)" = 11d0e053cf094ca02490d81b684686b9714f3f4d
+          test "$(git hash-object scripts/ci-docs.sh)" = 11d0e053cf094ca02490d81b684686b9714f3f4d
+          git rev-parse HEAD
+          rustc -Vv
+          cargo -V
+          uname -sm
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Admin pagination suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=(--all-features); else flags=(); fi
+          cargo test --locked "${flags[@]}" --lib admin::pagination_tests:: -- --test-threads=1
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Producer close error integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=(--all-features); else flags=(); fi
+          cargo test --locked "${flags[@]}" --test producer_close_errors -- --test-threads=1
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Producer cancellation integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=(--all-features); else flags=(); fi
+          cargo test --locked "${flags[@]}" --test produce_cancel -- --test-threads=1
+  broker-transport:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - id: pin
+        name: Verify combined head and source blobs
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD:Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git hash-object Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git rev-parse HEAD:Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          test "$(git hash-object Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git hash-object src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git hash-object src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git rev-parse HEAD:src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
+          test "$(git hash-object src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
+          test "$(git rev-parse HEAD:tests/produce_cancel.rs)" = 65b44339a6fac2d7946298d5130e6bf8572ef69b
+          test "$(git hash-object tests/produce_cancel.rs)" = 65b44339a6fac2d7946298d5130e6bf8572ef69b
+          test "$(git rev-parse HEAD:tests/producer_close_errors.rs)" = 3244d743442dec21fcf3159e9855157bc813abc6
+          test "$(git hash-object tests/producer_close_errors.rs)" = 3244d743442dec21fcf3159e9855157bc813abc6
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          test "$(git hash-object partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git hash-object partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = 7d43efab6f3e929611ed2df1def5f2edb96f475a
+          test "$(git hash-object partitionline-broker/src/transport.rs)" = 7d43efab6f3e929611ed2df1def5f2edb96f475a
+          test "$(git rev-parse HEAD:partitionline-broker/tests/transport.rs)" = ca949f3566eefe0a59e5abdaae24dbc16bd6d97b
+          test "$(git hash-object partitionline-broker/tests/transport.rs)" = ca949f3566eefe0a59e5abdaae24dbc16bd6d97b
+          test "$(git rev-parse HEAD:partitionline-broker/tests/transport_backpressure.rs)" = 2fc5613de332cd47396847f1778f69d33a5897a4
+          test "$(git hash-object partitionline-broker/tests/transport_backpressure.rs)" = 2fc5613de332cd47396847f1778f69d33a5897a4
+          test "$(git rev-parse HEAD:README.md)" = 1da3b31dfe117e4c7e3a9ac41af422fa67f59587
+          test "$(git hash-object README.md)" = 1da3b31dfe117e4c7e3a9ac41af422fa67f59587
+          test "$(git rev-parse HEAD:docs/guide.md)" = 1cc100190b7011b566de0558242c180baffe362d
+          test "$(git hash-object docs/guide.md)" = 1cc100190b7011b566de0558242c180baffe362d
+          test "$(git rev-parse HEAD:docs/index.md)" = fbb9f38aba97f01e783d96247a7baa5f932461ef
+          test "$(git hash-object docs/index.md)" = fbb9f38aba97f01e783d96247a7baa5f932461ef
+          test "$(git rev-parse HEAD:docs/STATUS.md)" = 77743d82d964a395f81d56fa4d521e93fac937cc
+          test "$(git hash-object docs/STATUS.md)" = 77743d82d964a395f81d56fa4d521e93fac937cc
+          test "$(git rev-parse HEAD:scripts/check-package-docs.py)" = f8d2d1c262383d09cc7e19d1db399556e4be9271
+          test "$(git hash-object scripts/check-package-docs.py)" = f8d2d1c262383d09cc7e19d1db399556e4be9271
+          test "$(git rev-parse HEAD:scripts/check-doc-examples.py)" = 88bd6a3af39efac6f2a93b555024eda70a668b21
+          test "$(git hash-object scripts/check-doc-examples.py)" = 88bd6a3af39efac6f2a93b555024eda70a668b21
+          test "$(git rev-parse HEAD:scripts/ci-crate-consumer.sh)" = e3eb377b60d4076c37b47d7676c3e512187d78c2
+          test "$(git hash-object scripts/ci-crate-consumer.sh)" = e3eb377b60d4076c37b47d7676c3e512187d78c2
+          test "$(git rev-parse HEAD:scripts/ci-docs.sh)" = 11d0e053cf094ca02490d81b684686b9714f3f4d
+          test "$(git hash-object scripts/ci-docs.sh)" = 11d0e053cf094ca02490d81b684686b9714f3f4d
+          git rev-parse HEAD
+          rustc -Vv
+          cargo -V
+          uname -sm
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Broker transport unit controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=(--all-features); else flags=(); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --lib transport:: -- --test-threads=1
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Broker transport integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=(--all-features); else flags=(); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --test transport -- --test-threads=1
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Broker backpressure integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=(--all-features); else flags=(); fi
+          cargo test --locked --manifest-path partitionline-broker/Cargo.toml "${flags[@]}" --test transport_backpressure -- --test-threads=1
+  packed-docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - id: pin
+        name: Verify combined head and source blobs
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+          test "$(uname -m)" = x86_64
+          test "$(git rev-parse HEAD:Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git hash-object Cargo.toml)" = 4a90b08ab3fb886676231310b1f7132e04e2cfbb
+          test "$(git rev-parse HEAD:Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          test "$(git hash-object Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git hash-object src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git hash-object src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git rev-parse HEAD:src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
+          test "$(git hash-object src/producer.rs)" = 61b084c065291f077aa6112fdba6dc15b33848bd
+          test "$(git rev-parse HEAD:tests/produce_cancel.rs)" = 65b44339a6fac2d7946298d5130e6bf8572ef69b
+          test "$(git hash-object tests/produce_cancel.rs)" = 65b44339a6fac2d7946298d5130e6bf8572ef69b
+          test "$(git rev-parse HEAD:tests/producer_close_errors.rs)" = 3244d743442dec21fcf3159e9855157bc813abc6
+          test "$(git hash-object tests/producer_close_errors.rs)" = 3244d743442dec21fcf3159e9855157bc813abc6
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          test "$(git hash-object partitionline-broker/Cargo.toml)" = 4e23c42f8d9ac722005098a4b58e1046b711e1a3
+          test "$(git rev-parse HEAD:partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git hash-object partitionline-broker/Cargo.lock)" = 19652acd96b929402b1e4a9394a33d12a7e69449
+          test "$(git rev-parse HEAD:partitionline-broker/src/transport.rs)" = 7d43efab6f3e929611ed2df1def5f2edb96f475a
+          test "$(git hash-object partitionline-broker/src/transport.rs)" = 7d43efab6f3e929611ed2df1def5f2edb96f475a
+          test "$(git rev-parse HEAD:partitionline-broker/tests/transport.rs)" = ca949f3566eefe0a59e5abdaae24dbc16bd6d97b
+          test "$(git hash-object partitionline-broker/tests/transport.rs)" = ca949f3566eefe0a59e5abdaae24dbc16bd6d97b
+          test "$(git rev-parse HEAD:partitionline-broker/tests/transport_backpressure.rs)" = 2fc5613de332cd47396847f1778f69d33a5897a4
+          test "$(git hash-object partitionline-broker/tests/transport_backpressure.rs)" = 2fc5613de332cd47396847f1778f69d33a5897a4
+          test "$(git rev-parse HEAD:README.md)" = 1da3b31dfe117e4c7e3a9ac41af422fa67f59587
+          test "$(git hash-object README.md)" = 1da3b31dfe117e4c7e3a9ac41af422fa67f59587
+          test "$(git rev-parse HEAD:docs/guide.md)" = 1cc100190b7011b566de0558242c180baffe362d
+          test "$(git hash-object docs/guide.md)" = 1cc100190b7011b566de0558242c180baffe362d
+          test "$(git rev-parse HEAD:docs/index.md)" = fbb9f38aba97f01e783d96247a7baa5f932461ef
+          test "$(git hash-object docs/index.md)" = fbb9f38aba97f01e783d96247a7baa5f932461ef
+          test "$(git rev-parse HEAD:docs/STATUS.md)" = 77743d82d964a395f81d56fa4d521e93fac937cc
+          test "$(git hash-object docs/STATUS.md)" = 77743d82d964a395f81d56fa4d521e93fac937cc
+          test "$(git rev-parse HEAD:scripts/check-package-docs.py)" = f8d2d1c262383d09cc7e19d1db399556e4be9271
+          test "$(git hash-object scripts/check-package-docs.py)" = f8d2d1c262383d09cc7e19d1db399556e4be9271
+          test "$(git rev-parse HEAD:scripts/check-doc-examples.py)" = 88bd6a3af39efac6f2a93b555024eda70a668b21
+          test "$(git hash-object scripts/check-doc-examples.py)" = 88bd6a3af39efac6f2a93b555024eda70a668b21
+          test "$(git rev-parse HEAD:scripts/ci-crate-consumer.sh)" = e3eb377b60d4076c37b47d7676c3e512187d78c2
+          test "$(git hash-object scripts/ci-crate-consumer.sh)" = e3eb377b60d4076c37b47d7676c3e512187d78c2
+          test "$(git rev-parse HEAD:scripts/ci-docs.sh)" = 11d0e053cf094ca02490d81b684686b9714f3f4d
+          test "$(git hash-object scripts/ci-docs.sh)" = 11d0e053cf094ca02490d81b684686b9714f3f4d
+          git rev-parse HEAD
+          rustc -Vv
+          cargo -V
+          uname -sm
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Markdown and package diagnostic controls
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s tests/docs -p 'test_*.py'
+          python3 -B -m unittest discover -s tests/ci -p test_docs_diagnostics.py
+      - if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        name: Packed documentation links examples and consumer
+        env:
+          PL_PACKAGE_TOOLCHAINS: stable
+        run: bash scripts/ci-crate-consumer.sh
+      - name: Preserve packed documentation reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: combined-a7b6-package-docs
+          path: target/package-check/
+          if-no-files-found: warn
+          retention-days: 30
