@@ -1,0 +1,67 @@
+name: Isolated Schema Registry JSON index
+on:
+  push:
+    branches: [qualification/schema-json-index-20261109]
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format candidate and report patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          cargo fmt --manifest-path partitionline-schema/Cargo.toml
+          echo PL_FMT_DIFF_BEGIN
+          git diff -- partitionline-schema/src/registry.rs
+          echo PL_FMT_DIFF_END
+          cp partitionline-schema/src/registry.rs "$RUNNER_TEMP/json-candidate.rs"
+          git hash-object "$RUNNER_TEMP/json-candidate.rs"
+      - name: Collision, ordering and public controls
+        run: |
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib json_object_index_
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib registry_public_large_object_duplicate_control
+      - name: Full schema profiles and strict checks
+        run: |
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --all-features
+          cargo clippy --manifest-path partitionline-schema/Cargo.toml --locked --all-targets --all-features -- -D warnings
+          RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path partitionline-schema/Cargo.toml --locked --all-features --no-deps
+      - name: Compile matching release tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .qualification/json-bench-baseline.rs partitionline-schema/src/registry.rs
+          test "$(git hash-object partitionline-schema/src/registry.rs)" = 87e493b85e37879aa973a18656c1e03a995bd938
+          CARGO_TARGET_DIR="$RUNNER_TEMP/json-baseline-target" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --release --lib --no-run
+          find "$RUNNER_TEMP/json-baseline-target/release/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/json-baseline" \;
+          cp .qualification/json-bench-candidate.rs partitionline-schema/src/registry.rs
+          test "$(git hash-object partitionline-schema/src/registry.rs)" = d6f5a6f636df46d346c7b7b673aec7174fd4f4f6
+          CARGO_TARGET_DIR="$RUNNER_TEMP/json-candidate-target" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --release --lib --no-run
+          find "$RUNNER_TEMP/json-candidate-target/release/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/json-candidate" \;
+          sha256sum "$RUNNER_TEMP/json-baseline" "$RUNNER_TEMP/json-candidate"
+          cp "$RUNNER_TEMP/json-candidate.rs" partitionline-schema/src/registry.rs
+      - name: Alternating paired JSON parse samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "Pinned CPU $cpu"
+          for implementation in baseline candidate; do
+            taskset -c "$cpu" "$RUNNER_TEMP/json-$implementation" --ignored --exact registry::tests::json_object_qualification_bench --nocapture
+          done
+          for pair in $(seq 1 12); do
+            if ((pair % 2)); then order="baseline candidate"; else order="candidate baseline"; fi
+            for implementation in $order; do
+              echo "PL_PAIR pair=$pair implementation=$implementation"
+              taskset -c "$cpu" "$RUNNER_TEMP/json-$implementation" --ignored --exact registry::tests::json_object_qualification_bench --nocapture
+            done
+          done
