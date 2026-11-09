@@ -14,7 +14,7 @@ use std::{
     sync::{atomic::{AtomicU64, Ordering}, Arc},
     time::{Duration, Instant},
 };
-use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::{TcpListener, TcpStream}, sync::Notify};
+use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::{TcpListener, TcpStream}, sync::mpsc};
 
 type Result<T = ()> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 static NEXT: AtomicU64 = AtomicU64::new(0);
@@ -123,8 +123,10 @@ async fn independent_produce_goldens_get_only_the_writer_throttle_field() -> Res
 
 struct Observe {
     inner: Arc<QuotaRouter>,
-    done: Arc<Notify>,
+    started: mpsc::UnboundedSender<(i16, Instant)>,
+    deadlines: mpsc::UnboundedSender<Option<Instant>>,
 }
+
 impl Handler for Observe {
     type Error = metadata::QuotaRouterError;
     async fn handle(&self, _request: Vec<u8>) -> std::result::Result<Option<Vec<u8>>, Self::Error> {
@@ -133,26 +135,82 @@ impl Handler for Observe {
     async fn exchange_with_control(
         &self, peer: &Peer, request: Vec<u8>, spare: Vec<u8>,
     ) -> std::result::Result<ExchangeControl, Self::Error> {
-        let outcome = Handler::exchange_with_control(self.inner.as_ref(), peer, request, spare).await?;
-        self.done.notify_one();
-        Ok(outcome)
+        let key = i16::from_be_bytes([request[0], request[1]]);
+        let _ = self.started.send((key, Instant::now()));
+        let control = Handler::exchange_with_control(self.inner.as_ref(), peer, request, spare).await?;
+        let (outcome, resume_at) = control.into_parts();
+        if key == 0 {
+            let _ = self.deadlines.send(resume_at);
+        }
+        match resume_at {
+            Some(until) => ExchangeControl::with_resume_at(outcome, until)
+                .map_err(|_| metadata::QuotaRouterError::AccountingFailed),
+            None => Ok(ExchangeControl::new(outcome)),
+        }
     }
+}
+
+fn observing(
+    router: &Arc<QuotaRouter>,
+) -> (Arc<Observe>, mpsc::UnboundedReceiver<(i16, Instant)>, mpsc::UnboundedReceiver<Option<Instant>>) {
+    let (started, started_rx) = mpsc::unbounded_channel();
+    let (deadlines, deadlines_rx) = mpsc::unbounded_channel();
+    (Arc::new(Observe { inner: Arc::clone(router), started, deadlines }), started_rx, deadlines_rx)
+}
+
+async fn started_request(
+    events: &mut mpsc::UnboundedReceiver<(i16, Instant)>,
+    expected_key: i16,
+) -> Result<Instant> {
+    let (key, at) = tokio::time::timeout(Duration::from_secs(3), events.recv())
+        .await?.ok_or("handler observation channel closed")?;
+    assert_eq!(key, expected_key);
+    Ok(at)
+}
+
+async fn produce_deadline(events: &mut mpsc::UnboundedReceiver<Option<Instant>>) -> Result<Instant> {
+    tokio::time::timeout(Duration::from_secs(3), events.recv())
+        .await?.flatten().ok_or_else(|| "missing Produce deadline".into())
+}
+
+// A single-byte read is cancellation safe. If the response begins at the
+// deadline, keep the consumed byte when reading the rest of the frame.
+async fn receive_after_mute(socket: &mut TcpStream, deadline: Instant) -> Result<Vec<u8>> {
+    if deadline.saturating_duration_since(Instant::now()) < Duration::from_millis(300) {
+        return Err("too little mute time remains for the control".into());
+    }
+    let mut header = [0u8; 4];
+    let mut byte = [0u8; 1];
+    let prefix = match tokio::time::timeout_at(
+        tokio::time::Instant::from_std(deadline), socket.read(&mut byte),
+    ).await {
+        Err(_) => 0,
+        Ok(Ok(0)) => return Err("connection closed during mute".into()),
+        Ok(Ok(_)) if Instant::now() < deadline => return Err("response byte arrived before resume".into()),
+        Ok(Ok(_)) => { header[0] = byte[0]; 1 },
+        Ok(Err(error)) => return Err(error.into()),
+    };
+    socket.read_exact(&mut header[prefix..]).await?;
+    let size = i32::from_be_bytes(header);
+    let mut body = vec![0; usize::try_from(size)?];
+    socket.read_exact(&mut body).await?;
+    Ok(body)
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn acks_zero_mutes_a_pipelined_request_then_resumes() -> Result {
     let root = scratch()?;
-    let router = Arc::new(open(&root, 800).await?);
-    let done = Arc::new(Notify::new());
-    let handler = Arc::new(Observe { inner: Arc::clone(&router), done: Arc::clone(&done) });
+    let router = Arc::new(open(&root, 1_500).await?);
+    let (handler, mut started, mut deadlines) = observing(&router);
     let mut transport = Transport::bind(([127,0,0,1], 0).into(), transport::Config::default(), handler).await?;
     let mut socket = TcpStream::connect(transport.local_addr()).await?;
     send(&mut socket, &fixture("produce-v3-acks0", "request")?).await?;
-    tokio::time::timeout(Duration::from_secs(3), done.notified()).await?;
+    started_request(&mut started, 0).await?;
+    let deadline = produce_deadline(&mut deadlines).await?;
     send(&mut socket, &metadata_request()).await?;
-    assert!(tokio::time::timeout(Duration::from_millis(100), socket.readable()).await.is_err(), "a muted connection read the next request early");
-    let response = tokio::time::timeout(Duration::from_secs(3), receive(&mut socket)).await??;
+    let response = tokio::time::timeout(Duration::from_secs(4), receive_after_mute(&mut socket, deadline)).await??;
     assert_eq!(&response[..4], &77i32.to_be_bytes());
+    assert!(started_request(&mut started, 3).await? >= deadline, "Metadata reached the handler before resume");
     transport.shutdown().await?;
     router.shutdown().await?;
     fs::remove_dir_all(root)?;
@@ -160,24 +218,57 @@ async fn acks_zero_mutes_a_pipelined_request_then_resumes() -> Result {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn throttle_response_is_sent_before_mute_and_shutdown_interrupts_it() -> Result {
+async fn throttle_response_is_prompt_and_pipelined_response_follows_resume() -> Result {
     let root = scratch()?;
-    let router = Arc::new(open(&root, 2_000).await?);
-    let done = Arc::new(Notify::new());
-    let handler = Arc::new(Observe { inner: Arc::clone(&router), done: Arc::clone(&done) });
+    let router = Arc::new(open(&root, 1_500).await?);
+    let (handler, mut started, mut deadlines) = observing(&router);
     let mut transport = Transport::bind(([127,0,0,1], 0).into(), transport::Config::default(), handler).await?;
     let mut socket = TcpStream::connect(transport.local_addr()).await?;
     send(&mut socket, &fixture("produce-v6-acks1", "request")?).await?;
-    tokio::time::timeout(Duration::from_secs(3), done.notified()).await?;
+    started_request(&mut started, 0).await?;
+    let deadline = produce_deadline(&mut deadlines).await?;
     let response = tokio::time::timeout(Duration::from_millis(500), receive(&mut socket)).await??;
-    assert_eq!(i32::from_be_bytes(response[response.len()-4..].try_into()?), 2_000);
+    assert_eq!(i32::from_be_bytes(response[response.len()-4..].try_into()?), 1_500);
     send(&mut socket, &metadata_request()).await?;
-    if let Ok(readiness) = tokio::time::timeout(Duration::from_millis(100), socket.readable()).await {
-        readiness?;
-        let actual = observe_socket(&socket, Duration::from_millis(100)).await?;
-        panic!("readiness returned during mute; byte-level observation: {actual:?}");
+    let response = tokio::time::timeout(Duration::from_secs(4), receive_after_mute(&mut socket, deadline)).await??;
+    assert_eq!(&response[..4], &77i32.to_be_bytes());
+    assert!(started_request(&mut started, 3).await? >= deadline, "Metadata reached the handler before resume");
+    transport.shutdown().await?;
+    router.shutdown().await?;
+    fs::remove_dir_all(root)?;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn shutdown_interrupts_a_muted_connection() -> Result {
+    let root = scratch()?;
+    let router = Arc::new(open(&root, 3_000).await?);
+    let (handler, mut started, mut deadlines) = observing(&router);
+    let mut transport = Transport::bind(([127,0,0,1], 0).into(), transport::Config::default(), handler).await?;
+    let mut socket = TcpStream::connect(transport.local_addr()).await?;
+    send(&mut socket, &fixture("produce-v6-acks1", "request")?).await?;
+    started_request(&mut started, 0).await?;
+    let deadline = produce_deadline(&mut deadlines).await?;
+    let response = tokio::time::timeout(Duration::from_millis(500), receive(&mut socket)).await??;
+    assert_eq!(i32::from_be_bytes(response[response.len()-4..].try_into()?), 3_000);
+    assert!(deadline.saturating_duration_since(Instant::now()) >= Duration::from_secs(1));
+    send(&mut socket, &metadata_request()).await?;
+    let mut byte = [0u8; 1];
+    match tokio::time::timeout(Duration::from_millis(100), socket.read(&mut byte)).await {
+        Err(_) => {},
+        Ok(Ok(0)) => return Err("connection closed before shutdown".into()),
+        Ok(Ok(_)) => return Err("unexpected response byte during mute".into()),
+        Ok(Err(error)) => return Err(error.into()),
     }
-    tokio::time::timeout(Duration::from_secs(1), transport.shutdown()).await??;
+    tokio::time::timeout(Duration::from_millis(750), transport.shutdown()).await??;
+    assert!(Instant::now() < deadline, "shutdown waited for the pause");
+    assert!(started.try_recv().is_err(), "pipelined Metadata reached the handler");
+    match tokio::time::timeout(Duration::from_secs(1), socket.read(&mut byte)).await? {
+        Ok(0) => {},
+        Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {},
+        Ok(_) => return Err("unexpected response after shutdown".into()),
+        Err(error) => return Err(error.into()),
+    }
     router.shutdown().await?;
     fs::remove_dir_all(root)?;
     Ok(())
