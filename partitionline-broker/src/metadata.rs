@@ -374,7 +374,15 @@ impl Router {
         {
             return Err(produce::Error::InvalidConfig.into());
         }
-        Self::open_inner(path.into(), config, Some((store, None)), None, None, None, None)
+        Self::open_inner(
+            path.into(),
+            config,
+            Some((store, None)),
+            None,
+            None,
+            None,
+            None,
+        )
         .await
     }
     /// Open the separately advertised ordinary read/write data profile.
@@ -416,7 +424,15 @@ impl Router {
         {
             return Err(fetch::Error::InvalidLimits.into());
         }
-        Self::open_inner(path.into(), config, Some((store, None)), Some(reads), None, None, None)
+        Self::open_inner(
+            path.into(),
+            config,
+            Some((store, None)),
+            Some(reads),
+            None,
+            None,
+            None,
+        )
         .await
     }
     /// Open the explicit rolling RF1 read/write/retention profile, adding API21.
@@ -449,7 +465,15 @@ impl Router {
         {
             return Err(fetch::Error::InvalidLimits.into());
         }
-        Self::open_inner(path.into(), config, Some((store, None)), Some(reads), Some(retention), None, None)
+        Self::open_inner(
+            path.into(),
+            config,
+            Some((store, None)),
+            Some(reads),
+            Some(retention),
+            None,
+            None,
+        )
         .await
     }
     /// Open explicit bounded ordinary compaction on the rolling RF1 owner.
@@ -483,7 +507,15 @@ impl Router {
         {
             return Err(fetch::Error::InvalidLimits.into());
         }
-        Self::open_inner(path.into(), config, Some((store, None)), Some(reads), None, Some(policy), None)
+        Self::open_inner(
+            path.into(),
+            config,
+            Some((store, None)),
+            Some(reads),
+            None,
+            Some(policy),
+            None,
+        )
         .await
     }
     /// Open an explicit metadata-only quorum application frontend.
@@ -1083,7 +1115,15 @@ impl QuotaRouter {
         {
             return Err(Error::Fetch(fetch::Error::InvalidLimits).into());
         }
-        let (inner, recovery) = Router::open_inner(path.into(), config, Some((store, Some(quota))), Some(reads), None, None, None)
+        let (inner, recovery) = Router::open_inner(
+            path.into(),
+            config,
+            Some((store, Some(quota))),
+            Some(reads),
+            None,
+            None,
+            None,
+        )
         .await?;
         Ok((Self { inner }, recovery))
     }
