@@ -1,0 +1,28 @@
+name: Exact Schema Registry retry candidate
+on:
+  push:
+    branches: [qualification/schema-retry-exact-20261109]
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Bind source and run schema profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:partitionline-schema/src/registry.rs)" = 6dc764d026718509575854ecb3955d00c44e77a0
+          test "$(git rev-parse HEAD:partitionline-schema/README.md)" = 9d5f842f7eb247dafca1860cb1ab848a307e9432
+          rustc -Vv
+          cargo fmt --manifest-path partitionline-schema/Cargo.toml -- --check
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --all-features
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --no-default-features
+      - name: Strict checks
+        run: |
+          cargo clippy --manifest-path partitionline-schema/Cargo.toml --locked --all-targets --all-features -- -D warnings
+          RUSTDOCFLAGS="-D warnings" cargo doc --manifest-path partitionline-schema/Cargo.toml --locked --all-features --no-deps
