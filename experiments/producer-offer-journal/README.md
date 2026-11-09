@@ -4,9 +4,9 @@ This is an isolated state-machine experiment. It is not linked to the producer,
 broker connection, admission queue, callbacks, or transaction implementation.
 Passing its tests does not make the producer safe or production ready.
 
-The model atomically reserves all partitions in a frame, roots immutable
-sequenced record-batch bytes, and retains the same identity and bytes after an
-ambiguous offer. Only one batch per partition may be active. A drain prevents
+The model starts with an already initialized identity. It atomically reserves all
+partitions in a frame, roots immutable sequenced record-batch bytes, and retains
+the same identity and bytes after an ambiguous offer. Only one batch per partition may be active. A drain prevents
 new frame reservations but permits a previously reserved frame to finish.
 An identity-changing RPC can start only after every retained frame has a
 definitive result and its receipt has been recorded and retired. Dropping an
@@ -23,7 +23,8 @@ Partial outcomes and protocol-specific error dispositions are not implemented.
 
 A fatal fence blocks later offers but an already offered socket task may still
 write until it is stopped and joined. The model's quiescence check tracks only
-its guards and is not proof that real transport tasks stopped. At a fatal
+its frame and identity RPC guards and is not proof that real transport tasks
+stopped. At a fatal
 shutdown deadline, an offered or retried frame reports a broker outcome of
 unknown and remains rooted. A frame that was never offered reports unsent only
 within this model. There is no bounded time to resolve an ambiguous frame:

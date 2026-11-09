@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![allow(clippy::disallowed_types, reason = "Synchronous isolated model with tested lock poisoning; no async runtime or await")]
 
 //! Standalone model. This code is not connected to the producer or its transport.
 
@@ -17,6 +18,8 @@ pub struct Identity {
     pub epoch: i16,
     pub generation: u64,
 }
+
+pub type BatchSnapshot = Vec<(Partition, Arc<[u8]>)>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Error {
@@ -77,6 +80,7 @@ struct State {
     next_frame: u64,
     next_attempt: u64,
     next_transition: u64,
+    rpc_active: bool,
 }
 
 #[derive(Clone)]
@@ -90,8 +94,11 @@ pub enum DeadlineStatus {
 }
 
 impl Journal {
-    pub fn new(identity: Identity, max_frames: usize, max_parts_per_frame: usize, max_bytes: usize) -> Self {
-        Self(Arc::new(Mutex::new(State {
+    pub fn new(identity: Identity, max_frames: usize, max_parts_per_frame: usize, max_bytes: usize) -> Result<Self, Error> {
+        if identity.producer_id < 0 || identity.epoch < 0 {
+            return Err(Error::Invalid);
+        }
+        Ok(Self(Arc::new(Mutex::new(State {
             phase: Phase::Open,
             identity,
             frames: BTreeMap::new(),
@@ -103,14 +110,15 @@ impl Journal {
             next_frame: 1,
             next_attempt: 1,
             next_transition: 1,
-        })))
+            rpc_active: false,
+        }))))
     }
 
     fn lock(&self) -> Result<MutexGuard<'_, State>, Error> {
         self.0.lock().map_err(|_| Error::Poisoned)
     }
 
-    pub fn reserve(&self, batches: Vec<(Partition, Arc<[u8]>)>) -> Result<u64, Error> {
+    pub fn reserve(&self, batches: BatchSnapshot) -> Result<u64, Error> {
         let mut map = BTreeMap::new();
         let mut bytes = 0usize;
         for (partition, batch) in batches {
@@ -191,6 +199,7 @@ impl Journal {
             return Err(Error::WrongState);
         }
         state.phase = Phase::RpcOffered(ticket);
+        state.rpc_active = true;
         Ok(IdentityRpc { journal: self.clone(), ticket, active: true })
     }
 
@@ -257,7 +266,7 @@ impl Journal {
         if !matches!(state.phase, Phase::Fatal { .. }) {
             return Err(Error::WrongState);
         }
-        Ok(state.frames.values().all(|frame| !matches!(frame.stage, Stage::Claimed { .. } | Stage::Offered(_))))
+        Ok(!state.rpc_active && state.frames.values().all(|frame| !matches!(frame.stage, Stage::Claimed { .. } | Stage::Offered(_))))
     }
 
     /// A fatal shutdown deadline reports uncertainty; it does not retire anything.
@@ -284,7 +293,7 @@ pub struct Claim {
 }
 
 impl Claim {
-    pub fn snapshot(&self) -> Result<(Identity, Vec<(Partition, Arc<[u8]>)>), Error> {
+    pub fn snapshot(&self) -> Result<(Identity, BatchSnapshot), Error> {
         let state = self.journal.lock()?;
         let frame = state.frames.get(&self.id).ok_or(Error::NotFound)?;
         if frame.stage != (Stage::Claimed { retry: self.retry }) {
@@ -317,12 +326,11 @@ impl Drop for Claim {
         if !self.active {
             return;
         }
-        if let Ok(mut state) = self.journal.lock() {
-            if let Some(frame) = state.frames.get_mut(&self.id) {
-                if frame.stage == (Stage::Claimed { retry: self.retry }) {
-                    frame.stage = if self.retry { Stage::RetryReady } else { Stage::Ready };
-                }
-            }
+        if let Ok(mut state) = self.journal.lock()
+            && let Some(frame) = state.frames.get_mut(&self.id)
+            && frame.stage == (Stage::Claimed { retry: self.retry })
+        {
+            frame.stage = if self.retry { Stage::RetryReady } else { Stage::Ready };
         }
     }
 }
@@ -364,12 +372,11 @@ impl Drop for Offer {
         if !self.active {
             return;
         }
-        if let Ok(mut state) = self.journal.lock() {
-            if let Some(frame) = state.frames.get_mut(&self.id) {
-                if frame.stage == Stage::Offered(self.attempt) {
-                    frame.stage = Stage::Ambiguous(self.attempt);
-                }
-            }
+        if let Ok(mut state) = self.journal.lock()
+            && let Some(frame) = state.frames.get_mut(&self.id)
+            && frame.stage == Stage::Offered(self.attempt)
+        {
+            frame.stage = Stage::Ambiguous(self.attempt);
         }
     }
 }
@@ -393,6 +400,7 @@ impl IdentityRpc {
         let generation = state.identity.generation.checked_add(1).ok_or(Error::Exhausted)?;
         let identity = Identity { producer_id, epoch, generation };
         state.identity = identity;
+        state.rpc_active = false;
         state.phase = Phase::Open;
         self.active = false;
         Ok(identity)
@@ -405,8 +413,13 @@ impl Drop for IdentityRpc {
             return;
         }
         if let Ok(mut state) = self.journal.lock() {
-            if state.phase == Phase::RpcOffered(self.ticket) {
-                state.phase = Phase::RpcUnknown(self.ticket);
+            match state.phase {
+                Phase::RpcOffered(ticket) if ticket == self.ticket => {
+                    state.rpc_active = false;
+                    state.phase = Phase::RpcUnknown(self.ticket);
+                }
+                Phase::Fatal { .. } => state.rpc_active = false,
+                _ => {}
             }
         }
     }
@@ -431,7 +444,7 @@ mod tests {
     }
 
     fn journal() -> Journal {
-        Journal::new(identity(), 8, 8, 1024)
+        Journal::new(identity(), 8, 8, 1024).unwrap()
     }
 
     fn complete_and_retire(journal: &Journal, frame: u64, offer: Offer, parts: &[Partition]) {
@@ -540,13 +553,15 @@ mod tests {
         let ticket = other.drain().unwrap();
         let rpc = other.begin_identity_rpc(ticket).unwrap();
         other.fatal().unwrap();
+        assert_eq!(other.fatal_model_quiescent(), Ok(false));
         drop(rpc);
+        assert_eq!(other.fatal_model_quiescent(), Ok(true));
         assert_eq!(other.lock().unwrap().phase, Phase::Fatal { rpc_unknown: true });
     }
 
     #[test]
     fn capacity_and_counter_exhaustion_never_partially_reserve_or_wrap() {
-        let journal = Journal::new(identity(), 1, 2, 3);
+        let journal = Journal::new(identity(), 1, 2, 3).unwrap();
         let id = journal.reserve(vec![(part(0), bytes(b"abc"))]).unwrap();
         assert_eq!(journal.reserve(vec![(part(1), bytes(b"x"))]), Err(Error::Capacity));
         let state = journal.lock().unwrap();
@@ -566,6 +581,23 @@ mod tests {
         journal.lock().unwrap().next_transition = u64::MAX;
         assert_eq!(journal.drain(), Err(Error::Exhausted));
         assert_eq!(journal.lock().unwrap().phase, Phase::Open);
+    }
+
+    #[test]
+    fn exhausted_attempt_and_generation_do_not_release_or_reopen() {
+        let journal = journal();
+        let frame = journal.reserve(vec![(part(0), bytes(b"a"))]).unwrap();
+        journal.lock().unwrap().next_attempt = u64::MAX;
+        assert!(matches!(journal.claim(frame).unwrap().begin_offer(11, 22), Err(Error::Exhausted)));
+        assert_eq!(journal.lock().unwrap().frames[&frame].stage, Stage::Ready);
+        assert_eq!(journal.reserve(vec![(part(0), bytes(b"b"))]), Err(Error::Conflict));
+
+        let overflow = Journal::new(Identity { generation: u64::MAX, ..identity() }, 1, 1, 10).unwrap();
+        let ticket = overflow.drain().unwrap();
+        let rpc = overflow.begin_identity_rpc(ticket).unwrap();
+        assert_eq!(rpc.publish(9, 0), Err(Error::Exhausted));
+        assert_eq!(overflow.lock().unwrap().phase, Phase::RpcUnknown(ticket));
+        assert!(matches!(overflow.reserve(vec![(part(0), bytes(b"a"))]), Err(Error::Closed)));
     }
 
     #[test]
@@ -593,6 +625,20 @@ mod tests {
         }
         assert_eq!(journal.deadline_status(frame), Ok(DeadlineStatus::BrokerOutcomeUnknown));
         assert!(matches!(journal.begin_identity_rpc(ticket), Err(Error::WrongState)));
+    }
+
+    #[test]
+    fn poisoned_state_never_reopens_for_admission_or_identity() {
+        let journal = journal();
+        let other = journal.clone();
+        let worker = thread::spawn(move || {
+            let _guard = other.lock().unwrap();
+            panic!("deliberate model lock poison");
+        });
+        assert!(worker.join().is_err());
+        assert_eq!(journal.reserve(vec![(part(0), bytes(b"x"))]), Err(Error::Poisoned));
+        assert_eq!(journal.drain(), Err(Error::Poisoned));
+        assert_eq!(journal.fatal(), Err(Error::Poisoned));
     }
 
     #[test]
