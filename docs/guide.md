@@ -770,6 +770,14 @@ Close first attempts to flush and then stops admission, so another clone can
 still admit a record during that initial flush. Calls already waiting for
 admission may finish later. Drop alone does not wait for in-flight produce.
 
+Both close methods return their initial flush result after attempting
+shutdown, including recorded worker errors, control errors such as `Closed`,
+and timeouts. Earlier revisions suppressed non-timeout flush errors. A caller
+may receive an error that `send` already reported. A previous `flush` can
+consume that error; errors arising only during shutdown are not returned.
+Continue to inspect each delivery result: a successful close does not
+establish delivery.
+
 A blocking interceptor can delay worker cleanup and the close deadline. In a
 known cancellation path, accepted records can lose callbacks and leave
 `bytes_buffered` nonzero after the worker stops. See the

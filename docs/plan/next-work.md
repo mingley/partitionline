@@ -24,6 +24,38 @@ passed synthetic controls but remains unapplied: its copied C and Java paths
 and live Kafka readback need integrated testing. Earlier socket mismatches
 and an unverified arm remain unresolved.
 
+Both producer close methods now report the initial flush error after shutdown.
+The [close controls](../evidence/client/producer-close-errors-20261109/README.md)
+passed in both feature profiles. Broader baseline and candidate producer
+suites still failed, and an all-feature candidate timing assertion failed
+where its paired baseline passed. The cause remains unknown. This change does
+not resolve delivery or ownership issues.
+
+The Admin aggregate now detects some non-adjacent pagination cursor repeats
+with bounded history. A transient repeat can still have progressed later and
+is rejected as a non-retriable protocol error; the raw page API remains
+available. The [cursor controls](../evidence/client/admin-cursor-history-20261109/README.md)
+record this tradeoff, focused checks and broad timing failures.
+
+A [Schema Registry JSON indexing experiment](../evidence/schema/json-duplicate-index-20261109/README.md)
+reduced large-object parse time but slowed inputs just beyond each tested
+index threshold. The measured candidates remain unapplied; parsing is still
+synchronous and memory is not globally bounded.
+
+The broker transport now backpressures valid pipelined frames when its
+read-ahead is full. The [transport controls](../evidence/broker/transport-backpressure-20261109/README.md)
+passed both broker profiles and strict checks. EOF behind a full buffer can be
+delayed until the active handler completes or its deadline expires; Kafka wire
+quotas remain unimplemented.
+
+A later [partial client run](https://github.com/mingley/partitionline/actions/runs/42665925257)
+at `6ae6c675e150bd99a132a764f7763fc3eddfbd94` passed 15 jobs, failed the
+Windows and macOS jobs and three current Kafka compatibility jobs, canceled
+seven and skipped one. Its [broker](https://github.com/mingley/partitionline/actions/runs/42665925222)
+and [selected capability](https://github.com/mingley/partitionline/actions/runs/42665925203)
+profiles passed. A separate [package documentation check](https://github.com/mingley/partitionline/actions/runs/42666130286)
+passed; it did not compile examples.
+
 The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-133d-20261108/README.md)
 is `133d2413217cee4130bca2267e4e36b7225ff86f`. Client libraries reported
 2,299 passed and 18 failed on Linux default, 2,302 passed and 15 failed with

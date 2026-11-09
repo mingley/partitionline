@@ -152,7 +152,11 @@ async fn send_fails_when_broker_returns_produce_error() {
         0,
         "failed records must release buffer_memory"
     );
-    producer.close().await.unwrap();
+    assert_eq!(
+        producer.close().await.unwrap_err().broker_code(),
+        Some(error::INVALID_RECORD),
+        "close reports the worker error observed by its initial flush"
+    );
 }
 
 #[tokio::test]

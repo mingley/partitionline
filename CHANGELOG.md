@@ -14,6 +14,13 @@ Earlier working notes and dated measurements are in the
 
 ### API and configuration changes
 
+- `Producer::close` and `close_timeout` now return errors from their initial
+  flush after attempting shutdown. Earlier Git revisions suppressed non-timeout
+  flush errors. Errors consumed by an earlier flush or arising only during
+  shutdown are not returned. Keep checking individual delivery results.
+- The Admin `DescribeTopicPartitions` aggregate now rejects detected
+  non-adjacent cursor repeats with a non-retriable protocol error. A repeat
+  can be transient; callers can use the raw page API when needed.
 - In the unpublished broker crate, `quotas::Error::code()` now returns `None`
   for local throttling. Earlier revisions returned `Some(89)`; callers must
   select any Kafka response according to its API and version.

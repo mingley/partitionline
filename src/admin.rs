@@ -5868,7 +5868,7 @@ impl Admin {
     /// loop. DescribeTopicPartitions descriptions follow their first appearance
     /// in broker responses, which may differ from request order. A returned
     /// topic description keeps its first reported error and has no partitions
-    /// on error. A global error, such as a timeout or an immediately repeated
+    /// on error. A global error, such as a timeout or a detected repeated
     /// cursor, can fail the call before descriptions are returned.
     ///
     /// Until a topic error is retained, successful pages with differing nonzero
@@ -5883,8 +5883,15 @@ impl Admin {
     /// requested name. This aggregate reports [`Error::Unsupported`] unless a
     /// global error takes precedence. It treats a response topic or next cursor
     /// outside the requested names as a client-side [`Error::Protocol`].
-    /// This is a client consistency policy. An immediately repeated cursor
-    /// is checked before these name checks. Within a page, any null name takes
+    /// This is a client consistency policy: a detected transient repeat is
+    /// rejected even if a later page might have progressed. Its
+    /// [`Error::Protocol`] is not retriable according to [`Error::is_retriable`].
+    /// Detected repeated cursors are checked before these name checks. A fixed
+    /// recent window and one cycle
+    /// checkpoint bound additional cursor state; they do not retain all prior
+    /// cursors, so nonperiodic repeats outside that state can pass. Periodic
+    /// cycles can require more pages to detect, and the deadline may expire
+    /// first. Within a page, any null name takes
     /// precedence over an unrequested topic, which takes precedence over an
     /// unrequested cursor. These checks precede page ID-conflict detection.
     /// Large, out-of-order responses can require an index whose memory grows
@@ -14131,6 +14138,7 @@ impl Admin {
             let _remaining = dtp_remaining(deadline)?;
             let mut requested_names = RequestedDtpNames::new(names);
             let mut cursor: Option<TopicPartitionCursor> = None;
+            let mut cursor_history = DtpCursorHistory::new();
             let mut out: Vec<TopicDescription> = Vec::new();
             let mut described = DescribedTopicIndex::new();
             let mut converted_rows = 0usize;
@@ -14145,6 +14153,14 @@ impl Admin {
                     )
                     .await?;
                 if resp.next_cursor.is_some() && resp.next_cursor.as_ref() == cursor.as_ref() {
+                    return Err(Error::protocol("repeated DescribeTopicPartitions cursor"));
+                }
+                if resp
+                    .next_cursor
+                    .as_ref()
+                    .is_some_and(|next| cursor_history.contains(next))
+                {
+                    let _remaining = dtp_remaining(deadline)?;
                     return Err(Error::protocol("repeated DescribeTopicPartitions cursor"));
                 }
                 let mut page = Vec::with_capacity(resp.topics.len());
@@ -14172,8 +14188,9 @@ impl Admin {
                     )
                     .await);
                 }
-                if let Some(next) = resp.next_cursor.as_ref() {
-                    if !requested_names.contains(next.topic_name.as_str()).await {
+                let next_name = if let Some(next) = resp.next_cursor.as_ref() {
+                    let Some(name) = requested_names.canonical(next.topic_name.as_str()).await
+                    else {
                         return Err(reject_unrequested_described_topic(
                             &mut page,
                             &mut out,
@@ -14181,11 +14198,17 @@ impl Admin {
                             "DescribeTopicPartitions returned an unrequested cursor topic",
                         )
                         .await);
-                    }
-                }
+                    };
+                    Some(name)
+                } else {
+                    None
+                };
                 if let Err(error) = extend_described_topics(&mut out, &mut described, page).await {
                     let _remaining = dtp_remaining(deadline)?;
                     return Err(error);
+                }
+                if let (Some(next), Some(name)) = (resp.next_cursor.as_ref(), next_name) {
+                    cursor_history.remember(name, next.partition_index);
                 }
                 match resp.next_cursor {
                     Some(next) => cursor = Some(next),
@@ -16792,6 +16815,53 @@ async fn index_requested_dtp_names<'a, T: AsRef<str>>(
     }
 }
 
+// A fixed recent window and a Brent checkpoint for cursor cycles. Names are
+// borrowed from requested inputs, so broker-controlled cursors cannot grow
+// this state. A nonperiodic repeat outside both retained sets can still pass.
+struct DtpCursorHistory<'a> {
+    recent: [Option<(&'a str, i32)>; 16],
+    next_slot: usize,
+    checkpoint: Option<(&'a str, i32)>,
+    power: usize,
+    distance: usize,
+}
+
+impl<'a> DtpCursorHistory<'a> {
+    fn new() -> Self {
+        Self {
+            recent: [None; 16],
+            next_slot: 0,
+            checkpoint: None,
+            power: 1,
+            distance: 0,
+        }
+    }
+
+    fn contains(&self, cursor: &TopicPartitionCursor) -> bool {
+        let same = |(name, partition): (&str, i32)| {
+            partition == cursor.partition_index && name == cursor.topic_name
+        };
+        self.recent.iter().flatten().copied().any(same) || self.checkpoint.is_some_and(same)
+    }
+
+    fn remember(&mut self, name: &'a str, partition: i32) {
+        if let Some(slot) = self.recent.get_mut(self.next_slot) {
+            *slot = Some((name, partition));
+        }
+        self.next_slot = (self.next_slot + 1) % self.recent.len();
+        if self.checkpoint.is_none() {
+            self.checkpoint = Some((name, partition));
+            return;
+        }
+        self.distance = self.distance.saturating_add(1);
+        if self.distance == self.power {
+            self.checkpoint = Some((name, partition));
+            self.power = self.power.saturating_mul(2);
+            self.distance = 0;
+        }
+    }
+}
+
 struct RequestedDtpNames<'a, T> {
     names: &'a [T],
     index: Option<HashSet<&'a str>>,
@@ -16837,6 +16907,39 @@ impl<'a, T: AsRef<str>> RequestedDtpNames<'a, T> {
         let contains = index.contains(name);
         self.index = Some(index);
         contains
+    }
+
+    // Match with the same hint/index rules as contains while returning a name
+    // borrowed from the caller's input, never from a broker response.
+    async fn canonical(&mut self, name: &str) -> Option<&'a str> {
+        if let Some(index) = &self.index {
+            return index.get(name).copied();
+        }
+        if let Some(candidate) = self.names.get(self.hint) {
+            let candidate = candidate.as_ref();
+            if candidate == name {
+                return Some(candidate);
+            }
+        }
+        if let Some(candidate) = self.names.get(self.hint + 1) {
+            let candidate = candidate.as_ref();
+            if candidate == name {
+                self.hint += 1;
+                return Some(candidate);
+            }
+        }
+        if self.names.len() <= 8 {
+            return self
+                .names
+                .iter()
+                .map(|candidate| candidate.as_ref())
+                .find(|candidate| *candidate == name);
+        }
+        let mut index = HashSet::with_capacity(self.names.len().min(32));
+        index_requested_dtp_names(self.names, &mut index).await;
+        let matched = index.get(name).copied();
+        self.index = Some(index);
+        matched
     }
 }
 

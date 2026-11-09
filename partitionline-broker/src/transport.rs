@@ -4,6 +4,9 @@
 //! the next handler runs. While that response is written, the connection may
 //! read the next length-prefixed request into a one-frame buffer. Pipelined
 //! responses therefore remain in request order without an application queue.
+//! While a handler runs, read-ahead stops at one maximum frame; additional
+//! pipelined bytes stay in the socket. A close behind a full buffer may not be
+//! observed until the handler finishes or its deadline expires.
 //! Connections and concurrent handler futures have separate explicit caps.
 //! Read and write deadlines cover both prefix and body without resetting on
 //! progress; handler deadlines include waiting for its concurrency permit.
@@ -1143,6 +1146,17 @@ async fn read_frame_buffered<S: AsyncRead + Unpin>(
             else {
                 return Err(Exit::InvalidLength);
             };
+            // A fragmented prefix may otherwise allow the first buffered read
+            // to consume an arbitrarily large pipeline in one step.
+            let budget = budget.min(
+                config
+                    .max_request_bytes
+                    .saturating_add(4)
+                    .saturating_sub(ahead.pending().len()),
+            );
+            if budget == 0 {
+                return Err(Exit::InvalidLength);
+            }
             ahead.compact();
             frame_mut(&mut ahead.bytes)
                 .try_reserve(budget)
@@ -1275,8 +1289,15 @@ async fn write_and_prefetch<S: AsyncRead + AsyncWrite + Unpin>(
                         else {
                             return Poll::Pending;
                         };
+                        // A partial prefix can otherwise cause prefetch to
+                        // consume more than the one-frame read-ahead budget.
+                        let budget = budget.min(
+                            max_request
+                                .saturating_add(4)
+                                .saturating_sub(ahead.pending().len()),
+                        );
                         ahead.compact();
-                        if frame_mut(&mut ahead.bytes).try_reserve(budget).is_err() {
+                        if budget == 0 || frame_mut(&mut ahead.bytes).try_reserve(budget).is_err() {
                             stop_read = true;
                         } else {
                             let polled = {
@@ -1371,9 +1392,10 @@ async fn authorized<T>(
     }
 }
 
-/// Buffer a pipelined request while a handler runs, and finish when the peer
-/// closes. A full frame stays buffered, and the following read still watches
-/// for the peer's close.
+/// Buffer pipelined requests while a handler runs, up to one maximum frame.
+/// When full, stop reading until the handler returns. A disconnect behind
+/// unread bytes may not be observed while that handler is running; its existing
+/// deadline still bounds the work.
 async fn watch_disconnect<S: AsyncRead + Unpin>(
     socket: &mut S,
     ahead: &mut ReadAhead,
@@ -1381,10 +1403,8 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
 ) -> Exit {
     let mut scanned = 0usize;
     loop {
-        // One pipelined frame fits in the request limit, including its length
-        // prefix. More than that during a handler is not one request. A
-        // length after a finished frame is not a request either, even when
-        // the first frame is still legal.
+        // Bound buffered bytes independently of how many legal frames the
+        // peer pipelines. Bytes beyond this bound remain in the socket.
         let pending = ahead.pending();
         if scanned > pending.len() {
             scanned = 0;
@@ -1403,14 +1423,22 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
                 continue;
             }
         }
+        let remaining = max_request
+            .saturating_add(4)
+            .saturating_sub(ahead.pending().len());
+        if remaining == 0 {
+            // Reading again would either exceed the bound or turn a valid
+            // pipeline into an invalid-length failure. The handler, its
+            // deadline and transport shutdown can still cancel this future.
+            return std::future::pending().await;
+        }
         let budget = match classify_ahead(ahead.pending(), max_request) {
             Ahead::Need(budget) => budget,
-            // A complete next frame is already buffered. Read past it so a
-            // close that follows the pipeline is not ignored until the
-            // current handler finishes.
+            // Continue watching for closure only while buffer space remains.
             Ahead::Ready => 8 * 1024,
             Ahead::Invalid => return Exit::InvalidLength,
-        };
+        }
+        .min(remaining);
         ahead.compact();
         if frame_mut(&mut ahead.bytes).try_reserve(budget).is_err() {
             return Exit::Io;
@@ -1544,8 +1572,9 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             };
             #[cfg(feature = "oidc")]
             let operation = authorized(lease, operation);
-            // A client that closes while the handler is still running must not
-            // keep that handler and its connection until the handler deadline.
+            // Observe disconnects while read-ahead has room. Once it is full,
+            // unread bytes can hide EOF until the handler completes; the
+            // original handler deadline and shutdown still bound the work.
             let outcome = tokio::select! {
                 biased;
                 closed = watch_disconnect(
@@ -2126,7 +2155,7 @@ mod disconnect_tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
-    async fn flooded_request_stops_the_handler() {
+    async fn full_pipeline_waits_for_the_handler_deadline() {
         let started = Arc::new(AtomicUsize::new(0));
         let started_notice = Arc::new(Notify::new());
         let stopped = Arc::new(AtomicUsize::new(0));
@@ -2137,9 +2166,9 @@ mod disconnect_tests {
             1,
             1024,
             1024,
-            Duration::from_secs(30),
-            Duration::from_secs(30),
-            Duration::from_secs(30),
+            Duration::from_secs(2),
+            Duration::from_millis(500),
+            Duration::from_secs(2),
         )
         .unwrap_or_else(|error| panic!("{error}"));
         let bound = config.max_request_bytes();
@@ -2166,31 +2195,40 @@ mod disconnect_tests {
             .write_all(&0i32.to_be_bytes())
             .await
             .unwrap_or_else(|error| panic!("{error}"));
-        if !wait_started(&started, &started_notice).await {
-            drop(writer);
-            drop(reader);
-            release.notify_one();
-            let joined = shutdown_test_transport(&mut transport).await;
-            println!("disconnect-setup joined={joined}");
-            assert!(
-                joined,
-                "transport shutdown did not complete after setup timeout"
-            );
-            panic!("handler did not start before the test setup deadline");
-        }
-        // Keep the write half open. Dropping it would look like a disconnect.
-        let flood = vec![0u8; bound.saturating_add(5)];
-        let _wrote = writer.write_all(&flood).await;
+        assert!(wait_started(&started, &started_notice).await);
+        // Zero-length frames are valid; the socket may contain more than the
+        // one-frame read-ahead budget without being rejected.
+        writer
+            .write_all(&vec![0u8; bound.saturating_add(5)])
+            .await
+            .unwrap_or_else(|error| panic!("{error}"));
         let mut buf = [0u8; 8];
-        let saw = tokio::time::timeout(Duration::from_millis(300), reader.read(&mut buf)).await;
+        let early = tokio::time::timeout(Duration::from_millis(50), reader.read(&mut buf)).await;
+        let closed = tokio::time::timeout(Duration::from_secs(2), reader.read(&mut buf)).await;
         drop(writer);
         release.notify_one();
-        let joined = shutdown_test_transport(&mut transport).await;
-        assert!(joined, "transport shutdown did not complete");
+        let report = tokio::time::timeout(Duration::from_secs(2), transport.shutdown())
+            .await
+            .unwrap_or_else(|error| panic!("{error}"))
+            .unwrap_or_else(|error| panic!("{error}"));
         assert!(
-            matches!(saw, Ok(Ok(0))),
-            "handler kept the socket while the client flooded the connection"
+            early.is_err(),
+            "full pipeline was closed instead of backpressured"
         );
+        let normal_close = match &closed {
+            Ok(Ok(0)) => true,
+            Ok(Err(error)) => matches!(
+                error.kind(),
+                io::ErrorKind::ConnectionReset | io::ErrorKind::BrokenPipe
+            ),
+            _ => false,
+        };
+        assert!(
+            normal_close,
+            "handler deadline did not close the socket: {closed:?}"
+        );
+        assert_eq!(stopped.load(Ordering::SeqCst), 1);
+        assert_eq!(report.handler_deadlines, 1);
     }
 }
 
@@ -4125,5 +4163,168 @@ mod buffered_read_fairness_control {
             assert_eq!(reader.offset, 2);
             assert_eq!(reader.reads, 2);
         }
+    }
+}
+
+#[cfg(test)]
+mod bounded_backpressure_tests {
+    use super::{
+        frame_mut, new_frame, read_frame_buffered, watch_disconnect, write_and_prefetch, Config,
+        Exit, ReadAhead,
+    };
+    use std::{
+        future::Future,
+        pin::Pin,
+        sync::{
+            atomic::{AtomicUsize, Ordering},
+            Arc,
+        },
+        task::{Context, Poll, Wake, Waker},
+        time::Duration,
+    };
+    use tokio::{
+        io::{AsyncRead, AsyncWrite, ReadBuf},
+        time::Instant,
+    };
+
+    struct BufferedIo {
+        input: Vec<u8>,
+        consumed: usize,
+        reads: usize,
+    }
+    impl AsyncRead for BufferedIo {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            this.reads += 1;
+            let remaining = &this.input[this.consumed..];
+            let count = remaining.len().min(buf.remaining());
+            buf.put_slice(&remaining[..count]);
+            this.consumed += count;
+            Poll::Ready(Ok(()))
+        }
+    }
+    impl AsyncWrite for BufferedIo {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            _buf: &[u8],
+        ) -> Poll<std::io::Result<usize>> {
+            Poll::Pending
+        }
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+            Poll::Ready(Ok(()))
+        }
+    }
+    #[derive(Default)]
+    struct WakeCount(AtomicUsize);
+    impl Wake for WakeCount {
+        fn wake(self: Arc<Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+        fn wake_by_ref(self: &Arc<Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    fn framed(byte: u8) -> Vec<u8> {
+        let mut frame = 16i32.to_be_bytes().to_vec();
+        frame.extend_from_slice(&[byte; 16]);
+        frame
+    }
+    fn fragmented_prefix_input() -> BufferedIo {
+        let mut first = framed(1);
+        let rest = first.split_off(2);
+        let mut input = rest;
+        input.extend_from_slice(&framed(2));
+        BufferedIo {
+            input,
+            consumed: 0,
+            reads: 0,
+        }
+    }
+    fn limits() -> Result<Config, super::Error> {
+        Config::new(
+            1,
+            1,
+            16,
+            16,
+            Duration::from_secs(2),
+            Duration::from_secs(2),
+            Duration::from_secs(2),
+        )
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn full_watcher_stops_reading_and_does_not_wake_itself() {
+        let mut input = framed(1);
+        input.extend_from_slice(&17i32.to_be_bytes());
+        let mut socket = BufferedIo {
+            input,
+            consumed: 0,
+            reads: 0,
+        };
+        let mut ahead = ReadAhead::new();
+        let wakes = Arc::new(WakeCount::default());
+        let waker = Waker::from(wakes.clone());
+        let mut context = Context::from_waker(&waker);
+        {
+            let mut watcher = Box::pin(watch_disconnect(&mut socket, &mut ahead, 16));
+            assert!(watcher.as_mut().poll(&mut context).is_pending());
+            assert!(watcher.as_mut().poll(&mut context).is_pending());
+            let before = wakes.0.load(Ordering::SeqCst);
+            for _ in 0..4 {
+                assert!(watcher.as_mut().poll(&mut context).is_pending());
+            }
+            assert_eq!(wakes.0.load(Ordering::SeqCst), before);
+        }
+        assert_eq!(socket.reads, 1);
+        assert_eq!(socket.consumed, 20);
+        assert_eq!(ahead.pending(), framed(1));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn fragmented_buffered_read_respects_the_budget() -> Result<(), super::Error> {
+        let mut socket = fragmented_prefix_input();
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&[0, 0]);
+        let mut result = read_frame_buffered(
+            &mut socket,
+            limits()?,
+            Instant::now() + Duration::from_secs(1),
+            &mut ahead,
+            new_frame(),
+        )
+        .await
+        .map_err(|_| super::Error::InvalidConfig("test read failed"))?;
+        assert_eq!(frame_mut(&mut result).as_slice(), &[1; 16]);
+        assert_eq!(socket.consumed, 18);
+        assert!(ahead.is_empty());
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn fragmented_write_prefetch_respects_the_budget() {
+        let mut socket = fragmented_prefix_input();
+        let mut ahead = ReadAhead::new();
+        frame_mut(&mut ahead.bytes).extend_from_slice(&[0, 0]);
+        let result = write_and_prefetch(
+            &mut socket,
+            b"reply",
+            Instant::now() + Duration::from_millis(50),
+            &mut ahead,
+            16,
+            true,
+        )
+        .await;
+        assert!(matches!(result, Err(Exit::WriteDeadline)));
+        assert_eq!(ahead.pending(), framed(1));
+        assert_eq!(socket.consumed, 18);
     }
 }
