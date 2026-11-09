@@ -1,0 +1,50 @@
+name: Verify retained producer retry patches
+
+on:
+  push:
+    branches: [qualification/producer-sealed-retention-20261109]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          path: evidence
+          sparse-checkout: docs/evidence/client/producer-sealed-retry-experiment-20261109
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: 731eb97a08445a18da0b043986ae192397ba176a
+          path: baseline
+      - name: Apply retained patches and verify exact blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence_dir="$GITHUB_WORKSPACE/evidence/docs/evidence/client/producer-sealed-retry-experiment-20261109"
+          cd "$GITHUB_WORKSPACE/baseline"
+          uname -m
+          test "$(git hash-object src/producer.rs)" = 426dbdb5c5e27fdf655930a76682c5c18fb07e89
+          test "$(git hash-object tests/common/mod.rs)" = 4afd104e0b5e10227167d0d38328fe03dda07a0a
+          test "$(git hash-object Cargo.lock)" = 96e364d34121fe90183f87f4f49fd92b883bc447
+          git apply --check "$evidence_dir/owner-base.patch"
+          git apply "$evidence_dir/owner-base.patch"
+          test "$(git hash-object src/producer.rs)" = 251eeece67abc29867aa9212f6ce005503aed4ad
+          test "$(git hash-object src/producer/owned.rs)" = f3489802f0b9ee1afe61c34d54a2041e447773c3
+          git apply --check "$evidence_dir/sealed-retry.patch"
+          git apply "$evidence_dir/sealed-retry.patch"
+          test "$(git hash-object src/producer.rs)" = 27df35a47d6d44c1ab12f6d50828e610d8045d5d
+          git apply --check "$evidence_dir/witness.patch"
+          git apply "$evidence_dir/witness.patch"
+          test "$(git hash-object src/producer.rs)" = 7f661d3c7c5ba9a550be227220ad3722bef0db81
+          cp "$evidence_dir/fixtures/producer_sealed_retry_public.rs" tests/
+          cp "$evidence_dir/fixtures/producer_owner_bounded_controls.rs" tests/
+          test "$(git hash-object tests/producer_sealed_retry_public.rs)" = 39110c6048eebba35308fabbcae0862d0b4c9f59
+          test "$(git hash-object tests/producer_owner_bounded_controls.rs)" = e79b6fa894a18bc8afa158c4dd5bc772565438a3
+          git hash-object src/producer.rs src/producer/owned.rs tests/producer_sealed_retry_public.rs tests/producer_owner_bounded_controls.rs tests/common/mod.rs Cargo.lock
+          printf 'RETAINED_PATCHES_AND_FIXTURES_VERIFIED\n'
