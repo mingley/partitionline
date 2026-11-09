@@ -1,0 +1,66 @@
+name: Qualify bounded Admin cursor history
+on:
+  push:
+    branches: [qualification/admin-cursor-exact-20261109]
+permissions:
+  contents: read
+jobs:
+  behavior:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [default, all]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact candidate
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 6c47b3cb7cb2f1d99700263a099dfcb84f6a2724
+          rustc -Vv
+      - name: Full Admin pagination module
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib admin::pagination_tests:: -- --test-threads=1
+      - name: Full Admin library tests
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --lib admin:: -- --test-threads=1
+      - name: Admin response reservation integration
+        run: |
+          set -euo pipefail
+          if test "${{ matrix.feature }}" = all; then flags=--all-features; else flags=; fi
+          cargo test --locked $flags --test admin_response_reservation -- --test-threads=1
+  strict:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+      - name: Verify exact candidate
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 6c47b3cb7cb2f1d99700263a099dfcb84f6a2724
+          rustc -Vv
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Strict Rustdoc
+        if: always()
+        env:
+          RUSTDOCFLAGS: '-D warnings'
+        run: cargo doc --locked --all-features --no-deps
