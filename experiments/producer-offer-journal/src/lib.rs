@@ -1,10 +1,11 @@
 #![forbid(unsafe_code)]
-#![allow(clippy::disallowed_types, reason = "Synchronous isolated model with tested lock poisoning; no async runtime or await")]
 
 //! Standalone model. This code is not connected to the producer or its transport.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, MutexGuard};
+#[allow(clippy::disallowed_types, reason = "Synchronous model tests lock poisoning; no async or await")]
+use std::sync::Mutex;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Partition {
@@ -46,6 +47,7 @@ enum Stage {
     Claimed { retry: bool },
     Offered(Attempt),
     Ambiguous(Attempt),
+    AmbiguousRetired(Attempt),
     RetryReady,
     Completed { receipt_recorded: bool },
 }
@@ -56,6 +58,7 @@ struct Frame {
     // not a full request frame with a changeable correlation ID.
     batches: BTreeMap<Partition, Arc<[u8]>>,
     bytes: usize,
+    last_session: Option<u64>,
     stage: Stage,
 }
 
@@ -73,6 +76,7 @@ struct State {
     identity: Identity,
     frames: BTreeMap<u64, Frame>,
     busy: BTreeMap<Partition, u64>,
+    inflight: BTreeSet<(u64, i32)>,
     bytes: usize,
     max_frames: usize,
     max_parts_per_frame: usize,
@@ -80,20 +84,24 @@ struct State {
     next_frame: u64,
     next_attempt: u64,
     next_transition: u64,
-    rpc_active: bool,
+    // Ticket and whether its guard is still live. Dropping the guard alone
+    // is not proof that all network actors have been joined.
+    rpc_active: Option<(u64, bool)>,
 }
 
 #[derive(Clone)]
+#[allow(clippy::disallowed_types, reason = "Synchronous model tests lock poisoning; no async or await")]
 pub struct Journal(Arc<Mutex<State>>);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DeadlineStatus {
     DefinitelyUnsent,
     BrokerOutcomeUnknown,
-    DefinitiveReceiptPending,
+    DefinitiveAwaitingRetirement,
 }
 
 impl Journal {
+    #[allow(clippy::disallowed_types, reason = "Synchronous model tests lock poisoning; no async or await")]
     pub fn new(identity: Identity, max_frames: usize, max_parts_per_frame: usize, max_bytes: usize) -> Result<Self, Error> {
         if identity.producer_id < 0 || identity.epoch < 0 {
             return Err(Error::Invalid);
@@ -103,6 +111,7 @@ impl Journal {
             identity,
             frames: BTreeMap::new(),
             busy: BTreeMap::new(),
+            inflight: BTreeSet::new(),
             bytes: 0,
             max_frames,
             max_parts_per_frame,
@@ -110,7 +119,7 @@ impl Journal {
             next_frame: 1,
             next_attempt: 1,
             next_transition: 1,
-            rpc_active: false,
+            rpc_active: None,
         }))))
     }
 
@@ -153,7 +162,7 @@ impl Journal {
         for partition in map.keys() {
             state.busy.insert(*partition, id);
         }
-        state.frames.insert(id, Frame { identity, batches: map, bytes, stage: Stage::Ready });
+        state.frames.insert(id, Frame { identity, batches: map, bytes, last_session: None, stage: Stage::Ready });
         state.bytes = total;
         Ok(id)
     }
@@ -199,7 +208,7 @@ impl Journal {
             return Err(Error::WrongState);
         }
         state.phase = Phase::RpcOffered(ticket);
-        state.rpc_active = true;
+        state.rpc_active = Some((ticket, true));
         Ok(IdentityRpc { journal: self.clone(), ticket, active: true })
     }
 
@@ -207,14 +216,33 @@ impl Journal {
     /// exact attempt is retired and joined. This does NOT prove non-append.
     pub fn attest_attempt_retired(&self, id: u64, attempt_id: u64, session: u64, correlation: i32) -> Result<(), Error> {
         let mut state = self.lock()?;
-        if !matches!(state.phase, Phase::Open | Phase::Draining(_)) {
-            return Err(Error::Closed);
-        }
-        let frame = state.frames.get_mut(&id).ok_or(Error::NotFound)?;
-        if frame.stage != Stage::Ambiguous(Attempt { id: attempt_id, session, correlation }) {
+        let fatal = match state.phase {
+            Phase::Open | Phase::Draining(_) => false,
+            Phase::Fatal { .. } => true,
+            _ => return Err(Error::Closed),
+        };
+        let attempt = Attempt { id: attempt_id, session, correlation };
+        if state.frames.get(&id).ok_or(Error::NotFound)?.stage != Stage::Ambiguous(attempt) {
             return Err(Error::WrongState);
         }
-        frame.stage = Stage::RetryReady;
+        if !state.inflight.remove(&(session, correlation)) {
+            return Err(Error::WrongState);
+        }
+        state.frames.get_mut(&id).ok_or(Error::NotFound)?.stage =
+            if fatal { Stage::AmbiguousRetired(attempt) } else { Stage::RetryReady };
+        Ok(())
+    }
+
+    /// Attests that all actors for an unknown identity RPC stopped and joined.
+    /// This permits model-level shutdown quiescence; it does not reopen the gate.
+    pub fn attest_identity_rpc_retired(&self, ticket: u64) -> Result<(), Error> {
+        let mut state = self.lock()?;
+        let eligible = matches!(state.phase, Phase::RpcUnknown(id) if id == ticket)
+            || matches!(state.phase, Phase::Fatal { rpc_unknown: true });
+        if state.rpc_active != Some((ticket, false)) || !eligible {
+            return Err(Error::WrongState);
+        }
+        state.rpc_active = None;
         Ok(())
     }
 
@@ -266,7 +294,7 @@ impl Journal {
         if !matches!(state.phase, Phase::Fatal { .. }) {
             return Err(Error::WrongState);
         }
-        Ok(!state.rpc_active && state.frames.values().all(|frame| !matches!(frame.stage, Stage::Claimed { .. } | Stage::Offered(_))))
+        Ok(state.rpc_active.is_none() && state.inflight.is_empty() && state.frames.values().all(|frame| !matches!(frame.stage, Stage::Claimed { .. } | Stage::Offered(_))))
     }
 
     /// A fatal shutdown deadline reports uncertainty; it does not retire anything.
@@ -279,8 +307,8 @@ impl Journal {
         let frame = state.frames.get(&id).ok_or(Error::NotFound)?;
         Ok(match frame.stage {
             Stage::Ready | Stage::Claimed { retry: false } => DeadlineStatus::DefinitelyUnsent,
-            Stage::Claimed { retry: true } | Stage::Offered(_) | Stage::Ambiguous(_) | Stage::RetryReady => DeadlineStatus::BrokerOutcomeUnknown,
-            Stage::Completed { .. } => DeadlineStatus::DefinitiveReceiptPending,
+            Stage::Claimed { retry: true } | Stage::Offered(_) | Stage::Ambiguous(_) | Stage::AmbiguousRetired(_) | Stage::RetryReady => DeadlineStatus::BrokerOutcomeUnknown,
+            Stage::Completed { .. } => DeadlineStatus::DefinitiveAwaitingRetirement,
         })
     }
 }
@@ -312,9 +340,18 @@ impl Claim {
         if frame.stage != (Stage::Claimed { retry: self.retry }) {
             return Err(Error::WrongState);
         }
+        if session == 0 || frame.last_session.is_some_and(|previous| session <= previous) {
+            return Err(Error::Invalid);
+        }
+        if state.inflight.contains(&(session, correlation)) {
+            return Err(Error::Conflict);
+        }
         let attempt = Attempt { id: state.next_attempt, session, correlation };
         state.next_attempt = attempt.id.checked_add(1).ok_or(Error::Exhausted)?;
-        state.frames.get_mut(&self.id).ok_or(Error::NotFound)?.stage = Stage::Offered(attempt);
+        let frame = state.frames.get_mut(&self.id).ok_or(Error::NotFound)?;
+        frame.last_session = Some(session);
+        frame.stage = Stage::Offered(attempt);
+        state.inflight.insert((session, correlation));
         self.active = false;
         drop(state);
         Ok(Offer { journal: self.journal.clone(), id: self.id, attempt, active: true })
@@ -350,7 +387,7 @@ impl Offer {
     /// The caller must validate Kafka framing and every partition result.
     pub fn complete(mut self, identity: Identity, session: u64, correlation: i32, parts: &[Partition]) -> Result<(), Error> {
         let mut state = self.journal.lock()?;
-        let frame = state.frames.get_mut(&self.id).ok_or(Error::NotFound)?;
+        let frame = state.frames.get(&self.id).ok_or(Error::NotFound)?;
         let actual: BTreeSet<_> = parts.iter().copied().collect();
         if frame.stage != Stage::Offered(self.attempt)
             || frame.identity != identity
@@ -361,7 +398,10 @@ impl Offer {
         {
             return Err(Error::Invalid);
         }
-        frame.stage = Stage::Completed { receipt_recorded: false };
+        if !state.inflight.remove(&(session, correlation)) {
+            return Err(Error::WrongState);
+        }
+        state.frames.get_mut(&self.id).ok_or(Error::NotFound)?.stage = Stage::Completed { receipt_recorded: false };
         self.active = false;
         Ok(())
     }
@@ -388,7 +428,8 @@ pub struct IdentityRpc {
 }
 
 impl IdentityRpc {
-    /// Called only after a definitive successful identity-changing RPC.
+    /// Called only after definitive RPC success and after all its transport
+    /// actors are retired and joined. The model cannot verify this attestation.
     pub fn publish(mut self, producer_id: i64, epoch: i16) -> Result<Identity, Error> {
         let mut state = self.journal.lock()?;
         if state.phase != Phase::RpcOffered(self.ticket) {
@@ -400,7 +441,7 @@ impl IdentityRpc {
         let generation = state.identity.generation.checked_add(1).ok_or(Error::Exhausted)?;
         let identity = Identity { producer_id, epoch, generation };
         state.identity = identity;
-        state.rpc_active = false;
+        state.rpc_active = None;
         state.phase = Phase::Open;
         self.active = false;
         Ok(identity)
@@ -415,10 +456,10 @@ impl Drop for IdentityRpc {
         if let Ok(mut state) = self.journal.lock() {
             match state.phase {
                 Phase::RpcOffered(ticket) if ticket == self.ticket => {
-                    state.rpc_active = false;
+                    state.rpc_active = Some((self.ticket, false));
                     state.phase = Phase::RpcUnknown(self.ticket);
                 }
-                Phase::Fatal { .. } => state.rpc_active = false,
+                Phase::Fatal { .. } => state.rpc_active = Some((self.ticket, false)),
                 _ => {}
             }
         }
@@ -470,13 +511,15 @@ mod tests {
         assert_eq!(journal.attest_attempt_retired(frame, attempt, 12, 22), Err(Error::WrongState));
         assert_eq!(journal.attest_attempt_retired(frame, attempt + 1, 11, 22), Err(Error::WrongState));
         journal.attest_attempt_retired(frame, attempt, 11, 22).unwrap();
+        let same_session = journal.claim(frame).unwrap();
+        assert!(matches!(same_session.begin_offer(11, 23), Err(Error::Invalid)));
         let retry = journal.claim(frame).unwrap();
         let (retry_identity, retry_batch) = retry.snapshot().unwrap();
         assert_eq!(retry_identity, first_identity);
         assert!(Arc::ptr_eq(&original, &retry_batch[0].1));
         assert!(Arc::ptr_eq(&first_batch[0].1, &retry_batch[0].1));
-        let offer = retry.begin_offer(11, 22).unwrap();
-        offer.complete(identity(), 11, 22, &[part(0)]).unwrap();
+        let offer = retry.begin_offer(12, 23).unwrap();
+        offer.complete(identity(), 12, 23, &[part(0)]).unwrap();
         assert_eq!(journal.lock().unwrap().frames[&frame].stage, Stage::Completed { receipt_recorded: false });
         assert!(matches!(journal.begin_identity_rpc(ticket), Err(Error::WrongState)));
         journal.record_receipt(frame).unwrap();
@@ -515,9 +558,11 @@ mod tests {
         assert!(matches!(journal.claim(a), Err(Error::Closed)));
         drop(b_offer);
         assert_eq!(journal.deadline_status(b), Ok(DeadlineStatus::BrokerOutcomeUnknown));
-        assert_eq!(journal.fatal_model_quiescent(), Ok(true));
+        assert_eq!(journal.fatal_model_quiescent(), Ok(false));
         assert!(matches!(journal.claim(b), Err(Error::Closed)));
-        assert_eq!(journal.attest_attempt_retired(b, 1, 11, 22), Err(Error::Closed));
+        journal.attest_attempt_retired(b, 1, 11, 22).unwrap();
+        assert_eq!(journal.fatal_model_quiescent(), Ok(true));
+        assert_eq!(journal.deadline_status(b), Ok(DeadlineStatus::BrokerOutcomeUnknown));
     }
 
     #[test]
@@ -548,6 +593,9 @@ mod tests {
         assert!(matches!(journal.drain(), Err(Error::Closed)));
         journal.fatal().unwrap();
         assert_eq!(journal.lock().unwrap().phase, Phase::Fatal { rpc_unknown: true });
+        assert_eq!(journal.fatal_model_quiescent(), Ok(false));
+        journal.attest_identity_rpc_retired(second).unwrap();
+        assert_eq!(journal.fatal_model_quiescent(), Ok(true));
 
         let other = self::journal();
         let ticket = other.drain().unwrap();
@@ -555,6 +603,9 @@ mod tests {
         other.fatal().unwrap();
         assert_eq!(other.fatal_model_quiescent(), Ok(false));
         drop(rpc);
+        assert_eq!(other.fatal_model_quiescent(), Ok(false));
+        assert_eq!(other.attest_identity_rpc_retired(ticket + 1), Err(Error::WrongState));
+        other.attest_identity_rpc_retired(ticket).unwrap();
         assert_eq!(other.fatal_model_quiescent(), Ok(true));
         assert_eq!(other.lock().unwrap().phase, Phase::Fatal { rpc_unknown: true });
     }
@@ -612,18 +663,43 @@ mod tests {
     }
 
     #[test]
+    fn session_correlation_stays_reserved_until_response_or_retirement() {
+        let journal = journal();
+        let first = journal.reserve(vec![(part(0), bytes(b"first"))]).unwrap();
+        let second = journal.reserve(vec![(part(1), bytes(b"second"))]).unwrap();
+        let offer = journal.claim(first).unwrap().begin_offer(11, 22).unwrap();
+        let attempt = offer.attempt_id();
+        assert!(matches!(journal.claim(second).unwrap().begin_offer(11, 22), Err(Error::Conflict)));
+        drop(offer);
+        assert!(matches!(journal.claim(second).unwrap().begin_offer(11, 22), Err(Error::Conflict)));
+        journal.attest_attempt_retired(first, attempt, 11, 22).unwrap();
+        let second_offer = journal.claim(second).unwrap().begin_offer(12, 22).unwrap();
+        complete_and_retire_different_session(&journal, second, second_offer, &[part(1)]);
+        assert!(matches!(journal.lock().unwrap().frames[&first].stage, Stage::RetryReady));
+    }
+
+    fn complete_and_retire_different_session(journal: &Journal, frame: u64, offer: Offer, parts: &[Partition]) {
+        offer.complete(identity(), 12, 22, parts).unwrap();
+        journal.record_receipt(frame).unwrap();
+        journal.retire_completed(frame).unwrap();
+    }
+
+    #[test]
     fn permanent_unknown_survives_deadline_and_blocks_reuse() {
         let journal = journal();
         let frame = journal.reserve(vec![(part(0), bytes(b"a"))]).unwrap();
         let offer = journal.claim(frame).unwrap().begin_offer(11, 22).unwrap();
+        let attempt = offer.attempt_id();
         drop(offer);
         let ticket = journal.drain().unwrap();
         assert!(matches!(journal.begin_identity_rpc(ticket), Err(Error::WrongState)));
         journal.fatal().unwrap();
+        assert_eq!(journal.fatal_model_quiescent(), Ok(false));
+        journal.attest_attempt_retired(frame, attempt, 11, 22).unwrap();
+        assert_eq!(journal.fatal_model_quiescent(), Ok(true));
         for _ in 0..3 {
             assert_eq!(journal.deadline_status(frame), Ok(DeadlineStatus::BrokerOutcomeUnknown));
         }
-        assert_eq!(journal.deadline_status(frame), Ok(DeadlineStatus::BrokerOutcomeUnknown));
         assert!(matches!(journal.begin_identity_rpc(ticket), Err(Error::WrongState)));
     }
 

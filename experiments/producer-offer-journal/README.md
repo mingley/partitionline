@@ -13,18 +13,22 @@ definitive result and its receipt has been recorded and retired. Dropping an
 RPC guard leaves the identity outcome unknown and the gate closed.
 
 The model requires the offer to be registered before the first possible socket
-poll. A dropped offer remains ambiguous. Before retry, the caller must attest
-that all writers and response dispatchers for the exact session and attempt
-are retired and joined. Joining does not prove that the broker did not append.
-The retry retains the same batch contents, producer identity, and sequences;
-it does not authorize a new identity or sequence. The success path assumes an
+poll. A dropped offer remains ambiguous and retains its session/correlation
+reservation. Before retry, the caller must attest that all writers and response
+dispatchers for the exact session and attempt are retired and joined. Joining
+does not prove that the broker did not append. The retry retains the same batch
+contents, producer identity, and sequences; it does not authorize a new
+identity or sequence. The retry requires a newer session number. The caller
+must provide honest, never-reused session generations; this model does not
+allocate or authenticate them. The success path assumes an
 externally validated, complete Kafka response for every requested partition.
 Partial outcomes and protocol-specific error dispositions are not implemented.
 
 A fatal fence blocks later offers but an already offered socket task may still
-write until it is stopped and joined. The model's quiescence check tracks only
-its frame and identity RPC guards and is not proof that real transport tasks
-stopped. At a fatal
+write until it is stopped and joined. The model's quiescence check waits for explicit retirement attestations for
+dropped frame and identity RPC guards. These are caller assertions, not proof
+that real transport tasks stopped. Publishing a successful identity RPC likewise
+requires the caller to attest that its transport actors stopped and joined. At a fatal
 shutdown deadline, an offered or retried frame reports a broker outcome of
 unknown and remains rooted. A frame that was never offered reports unsent only
 within this model. There is no bounded time to resolve an ambiguous frame:
