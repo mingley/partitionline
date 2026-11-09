@@ -1,0 +1,131 @@
+name: Admin response timing diagnostic
+on:
+  push:
+    branches: [qualification/admin-response-timing-20261109]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: driver
+      - uses: actions/checkout@v7
+        with:
+          ref: f1be3052aac5ec70a424ac951fe1189c27a31417
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: f1be3052aac5ec70a424ac951fe1189c27a31417
+          path: observed
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin sources and build separate diagnostic binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -sm
+          lscpu | grep -E 'Model name|CPU\(s\)'
+          test "$(git -C driver hash-object .github/fixtures/admin_response_timing_observer.rs.txt)" = 7a275a6f7524bf504692cfb56006d520c576854e
+          for arm in baseline observed; do
+            test "$(git -C "$arm" rev-parse HEAD)" = f1be3052aac5ec70a424ac951fe1189c27a31417
+            test "$(git -C "$arm" rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+            test "$(git -C "$arm" hash-object src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+            test "$(git -C "$arm" rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+            ARM="$arm" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          arm=os.environ["ARM"]
+          path=Path(arm)/"src/admin.rs"
+          source=path.read_text()
+          for name,label in [
+              ("indexing_many_coordinators_does_not_hold_the_caller","coordinator"),
+              ("grouping_many_named_results_does_not_hold_the_caller","named"),
+          ]:
+              start=source.index("async fn "+name+"()")
+              end=source.index("\n    #[",start)
+              body=source[start:end]
+              needle="        let elapsed = started.elapsed();\n"
+              assert body.count(needle)==1, name
+              body=body.replace(needle,needle+'        println!("ADMIN_LEGACY case='+label+' elapsed_ns={}", elapsed.as_nanos());\n',1)
+              source=source[:start]+body+source[end:]
+          if arm == "observed":
+              source += Path("driver/.github/fixtures/admin_response_timing_observer.rs.txt").read_text()
+          path.write_text(source)
+          PY
+            git -C "$arm" hash-object src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+            sha256sum "$arm/src/admin.rs" "$arm/src/admin/pagination_tests.rs" "$arm/Cargo.lock"
+            for profile in default all; do
+              flags=()
+              if test "$profile" = all; then flags=(--all-features); fi
+              target="$RUNNER_TEMP/admin-timing-$arm-$profile"
+              log="$RUNNER_TEMP/build-$arm-$profile.log"
+              if ! CARGO_TARGET_DIR="$target" cargo test --locked "${flags[@]}" --manifest-path "$arm/Cargo.toml" --lib --no-run > "$log" 2>&1; then
+                tail -100 "$log"
+                exit 1
+              fi
+              bins=()
+              for file in "$target"/debug/deps/partitionline-*; do
+                if [ -f "$file" ] && [ -x "$file" ]; then bins+=("$file"); fi
+              done
+              test "${#bins[@]}" = 1
+              cp "${bins[0]}" "$RUNNER_TEMP/$arm-$profile-binary"
+              sha256sum "$RUNNER_TEMP/$arm-$profile-binary"
+              rm -rf "$target"
+            done
+          done
+      - name: Alternating original-test observations
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "pinned_cpu=$cpu"
+          mkdir -p "$RUNNER_TEMP/admin-response-timing"
+          printf 'profile,case,pair,arm,exit,elapsed_ns\n' > "$RUNNER_TEMP/admin-response-timing/legacy.csv"
+          for profile in default all; do
+            for pair in $(seq 1 8); do
+              if [ $((pair % 2)) = 1 ]; then order=(baseline observed); else order=(observed baseline); fi
+              for case in named coordinator; do
+                if test "$case" = named; then testname=grouping_many_named_results_does_not_hold_the_caller; else testname=indexing_many_coordinators_does_not_hold_the_caller; fi
+                for arm in "${order[@]}"; do
+                  if out=$(taskset -c "$cpu" "$RUNNER_TEMP/$arm-$profile-binary" --exact "admin::tests::$testname" --nocapture --test-threads=1 2>&1); then rc=0; else rc=$?; fi
+                  printf '%s\n' "$out"
+                  test "$rc" = 0 || test "$rc" = 101
+                  ns=$(printf '%s\n' "$out" | sed -n 's/.*ADMIN_LEGACY case=[a-z]* elapsed_ns=\([0-9]*\).*/\1/p')
+                  test -n "$ns"
+                  printf '%s,%s,%s,%s,%s,%s\n' "$profile" "$case" "$pair" "$arm" "$rc" "$ns" >> "$RUNNER_TEMP/admin-response-timing/legacy.csv"
+                done
+              done
+            done
+          done
+          cat "$RUNNER_TEMP/admin-response-timing/legacy.csv"
+      - name: Observe full response transforms without canceling them
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          for profile in default all; do
+            for case in named coordinator; do
+              if test "$case" = named; then testname=observe_named_response_transform_to_completion; else testname=observe_coordinator_response_transform_to_completion; fi
+              for trial in $(seq 1 4); do
+                echo "OBSERVATION profile=$profile case=$case trial=$trial"
+                log="$RUNNER_TEMP/admin-response-timing/$profile-$case-$trial.log"
+                taskset -c "$cpu" "$RUNNER_TEMP/observed-$profile-binary" --exact "admin::admin_response_timing_diagnostics::$testname" --nocapture --test-threads=1 | tee "$log"
+                grep -F 'test result: ok. 1 passed; 0 failed;' "$log"
+                grep -F "ADMIN_OBSERVE case=$case " "$log"
+              done
+            done
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: admin-response-timing-diagnostic
+          path: ${{ runner.temp }}/admin-response-timing/
+          if-no-files-found: warn
+          retention-days: 30

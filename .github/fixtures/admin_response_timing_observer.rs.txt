@@ -1,0 +1,107 @@
+
+#[cfg(test)]
+mod admin_response_timing_diagnostics {
+    use super::{group_named, index_coordinators};
+    use std::cell::Cell;
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use std::time::{Duration, Instant};
+
+    struct Measured<F> {
+        inner: Pin<Box<F>>,
+        polls: usize,
+        longest_ns: u128,
+        total_ns: u128,
+    }
+
+    impl<F: Future> Measured<F> {
+        fn new(inner: F) -> Self {
+            Self {
+                inner: Box::pin(inner),
+                polls: 0,
+                longest_ns: 0,
+                total_ns: 0,
+            }
+        }
+    }
+
+    impl<F: Future> Future for Measured<F> {
+        type Output = F::Output;
+
+        fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+            let this = self.get_mut();
+            let start = Instant::now();
+            let result = this.inner.as_mut().poll(cx);
+            let ns = start.elapsed().as_nanos();
+            this.polls += 1;
+            this.longest_ns = this.longest_ns.max(ns);
+            this.total_ns += ns;
+            result
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn observe_named_response_transform_to_completion() {
+        let names: Vec<String> = (0..500_000).map(|i| format!("item-{i}")).collect();
+        let seen = Cell::new(0usize);
+        let input = names.into_iter().inspect(|_| seen.set(seen.get() + 1));
+        let mut work = Measured::new(group_named(input, |name| name.as_str()));
+        let started = Instant::now();
+        let completed = tokio::select! {
+            value = &mut work => Some(value),
+            () = tokio::time::sleep(Duration::from_millis(30)) => None,
+        };
+        let timer_ns = started.elapsed().as_nanos();
+        let timer_won = completed.is_none();
+        let before_polls = work.polls;
+        let before_longest_ns = work.longest_ns;
+        let before_work_ns = work.total_ns;
+        let before_seen = seen.get();
+        let result = match completed {
+            Some(value) => value,
+            None => (&mut work).await,
+        };
+        assert_eq!(result.len(), 500_000);
+        assert_eq!(result.get("item-0").and_then(|q| q.front()).map(String::as_str), Some("item-0"));
+        assert_eq!(result.get("item-499999").and_then(|q| q.front()).map(String::as_str), Some("item-499999"));
+        let finished_ns = started.elapsed().as_nanos();
+        println!("ADMIN_OBSERVE case=named timer_won={timer_won} timer_ns={timer_ns} before_polls={before_polls} before_longest_ns={before_longest_ns} before_work_ns={before_work_ns} before_items={before_seen} total_polls={} longest_ns={} total_work_ns={} finished_ns={finished_ns}",
+            work.polls, work.longest_ns, work.total_ns);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn observe_coordinator_response_transform_to_completion() {
+        let coords: Vec<crate::protocol::group::CoordinatorResult> = (0..500_000)
+            .map(|i| crate::protocol::group::CoordinatorResult {
+                key: format!("item-{i}"),
+                node_id: i % 8,
+                host: "127.0.0.1".to_string(),
+                port: 9092,
+                error_code: 0,
+                error_message: None,
+            })
+            .collect();
+        let mut work = Measured::new(index_coordinators(coords));
+        let started = Instant::now();
+        let completed = tokio::select! {
+            value = &mut work => Some(value),
+            () = tokio::time::sleep(Duration::from_millis(30)) => None,
+        };
+        let timer_ns = started.elapsed().as_nanos();
+        let timer_won = completed.is_none();
+        let before_polls = work.polls;
+        let before_longest_ns = work.longest_ns;
+        let before_work_ns = work.total_ns;
+        let result = match completed {
+            Some(value) => value,
+            None => (&mut work).await,
+        };
+        assert_eq!(result.len(), 500_000);
+        assert_eq!(result.get("item-0").map(|slot| slot.1), Some(0));
+        assert_eq!(result.get("item-499999").map(|slot| slot.1), Some(7));
+        let finished_ns = started.elapsed().as_nanos();
+        println!("ADMIN_OBSERVE case=coordinator timer_won={timer_won} timer_ns={timer_ns} before_polls={before_polls} before_longest_ns={before_longest_ns} before_work_ns={before_work_ns} total_polls={} longest_ns={} total_work_ns={} finished_ns={finished_ns}",
+            work.polls, work.longest_ns, work.total_ns);
+    }
+}
