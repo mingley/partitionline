@@ -1,0 +1,87 @@
+name: Produce request ordered mixed-partition controls
+
+on:
+  push:
+    branches: [qualification/produce-plan-controls-20261109]
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_TERM_COLOR: never
+      BASE_SHA: 731eb97a08445a18da0b043986ae192397ba176a
+      FIRST_SHA: 8c37f28b13f0131f146c1f57398dd8d593c1af3d
+      REFINED_SHA: 72abcd0425c19e333a3c83cd211fa2912b7ae4f9
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 10
+          persist-credentials: false
+          sparse-checkout: |
+            src
+            tests
+            examples
+            .github/workflows
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin source and build trees
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          git merge-base --is-ancestor "$BASE_SHA" HEAD
+          git merge-base --is-ancestor "$FIRST_SHA" HEAD
+          git merge-base --is-ancestor "$REFINED_SHA" HEAD
+          git diff --exit-code "$BASE_SHA" "$FIRST_SHA" -- Cargo.toml Cargo.lock src ':!src/protocol/api.rs'
+          git diff --exit-code "$BASE_SHA" "$REFINED_SHA" -- Cargo.toml Cargo.lock src ':!src/protocol/api.rs'
+          git diff --exit-code "$REFINED_SHA" HEAD -- Cargo.toml Cargo.lock src
+          evidence="$RUNNER_TEMP/produce-ordered-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$evidence"
+          echo "EVIDENCE=$evidence" >> "$GITHUB_ENV"
+          git rev-parse HEAD "$REFINED_SHA" "$FIRST_SHA" "$BASE_SHA" | tee "$evidence/commits.txt"
+          rustc +stable -Vv | tee "$evidence/rustc.txt"
+          sha256sum Cargo.lock src/protocol/api.rs examples/bench_produce_plan.rs .github/workflows/produce-plan-controls.yml | tee "$evidence/source-sha256.txt"
+          mkdir "$RUNNER_TEMP/produce-base" "$RUNNER_TEMP/produce-first"
+          for arm in base first; do
+            rsync -a --exclude='.git' --exclude='target' "$GITHUB_WORKSPACE/" "$RUNNER_TEMP/produce-$arm/"
+          done
+          git show "$BASE_SHA:src/protocol/api.rs" > "$RUNNER_TEMP/produce-base/src/protocol/api.rs"
+          git show "$FIRST_SHA:src/protocol/api.rs" > "$RUNNER_TEMP/produce-first/src/protocol/api.rs"
+          test "$(git hash-object "$RUNNER_TEMP/produce-base/src/protocol/api.rs")" = "$(git rev-parse "$BASE_SHA:src/protocol/api.rs")"
+          test "$(git hash-object "$RUNNER_TEMP/produce-first/src/protocol/api.rs")" = "$(git rev-parse "$FIRST_SHA:src/protocol/api.rs")"
+          test "$(git hash-object src/protocol/api.rs)" = "$(git rev-parse "$REFINED_SHA:src/protocol/api.rs")"
+          sha256sum "$RUNNER_TEMP/produce-base/src/protocol/api.rs" "$RUNNER_TEMP/produce-first/src/protocol/api.rs" src/protocol/api.rs | tee "$evidence/source-tree-sha256.txt"
+      - name: Build independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          for arm in base first refined; do
+            if [ "$arm" = refined ]; then tree="$GITHUB_WORKSPACE"; else tree="$RUNNER_TEMP/produce-$arm"; fi
+            export CARGO_TARGET_DIR="$RUNNER_TEMP/produce-target-$arm"
+            cargo +stable build --locked --release --example bench_produce_plan --manifest-path "$tree/Cargo.toml" 2>&1 | tee "$EVIDENCE/build-$arm.log"
+            cp "$CARGO_TARGET_DIR/release/examples/bench_produce_plan" "$RUNNER_TEMP/produce-$arm-bin"
+            grep -F "Compiling partitionline v0.1.0 ($tree)" "$EVIDENCE/build-$arm.log"
+          done
+          sha256sum "$RUNNER_TEMP/produce-base-bin" "$RUNNER_TEMP/produce-first-bin" "$RUNNER_TEMP/produce-refined-bin" | tee "$EVIDENCE/binary-sha256.txt"
+      - name: Compare complete ordered mixed-partition corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          for arm in base first refined; do
+            "$RUNNER_TEMP/produce-$arm-bin" corpus "$EVIDENCE/$arm-corpus.bin" 2>&1 | tee "$EVIDENCE/$arm-corpus.log"
+          done
+          cmp "$EVIDENCE/base-corpus.bin" "$EVIDENCE/first-corpus.bin"
+          cmp "$EVIDENCE/base-corpus.bin" "$EVIDENCE/refined-corpus.bin"
+          sha256sum "$EVIDENCE/base-corpus.bin" "$EVIDENCE/first-corpus.bin" "$EVIDENCE/refined-corpus.bin" | tee "$EVIDENCE/corpus-sha256.txt"
+      - name: Retain controls
+        if: always() && env.EVIDENCE != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: produce-ordered-controls-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE }}/
+          retention-days: 30

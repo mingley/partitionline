@@ -121,6 +121,48 @@ fn verify_success(shape: Shape, dst: &[u8], source: &[ProduceTopicData], identit
 fn corpus(path: &str, runtime: &tokio::runtime::Runtime) -> Result<(), Box<dyn Error>> {
     let mut out = BufWriter::new(File::create(path)?);
     let mut cases = 0usize;
+    // Different lengths matter: the cached length must follow the first
+    // uncompressed partition, not the first partition or first topic.
+    for version in 3..=13 {
+        for pattern in 0..6 {
+            let specifications: Vec<(usize, usize, usize, i16)> = match pattern {
+                0 => vec![(1, 17, 0, 1), (9, 701, 2, 0)],
+                1 => vec![(3, 31, 1, 0), (2, 511, 0, 1)],
+                2 => vec![(0, 0, 0, 0), (2, 333, 1, 1), (7, 11, 0, 0)],
+                3 => vec![(0, 0, 0, 1), (2, 333, 1, 1), (7, 11, 0, 0)],
+                4 => vec![(1, 16, 0, 3), (13, 123, 3, 0), (0, 0, 0, 2)],
+                _ => vec![(1, 19, 1, 2), (0, 0, 0, 0), (3, 511, 2, 0), (2, 63, 1, 3)],
+            };
+            let mut parts = Vec::new();
+            for (index, &(count, value, headers, codec)) in specifications.iter().enumerate() {
+                let shape = Shape {
+                    partitions: 1, records: count, value, headers, codec, version,
+                    ..SHAPES[0]
+                };
+                let mut one = topics(shape).remove(0).partitions.remove(0);
+                one.index = index as i32;
+                parts.push(one);
+            }
+            let arranged = vec![
+                ProduceTopicData { topic: "empty-topic".into(), partitions: Vec::new() },
+                ProduceTopicData { topic: "mixed-topic".into(), partitions: parts },
+            ];
+            let shape = Shape { version, ..SHAPES[0] };
+            let identities = ids(&arranged);
+            let mut dst = BytesMut::from(&b"before"[..]);
+            let result = encode(shape, &mut dst, &arranged, &identities, runtime);
+            if result.is_err() { return Err(format!("ordered mix {version}/{pattern}: {result:?}").into()); }
+            verify_success(shape, &dst, &arranged, &identities)?;
+            if version != 13 {
+                let mut cooperative = BytesMut::from(&b"before"[..]);
+                let other = encode(Shape { cooperative: true, ..shape }, &mut cooperative, &arranged, &identities, runtime);
+                assert_eq!(result, other);
+                assert_eq!(dst, cooperative);
+            }
+            emit(&mut out, &format!("ordered-{version}-{pattern}"), result, &dst)?;
+            cases += 1;
+        }
+    }
     for version in 3..=13 {
         for &shape in SHAPES.iter().filter(|s| !s.cooperative && !s.cold) {
             let shape = Shape { version, ..shape };
