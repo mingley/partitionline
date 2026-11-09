@@ -1,0 +1,138 @@
+name: Produce quota successful append paired check
+on:
+  push:
+    branches: [qualification/produce-quota-write-pair-20261109]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+          sparse-checkout: |
+            partitionline-broker
+      - uses: actions/checkout@v7
+        with:
+          ref: a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+          path: baseline
+          sparse-checkout: |
+            partitionline-broker
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin inputs
+        run: |
+          set -euo pipefail
+          test "$(git -C candidate rev-parse HEAD:partitionline-broker)" = 6cf645d3f4cfbff389bd4514c253e5bae200430f
+          test "$(git -C baseline rev-parse HEAD)" = a7b6edc1645e3a4789cf699a3b9e7656c55a3d10
+          printf "CARGO_TARGET_DIR=%s/quota-write-pair-target\n" "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          rustc -Vv
+          lscpu | sed -n '1,20p'
+          cp -a candidate/partitionline-broker "$RUNNER_TEMP/write-candidate"
+          cp -a baseline/partitionline-broker "$RUNNER_TEMP/write-baseline"
+      - name: Paired existing-topic successful appends
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/write-baseline/src/bin" "$RUNNER_TEMP/write-candidate/src/bin"
+          cat > "$RUNNER_TEMP/quota-write-pair.rs" <<'RS'
+          //! Paired successful Produce dispatch with sequential or concurrent requests.
+          use partitionline_broker::{
+              catalog::{Catalog, TopicId},
+              fetch, metadata::{Config, Router}, produce,
+          };
+          use std::{collections::BTreeSet, error::Error, fs, path::Path, sync::Arc, time::Instant};
+          use tokio::sync::Barrier;
+          type Result<T = ()> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
+          fn record(response: Option<Vec<u8>>, golden: &[u8], offsets: &mut BTreeSet<i64>) -> Result {
+              let bytes = response.ok_or("missing response")?;
+              if bytes.len() != golden.len() || bytes.get(..25) != golden.get(..25) {
+                  return Err("response did not match the successful topic, partition and error".into());
+              }
+              let offset = i64::from_be_bytes(bytes[25..33].try_into()?);
+              if !offsets.insert(offset) { return Err("duplicate acknowledged offset".into()); }
+              Ok(())
+          }
+          #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
+          async fn main() -> Result {
+              let mut args = std::env::args().skip(1);
+              let variant = args.next().ok_or("missing variant")?;
+              let mode = args.next().ok_or("missing mode")?;
+              let root = std::env::temp_dir().join(format!("quota-write-pair-{}", std::process::id()));
+              fs::create_dir_all(&root)?;
+              let config = Config::new(0, "127.0.0.1".into(), 19095, "quota-bench".into());
+              let (mut catalog, _) = Catalog::open(root.join("catalog"), config.catalog_limits)?;
+              let mut id = [0; 16];
+              id[15] = 2;
+              catalog.create("alpha", TopicId::new(id)?, 2)?;
+              drop(catalog);
+              let (router, _) = Router::open_with_read_store(
+                  root.join("catalog"), config, produce::Config::new(root.join("parts")),
+                  fetch::Limits::default(),
+              ).await?;
+              let router = Arc::new(router);
+              let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/produce/4.3.1");
+              let request = fs::read(fixtures.join("produce-v3-acks1.request.bin"))?;
+              let golden = fs::read(fixtures.join("produce-v3-acks1.response.bin"))?;
+              let mut offsets = BTreeSet::new();
+              for _ in 0..32 {
+                  record(router.dispatch(request.clone()).await?, &golden, &mut offsets)?;
+              }
+              let started = Instant::now();
+              if mode == "sequential" {
+                  for _ in 0..320 {
+                      record(router.dispatch(request.clone()).await?, &golden, &mut offsets)?;
+                  }
+              } else if mode == "burst8" {
+                  for _ in 0..40 {
+                      let gate = Arc::new(Barrier::new(9));
+                      let mut tasks = Vec::with_capacity(8);
+                      for _ in 0..8 {
+                          let gate = Arc::clone(&gate);
+                          let router = Arc::clone(&router);
+                          let request = request.clone();
+                          tasks.push(tokio::spawn(async move {
+                              gate.wait().await;
+                              router.dispatch(request).await
+                          }));
+                      }
+                      gate.wait().await;
+                      for task in tasks {
+                          record(task.await??, &golden, &mut offsets)?;
+                      }
+                  }
+              } else {
+                  return Err("unknown mode".into());
+              }
+              let elapsed = started.elapsed().as_secs_f64();
+              if offsets.len() != 352 || offsets.iter().copied().ne(0..352) {
+                  return Err("acknowledged offsets were not exactly 0..352".into());
+              }
+              router.shutdown().await?;
+              fs::remove_dir_all(root)?;
+              println!("{variant},{mode},320,{elapsed:.9}");
+              Ok(())
+          }
+          RS
+          for variant in baseline candidate; do
+            cp "$RUNNER_TEMP/quota-write-pair.rs" "$RUNNER_TEMP/write-$variant/src/bin/quota-write-pair.rs"
+            cargo build --locked --release --manifest-path "$RUNNER_TEMP/write-$variant/Cargo.toml" --bin quota-write-pair
+            cp "$CARGO_TARGET_DIR/release/quota-write-pair" "$RUNNER_TEMP/write-$variant-bin"
+          done
+          : > "$RUNNER_TEMP/quota-write-pairs.csv"
+          for mode in sequential burst8; do
+            for n in 1 2 3 4 5 6; do
+              if (( n % 2 == 1 )); then
+                "$RUNNER_TEMP/write-baseline-bin" baseline "$mode" >> "$RUNNER_TEMP/quota-write-pairs.csv"
+                "$RUNNER_TEMP/write-candidate-bin" candidate "$mode" >> "$RUNNER_TEMP/quota-write-pairs.csv"
+              else
+                "$RUNNER_TEMP/write-candidate-bin" candidate "$mode" >> "$RUNNER_TEMP/quota-write-pairs.csv"
+                "$RUNNER_TEMP/write-baseline-bin" baseline "$mode" >> "$RUNNER_TEMP/quota-write-pairs.csv"
+              fi
+            done
+          done
+          cat "$RUNNER_TEMP/quota-write-pairs.csv"
