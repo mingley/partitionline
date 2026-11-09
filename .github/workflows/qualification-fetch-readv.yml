@@ -1,0 +1,53 @@
+name: Isolated indexed Fetch qualification
+on:
+  push:
+    branches: [qualification/broker-fetch-readv-20261109]
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Environment
+        run: |
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          sha256sum partitionline-broker/src/journal.rs partitionline-broker/Cargo.lock partitionline-broker/tests/fetch_vectored_bench.rs
+      - name: Ordinary read correctness
+        run: |
+          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --lib indexed_fetch_
+          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch independent_apache_read_goldens
+          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch global_first_batch_exception_and_request_order_preserve_capped_reads
+          cargo test --manifest-path partitionline-broker/Cargo.toml --locked --test fetch transport_deadline_cancels_wait_and_releases_read_admission
+      - name: Compile paired workloads
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/baseline" 133d2413217cee4130bca2267e4e36b7225ff86f
+          cp partitionline-broker/tests/fetch_vectored_bench.rs "$RUNNER_TEMP/baseline/partitionline-broker/tests/"
+          sha256sum "$RUNNER_TEMP/baseline/partitionline-broker/src/journal.rs" "$RUNNER_TEMP/baseline/partitionline-broker/tests/fetch_vectored_bench.rs"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/base-target" cargo test --manifest-path "$RUNNER_TEMP/baseline/partitionline-broker/Cargo.toml" --locked --release --test fetch_vectored_bench --no-run
+          CARGO_TARGET_DIR="$RUNNER_TEMP/candidate-target" cargo test --manifest-path partitionline-broker/Cargo.toml --locked --release --test fetch_vectored_bench --no-run
+          find "$RUNNER_TEMP/base-target/release/deps" -maxdepth 1 -type f -name 'fetch_vectored_bench-*' -executable -exec cp {} "$RUNNER_TEMP/base-bench" \;
+          find "$RUNNER_TEMP/candidate-target/release/deps" -maxdepth 1 -type f -name 'fetch_vectored_bench-*' -executable -exec cp {} "$RUNNER_TEMP/candidate-bench" \;
+          sha256sum "$RUNNER_TEMP/base-bench" "$RUNNER_TEMP/candidate-bench"
+      - name: Alternating complete Fetch samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PL_FETCH_BENCH_DIR="$RUNNER_TEMP/fetch-data"
+          export PL_FETCH_BENCH_ITERS=100
+          cpu_list=$(python3 -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')
+          printf 'paired CPU affinity: %s\n' "$cpu_list"
+          PL_FETCH_BENCH_SEED=1 taskset -c "$cpu_list" "$RUNNER_TEMP/candidate-bench" --ignored --exact successful_fetch_bench --nocapture
+          taskset -c "$cpu_list" "$RUNNER_TEMP/base-bench" --ignored --exact successful_fetch_bench --nocapture
+          for pair in $(seq 1 12); do
+            if ((pair % 2)); then order="base candidate"; else order="candidate base"; fi
+            for implementation in $order; do
+              printf 'PL_PAIR pair=%s implementation=%s\n' "$pair" "$implementation"
+              taskset -c "$cpu_list" "$RUNNER_TEMP/$implementation-bench" --ignored --exact successful_fetch_bench --nocapture
+            done
+          done

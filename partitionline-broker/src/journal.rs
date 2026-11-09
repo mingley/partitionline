@@ -23,7 +23,7 @@
 
 use std::collections::VecDeque;
 use std::fs::{File, OpenOptions};
-use std::io::{self, IoSlice, Read, Seek, SeekFrom, Write};
+use std::io::{self, IoSlice, IoSliceMut, Read, Seek, SeekFrom, Write};
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
 
@@ -1242,6 +1242,67 @@ fn read_exact_into(reader: &mut impl Read, dest: &mut Vec<u8>, len: usize) -> Re
     }
 }
 
+
+/// Read the known-size header and a small payload together when the reader
+/// supports vectored I/O. The index supplies the allocation bound; the on-disk
+/// header and payload are still checked independently before publication.
+fn read_indexed_entry(
+    reader: &mut impl Read,
+    index: &Index,
+    limits: Limits,
+    dest: &mut Vec<u8>,
+) -> Result<(), Error> {
+    const VECTORED_PAYLOAD_LIMIT: usize = 8192;
+    let payload_len = index.payload_len as usize;
+    let mut header = [0; ENTRY_HEADER];
+    let mut payload_read = 0;
+    if payload_len <= VECTORED_PAYLOAD_LIMIT {
+        let mark = dest.len();
+        let end = mark.checked_add(payload_len).ok_or(Error::AllocationFailed)?;
+        dest.try_reserve(payload_len).map_err(|_| Error::AllocationFailed)?;
+        dest.resize(end, 0);
+        let count = loop {
+            let mut slices = [
+                IoSliceMut::new(&mut header),
+                IoSliceMut::new(&mut dest[mark..end]),
+            ];
+            match reader.read_vectored(&mut slices) {
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                result => break result?,
+            }
+        };
+        if count > ENTRY_HEADER + payload_len {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid read length").into());
+        }
+        if count < ENTRY_HEADER {
+            if count == 0 {
+                return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "journal changed during read").into());
+            }
+            require_read(reader, &mut header[count..])?;
+        } else {
+            payload_read = count - ENTRY_HEADER;
+        }
+    } else {
+        require_read(reader, &mut header)?;
+    }
+
+    let parsed = parse_header(&header, index.first_offset, index.position, limits)?;
+    if parsed.payload_len != index.payload_len
+        || parsed.record_count != index.record_count
+        || parsed.checksum != index.checksum
+    {
+        return Err(corrupt(index.position, Corruption::EntryHeader));
+    }
+
+    if payload_len <= VECTORED_PAYLOAD_LIMIT {
+        let from = dest.len() - payload_len + payload_read;
+        require_read(reader, &mut dest[from..])?;
+    } else {
+        read_exact_into(reader, dest, payload_len)?;
+    }
+    Ok(())
+}
+
 fn file_header(base_offset: u64) -> [u8; FILE_HEADER] {
     let mut header = [0; FILE_HEADER];
     header[..8].copy_from_slice(FILE_MAGIC);
@@ -2024,16 +2085,7 @@ impl<S: Storage> Engine<S> {
                 self.storage.seek(SeekFrom::Start(index.position))?;
                 self.read_pos = Some(index.position);
             }
-            let mut header = [0; ENTRY_HEADER];
-            require_read(&mut self.storage, &mut header)?;
-            let parsed = parse_header(&header, index.first_offset, index.position, self.limits)?;
-            if parsed.payload_len != index.payload_len
-                || parsed.record_count != index.record_count
-                || parsed.checksum != index.checksum
-            {
-                return Err(corrupt(index.position, Corruption::EntryHeader));
-            }
-            read_exact_into(&mut self.storage, dest, index.payload_len as usize)?;
+            read_indexed_entry(&mut self.storage, index, self.limits, dest)?;
             let payload = dest
                 .get(mark..)
                 .ok_or_else(|| corrupt(index.position, Corruption::PayloadChecksum))?;
@@ -2499,6 +2551,89 @@ mod tests {
         assert_eq!(combined, direct);
         let empty = extend_fingerprint(start, &header, crc32c::crc32c(&[]), 0);
         assert_eq!(empty, crc32c::crc32c_append(start, &header));
+    }
+
+    struct VectoredReader {
+        bytes: std::io::Cursor<Vec<u8>>,
+        max_per_call: usize,
+        interrupts: usize,
+    }
+    impl Read for VectoredReader {
+        fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
+            if self.interrupts > 0 {
+                self.interrupts -= 1;
+                return Err(io::ErrorKind::Interrupted.into());
+            }
+            let max = out.len().min(self.max_per_call);
+            self.bytes.read(&mut out[..max])
+        }
+        fn read_vectored(&mut self, out: &mut [IoSliceMut<'_>]) -> io::Result<usize> {
+            if self.interrupts > 0 {
+                self.interrupts -= 1;
+                return Err(io::ErrorKind::Interrupted.into());
+            }
+            let mut total = 0;
+            for slice in out {
+                let max = slice.len().min(self.max_per_call - total);
+                if max == 0 {
+                    break;
+                }
+                let read = self.bytes.read(&mut slice[..max])?;
+                total += read;
+                if read < max || total == self.max_per_call {
+                    break;
+                }
+            }
+            Ok(total)
+        }
+    }
+
+    #[test]
+    fn indexed_fetch_vectored_handles_every_header_payload_split() -> Result<(), Error> {
+        let payload = b"a valid stored payload";
+        let index = Index {
+            first_offset: 0,
+            next_offset: 1,
+            position: FILE_HEADER as u64,
+            payload_len: payload.len() as u32,
+            record_count: 1,
+            checksum: crc32c::crc32c(payload),
+        };
+        let mut contents = entry_header(index).to_vec();
+        contents.extend_from_slice(payload);
+        for chunk in 1..=contents.len() {
+            for interrupts in [0, 2] {
+                let mut reader = VectoredReader {
+                    bytes: Cursor::new(contents.clone()),
+                    max_per_call: chunk,
+                    interrupts,
+                };
+                let mut dest = b"earlier".to_vec();
+                read_indexed_entry(&mut reader, &index, Limits::default(), &mut dest)?;
+                assert_eq!(dest, [b"earlier".as_slice(), payload].concat(), "chunk={chunk}");
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn indexed_fetch_rolls_back_destination_on_short_read_and_corruption() -> Result<(), Error> {
+        for corrupt_payload in [false, true] {
+            let mut log = engine(0)?;
+            log.append(1, b"the payload")?;
+            if corrupt_payload {
+                log.storage.cursor.get_mut()[FILE_HEADER + ENTRY_HEADER] ^= 1;
+            } else {
+                log.storage.read_chunk = 3;
+                log.storage.interruptions = 2;
+                log.storage.read_budget = Some(ENTRY_HEADER + 2);
+            }
+            let mut dest = b"earlier".to_vec();
+            assert!(log.fetch_one_into(0, 1024, &mut dest).is_err());
+            assert_eq!(dest, b"earlier");
+            assert!(log.poisoned);
+        }
+        Ok(())
     }
 
     #[test]
