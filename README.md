@@ -2,7 +2,7 @@
 
 An asynchronous Apache Kafka client with producer, consumer, group, transaction,
 and Admin APIs. This repository also contains an experimental
-[broker](https://github.com/mingley/partitionline/blob/c025be19b7d19dfd17d85eea66b43de93288dffb/partitionline-broker/README.md) and a
+[broker](https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/partitionline-broker/README.md) and a
 [Schema Registry companion](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md).
 
 [![ci](https://github.com/mingley/partitionline/actions/workflows/ci.yml/badge.svg)](https://github.com/mingley/partitionline/actions/workflows/ci.yml)
@@ -15,14 +15,25 @@ partitionline = "0.1"
 ```
 
 Version 0.1.0 is available on [crates.io](https://crates.io/crates/partitionline).
-The repository includes changes made after that release. See the
-[support matrix](docs/support.md) for tested versions and platforms and the
-[task registry](https://github.com/mingley/partitionline/blob/c025be19b7d19dfd17d85eea66b43de93288dffb/docs/plan/tasks.json) for remaining work. The current source is **not yet qualified for production
-use**: client CI and Kafka compatibility checks still fail. See the
-[current status](docs/STATUS.md) for the results and open work. Performance
-rankings have not been established.
+The examples and features below describe the newer repository source; some are
+not available in 0.1.0. For the published API, see the
+[0.1.0 documentation](https://docs.rs/partitionline/0.1.0/partitionline/).
+To try the current source, clone the repository and point your application's
+dependency at that checkout (adjust the relative path as needed):
 
-Use the latest stable Rust to build the current source.
+```toml
+[dependencies]
+partitionline = { path = "../partitionline" }
+```
+
+The current source is **not yet qualified for production use**: client CI and
+Kafka compatibility checks still fail. See the [current status](docs/STATUS.md)
+for results and open work, and the [support matrix](docs/support.md) for tested
+versions and platforms. Performance rankings have not been established.
+
+Use the latest stable Rust to build the current source. Building the TLS
+dependency Ring also needs a C toolchain. The examples assume a running Kafka
+broker and existing topics.
 
 ## Produce
 
@@ -175,7 +186,7 @@ Defaults that differ from Java:
 Authoritative defaults reference: [operator guide](docs/guide.md#defaults-that-differ-from-java).
 
 See the [operator guide](docs/guide.md) for recipes and troubleshooting,
-[API docs](https://docs.rs/partitionline) for methods and options, and the
+[published API docs](https://docs.rs/partitionline) for methods and options, and the
 [migration guide](docs/migrate-from-rdkafka.md) for porting from rust-rdkafka.
 
 ## Capabilities
@@ -194,7 +205,7 @@ version ranges and remaining gaps.
 
 ## Examples
 
-Broker on `127.0.0.1:9092` (Docker `apache/kafka:3.9.1` is enough):
+With a broker on `127.0.0.1:9092` and an existing topic named `partitionline`:
 
 ```
 cargo run --release --example roundtrip
@@ -214,7 +225,7 @@ COUNT=100000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plbe
   cargo run --release --example bench_produce
 ```
 
-Use a dedicated topic and verify its record history before comparing results.
+Create a dedicated topic and verify its record history before comparing results.
 This local sample uses seeded 100-byte payloads, 16-byte ID keys, and no
 warmup. [Benchmark instructions and results](docs/benchmark.md) describe the
 settings and limits of recorded runs. They do not establish a fastest-client

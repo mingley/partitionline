@@ -1,7 +1,11 @@
 # Operator guide
 
-Examples, configuration, recipes, and troubleshooting for the client.
-See the [documentation index](index.md) for API and protocol references.
+Examples, configuration, recipes, and troubleshooting for the current client
+source. The published 0.1.0 release predates some APIs and features shown here;
+see the [README](../README.md) for installation options. The feature
+configuration examples use a checkout at `../partitionline` relative to the
+application; adjust that path as needed. See the [documentation index](index.md)
+for references.
 
 ## Read this first
 
@@ -972,7 +976,7 @@ disable default features; gzip then uses miniz_oxide, which forbids `unsafe`
 and is slower:
 
 ```toml
-partitionline = { version = "0.1", default-features = false }
+partitionline = { path = "../partitionline", default-features = false }
 ```
 
 Both backends speak the same wire format. See
@@ -983,7 +987,7 @@ Both backends speak the same wire format. See
 Enable spans without changing default builds:
 
 ```toml
-partitionline = { version = "0.1", features = ["tracing"] }
+partitionline = { path = "../partitionline", features = ["tracing"] }
 ```
 
 Spans cover `Producer::send` (topic field), `Consumer::fetch`,

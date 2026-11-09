@@ -19,7 +19,7 @@ older 3.9.1 and 4.1.0 smoke runs are historical coverage.
 | Dimension | Configured scope | Evidence |
 |---|---|---|
 | Crate version | `0.1.0` on crates.io | Installable; do not re-cut `0.1.0` |
-| Rust | Latest stable; currently **1.99** (`rust-version` in `Cargo.toml`) | Stable-only CI for the client, broker and schema companion. Older compilers are not supported. |
+| Rust | Latest stable; the manifest minimum is **1.99** | Stable-only CI for the client, broker and schema companion. Older compilers are not supported. |
 | Host OS (CI) | Linux (`ubuntu-latest`); native macOS (`macos-15`) and Windows (`windows-2025`) for mock/runtime and packed consumers | `.github/workflows/ci.yml`; KL08-05 / KL08-14 native default/tracing cells |
 | Host arch (CI) | Linux `x86_64`; macOS `arm64`; Windows `x86_64` MSVC | Native compiler/runtime guards and retained platform reports |
 | Brokers (current source) | Apache Kafka **4.1.2**, **4.2.1**, **4.3.1**; historical smoke on **3.9.1** / **4.1.0** | `broker-current` required profiles and separate `broker-smoke` history; [frozen image digests](../tests/conformance/current-broker-cells.json) |
@@ -50,7 +50,7 @@ This is one producer and consumer scenario. It is not the full ducktape suite
 or the full SDK case registry. The earlier mock-only case is historical.
 
 The recorded profiles used their named source revisions and default features.
-The three live Kafka profiles failed on `45cbff24d`; see the
+The three live Kafka profiles failed on `45cbff24d` and on later source; see the
 [current results](STATUS.md#validation). These profiles do not cover:
 
 - Multi-broker HA, rebalance churn, or share lock expiry
