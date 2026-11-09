@@ -1,0 +1,67 @@
+name: Compare compact Schema Registry JSON indexes
+on:
+  push:
+    branches: [qualification/schema-json-compact-20261109]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compact collision, ordering and limits controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          for threshold in 64 128; do
+            cp ".qualification/compact-control-$threshold.rs" partitionline-schema/src/registry.rs
+            cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib json_object_index_ -- --nocapture
+            cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib registry_public_large_object_duplicate_control
+            cargo test --manifest-path partitionline-schema/Cargo.toml --locked --lib registry_index_respects_configured_body_boundary
+          done
+      - name: Compile pinned sources independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -a
+          lscpu
+          for implementation in baseline compact64 compact128; do
+            case "$implementation" in
+              baseline) expected=23fe4965d21fd260f54bd6e94595a0ea994d870c ;;
+              compact64) expected=f2be36fc1beeff761abc1082a0b897467b49dc1e ;;
+              compact128) expected=edd030e19b49e06db6baaf3d1d84c2bb28677bff ;;
+            esac
+            cp ".qualification/threshold-$implementation.rs" partitionline-schema/src/registry.rs
+            test "$(git hash-object partitionline-schema/src/registry.rs)" = "$expected"
+            sha256sum partitionline-schema/src/registry.rs
+            CARGO_TARGET_DIR="$RUNNER_TEMP/threshold-target-$implementation" cargo test --manifest-path partitionline-schema/Cargo.toml --locked --release --lib --no-run
+            find "$RUNNER_TEMP/threshold-target-$implementation/release/deps" -maxdepth 1 -type f -name 'partitionline_schema-*' -executable -exec cp {} "$RUNNER_TEMP/threshold-$implementation" \;
+          done
+          sha256sum "$RUNNER_TEMP/threshold-baseline" "$RUNNER_TEMP/threshold-compact64" "$RUNNER_TEMP/threshold-compact128"
+      - name: Alternate threshold samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "Pinned CPU $cpu"
+          for implementation in baseline compact64 compact128; do
+            taskset -c "$cpu" "$RUNNER_TEMP/threshold-$implementation" --ignored --exact registry::tests::json_object_qualification_bench --nocapture
+          done
+          for pair in $(seq 1 12); do
+            case $((pair % 6)) in
+              0) order="baseline compact64 compact128" ;;
+              1) order="baseline compact128 compact64" ;;
+              2) order="compact64 baseline compact128" ;;
+              3) order="compact64 compact128 baseline" ;;
+              4) order="compact128 baseline compact64" ;;
+              5) order="compact128 compact64 baseline" ;;
+            esac
+            for implementation in $order; do
+              echo "PL_PAIR pair=$pair implementation=$implementation"
+              taskset -c "$cpu" "$RUNNER_TEMP/threshold-$implementation" --ignored --exact registry::tests::json_object_qualification_bench --nocapture
+            done
+          done
