@@ -1,0 +1,27 @@
+name: Schema Registry chunked baseline
+on:
+  push:
+    branches: [qualification/schema-chunked-baseline-20261109]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify expected baseline failure and controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          if cargo test --manifest-path partitionline-schema/Cargo.toml --locked --test registry_chunked many_tiny_chunks_count_decoded_bytes_not_framing -- --nocapture > "$RUNNER_TEMP/chunked-baseline.log" 2>&1; then
+            echo "Baseline unexpectedly accepted the tiny chunks"
+            exit 1
+          fi
+          grep -F 'valid tiny chunks within the decoded body limit: TooLarge' "$RUNNER_TEMP/chunked-baseline.log"
+          grep -F '1 failed' "$RUNNER_TEMP/chunked-baseline.log"
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --test registry_chunked chunked_body_boundary_is_enforced_on_decoded_data
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --test registry_chunked malformed_and_truncated_chunks_are_rejected
+          cargo test --manifest-path partitionline-schema/Cargo.toml --locked --test registry_chunked canceling_a_partial_chunk_closes_the_socket
