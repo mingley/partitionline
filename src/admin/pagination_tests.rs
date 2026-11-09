@@ -3294,3 +3294,63 @@ async fn dtp_cursor_canonical_matches_existing_name_lookup() {
         }
     }
 }
+
+// A repeated cursor can be transient when pages do not form a snapshot.
+// The aggregate rejects it, but raw requests can continue from that cursor.
+#[tokio::test]
+async fn dtp_transient_repeat_is_rejected_but_raw_pages_can_progress() {
+    let (mut admin, listener) = admin_and_listener().await;
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let first = dtp_request(&mut socket, None).await;
+        send_page(&mut socket, &first, &page(0, Some(("orders", 1))))
+            .await
+            .unwrap();
+        let second = dtp_request(&mut socket, Some(("orders", 1))).await;
+        send_page(&mut socket, &second, &page(1, Some(("orders", 2))))
+            .await
+            .unwrap();
+        let third = dtp_request(&mut socket, Some(("orders", 2))).await;
+        send_page(&mut socket, &third, &page(2, Some(("orders", 1))))
+            .await
+            .unwrap();
+        let fourth = dtp_request(&mut socket, Some(("orders", 1))).await;
+        send_page(&mut socket, &fourth, &page(3, Some(("orders", 3))))
+            .await
+            .unwrap();
+        let fifth = dtp_request(&mut socket, Some(("orders", 3))).await;
+        send_page(&mut socket, &fifth, &page(4, None))
+            .await
+            .unwrap();
+    });
+    let names = ["orders"];
+    let got = admin
+        .describe_topics_with_partition_limit_timeout(
+            names.iter(),
+            false,
+            1,
+            Duration::from_secs(5),
+        )
+        .await;
+    assert!(
+        matches!(&got, Err(Error::Protocol(message)) if message == "repeated DescribeTopicPartitions cursor"),
+        "got {got:?}"
+    );
+    assert!(!got.as_ref().unwrap_err().is_retriable());
+
+    let repeated = TopicPartitionCursor::new("orders", 1);
+    let raw = admin
+        .describe_topic_partitions_timeout(&names, 1, Some(&repeated), Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(raw.topics[0].partitions[0].partition_index, 3);
+    let next = raw.next_cursor.unwrap();
+    assert_eq!(next, TopicPartitionCursor::new("orders", 3));
+    let last = admin
+        .describe_topic_partitions_timeout(&names, 1, Some(&next), Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(last.topics[0].partitions[0].partition_index, 4);
+    assert!(last.next_cursor.is_none());
+    peer.await.unwrap();
+}
