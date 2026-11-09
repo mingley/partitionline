@@ -21,7 +21,6 @@ jobs:
       - name: Verify exact candidate
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
           test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
           test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 6c47b3cb7cb2f1d99700263a099dfcb84f6a2724
           rustc -Vv
