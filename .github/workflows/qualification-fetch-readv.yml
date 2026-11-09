@@ -85,6 +85,28 @@ jobs:
           $candidate = Join-Path $env:RUNNER_TEMP "candidate-broker"
           Copy-Item -Recurse -Path partitionline-broker -Destination $candidate
           $manifest = Join-Path $candidate "Cargo.toml"
+          $sourcePath = Join-Path $candidate "src/journal.rs"
+          $source = [System.IO.File]::ReadAllText($sourcePath)
+          $start = $source.IndexOf("    fn indexed_fetch_file_rejects_corrupt_payload_and_rolls_back")
+          $end = $source.IndexOf("    #[test]", $start)
+          if ($start -lt 0 -or $end -le $start) { throw "Cannot locate diagnostic test" }
+          $block = $source.Substring($start, $end - $start)
+          $markers = @(
+            @('let root = ownership_test_dir("fetch-corrupt")?;', 'create-scratch'),
+            @('let (mut log, _) = Journal::open(&path, 0, Limits::default())?;', 'open-journal'),
+            @('log.append(1, b"the payload")?;', 'append'),
+            @('let mut disk = OpenOptions::new().write(true).open(&path)?;', 'open-second-writer'),
+            @('disk.seek(SeekFrom::Start((FILE_HEADER + ENTRY_HEADER) as u64))?;', 'seek-second-writer'),
+            @('disk.write_all(b"X")?;', 'write-second-writer'),
+            @('std::fs::remove_dir_all(root)?;', 'cleanup')
+          )
+          foreach ($item in $markers) {
+            if (-not $block.Contains($item[0])) { throw "Missing marker $($item[1])" }
+            $replacement = 'eprintln!("PL_WINDOWS_PHASE ' + $item[1] + '");' + "`n        " + $item[0]
+            $block = $block.Replace($item[0], $replacement)
+          }
+          $source = $source.Substring(0, $start) + $block + $source.Substring($end)
+          [System.IO.File]::WriteAllText($sourcePath, $source, [System.Text.UTF8Encoding]::new($false))
           rustc -Vv
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo test --manifest-path $manifest --locked --lib indexed_fetch_
