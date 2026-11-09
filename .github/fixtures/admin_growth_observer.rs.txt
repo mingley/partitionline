@@ -1,0 +1,162 @@
+
+#[cfg(test)]
+mod admin_growth_probe {
+    use std::cell::{Cell, RefCell};
+    use std::time::Instant;
+
+    #[derive(Debug)]
+    pub(super) struct Growth {
+        pub kind: &'static str,
+        pub old: usize,
+        pub new: usize,
+        pub wall_ns: u128,
+        pub cpu_ticks: Option<u64>,
+    }
+
+    std::thread_local! {
+        static EVENTS: RefCell<Vec<Growth>> = const { RefCell::new(Vec::new()) };
+        static CPU_ALLOWED: Cell<bool> = const { Cell::new(true) };
+    }
+
+    pub(super) fn cpu_ticks() -> Option<u64> {
+        if !CPU_ALLOWED.with(Cell::get) {
+            return None;
+        }
+        let read = || -> Result<u64, String> {
+            let stat = std::fs::read_to_string("/proc/thread-self/stat")
+                .map_err(|error| error.to_string())?;
+            let end = stat.rfind(')').ok_or("missing comm terminator")?;
+            let mut fields = stat[end + 1..].split_whitespace();
+            let user = fields.nth(11).ok_or("missing user ticks")?
+                .parse::<u64>().map_err(|error| error.to_string())?;
+            let system = fields.next().ok_or("missing system ticks")?
+                .parse::<u64>().map_err(|error| error.to_string())?;
+            user.checked_add(system).ok_or_else(|| "CPU tick overflow".into())
+        };
+        match read() {
+            Ok(ticks) => Some(ticks),
+            Err(error) => {
+                CPU_ALLOWED.with(|allowed| allowed.set(false));
+                eprintln!("ADMIN_CPU_UNAVAILABLE path=/proc/thread-self/stat error={error}");
+                None
+            }
+        }
+    }
+
+    pub(super) fn record(kind: &'static str, old: usize, new: usize, before_cpu: Option<u64>, started: Instant) {
+        let wall_ns = started.elapsed().as_nanos();
+        let cpu_ticks = cpu_ticks().zip(before_cpu).and_then(|(after, before)| after.checked_sub(before));
+        EVENTS.with(|events| events.borrow_mut().push(Growth { kind, old, new, wall_ns, cpu_ticks }));
+    }
+
+    pub(super) fn take() -> Vec<Growth> {
+        EVENTS.with(|events| std::mem::take(&mut *events.borrow_mut()))
+    }
+
+    pub(super) fn show(value: Option<u64>) -> String {
+        value.map_or_else(|| "unavailable".to_owned(), |ticks| ticks.to_string())
+    }
+}
+
+#[cfg(test)]
+mod admin_growth_observer {
+    use super::{admin_growth_probe as probe, group_named, index_coordinators};
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use std::time::{Duration, Instant};
+
+    struct Measured<F> {
+        inner: Pin<Box<F>>,
+        polls: usize,
+        longest_ns: u128,
+        longest_poll: usize,
+        longest_cpu: Option<u64>,
+    }
+
+    impl<F: Future> Measured<F> {
+        fn new(inner: F) -> Self {
+            Self { inner: Box::pin(inner), polls: 0, longest_ns: 0, longest_poll: 0, longest_cpu: None }
+        }
+    }
+
+    impl<F: Future> Future for Measured<F> {
+        type Output = F::Output;
+
+        fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+            let this = self.get_mut();
+            let cpu_before = probe::cpu_ticks();
+            let start = Instant::now();
+            let result = this.inner.as_mut().poll(cx);
+            let ns = start.elapsed().as_nanos();
+            let cpu_after = probe::cpu_ticks();
+            let cpu = cpu_after.zip(cpu_before).and_then(|(after, before)| after.checked_sub(before));
+            this.polls += 1;
+            if ns > this.longest_ns {
+                this.longest_ns = ns;
+                this.longest_poll = this.polls;
+                this.longest_cpu = cpu;
+            }
+            for event in probe::take() {
+                println!("ADMIN_GROW case={} poll={} old_capacity={} new_capacity={} wall_ns={} cpu_ticks={}",
+                    event.kind, this.polls, event.old, event.new, event.wall_ns, probe::show(event.cpu_ticks));
+            }
+            result
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn named_transform_finishes() {
+        let names: Vec<String> = (0..500_000).map(|i| format!("item-{i}")).collect();
+        let mut work = Measured::new(group_named(names, |name| name.as_str()));
+        let started = Instant::now();
+        let completed = tokio::select! {
+            value = &mut work => Some(value),
+            () = tokio::time::sleep(Duration::from_millis(30)) => None,
+        };
+        let timer_ns = started.elapsed().as_nanos();
+        let timer_won = completed.is_none();
+        let before_polls = work.polls;
+        let result = match completed {
+            Some(value) => value,
+            None => (&mut work).await,
+        };
+        assert_eq!(result.len(), 500_000);
+        assert_eq!(result.get("item-0").and_then(|q| q.front()).map(String::as_str), Some("item-0"));
+        assert_eq!(result.get("item-499999").and_then(|q| q.front()).map(String::as_str), Some("item-499999"));
+        println!("ADMIN_GROW_OBSERVE case=named timer_won={timer_won} timer_ns={timer_ns} before_polls={before_polls} total_polls={} longest_poll={} longest_ns={} longest_cpu_ticks={}",
+            work.polls, work.longest_poll, work.longest_ns, probe::show(work.longest_cpu));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn coordinator_transform_finishes() {
+        let coords: Vec<crate::protocol::group::CoordinatorResult> = (0..500_000)
+            .map(|i| crate::protocol::group::CoordinatorResult {
+                key: format!("item-{i}"),
+                node_id: i % 8,
+                host: "127.0.0.1".to_string(),
+                port: 9092,
+                error_code: 0,
+                error_message: None,
+            })
+            .collect();
+        let mut work = Measured::new(index_coordinators(coords));
+        let started = Instant::now();
+        let completed = tokio::select! {
+            value = &mut work => Some(value),
+            () = tokio::time::sleep(Duration::from_millis(30)) => None,
+        };
+        let timer_ns = started.elapsed().as_nanos();
+        let timer_won = completed.is_none();
+        let before_polls = work.polls;
+        let result = match completed {
+            Some(value) => value,
+            None => (&mut work).await,
+        };
+        assert_eq!(result.len(), 500_000);
+        assert_eq!(result.get("item-0").map(|slot| slot.1), Some(0));
+        assert_eq!(result.get("item-499999").map(|slot| slot.1), Some(7));
+        println!("ADMIN_GROW_OBSERVE case=coordinator timer_won={timer_won} timer_ns={timer_ns} before_polls={before_polls} total_polls={} longest_poll={} longest_ns={} longest_cpu_ticks={}",
+            work.polls, work.longest_poll, work.longest_ns, probe::show(work.longest_cpu));
+    }
+}

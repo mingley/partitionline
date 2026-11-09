@@ -1,0 +1,125 @@
+name: Admin response map-growth observation
+on:
+  push:
+    branches: [qualification/admin-response-growth-20261109]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: driver
+      - uses: actions/checkout@v7
+        with:
+          ref: f1be3052aac5ec70a424ac951fe1189c27a31417
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: f1be3052aac5ec70a424ac951fe1189c27a31417
+          path: growth
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin sources and build isolated binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          uname -sm
+          lscpu | grep -E 'Model name|CPU\(s\)'
+          getconf CLK_TCK
+          test "$(git -C driver hash-object .github/fixtures/admin_growth_observer.rs.txt)" = 64d068e070ffa2c1db4e9bb223837134c556f727
+          for arm in baseline growth; do
+            test "$(git -C "$arm" rev-parse HEAD)" = f1be3052aac5ec70a424ac951fe1189c27a31417
+            test "$(git -C "$arm" hash-object src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+            test "$(git -C "$arm" rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+            ARM="$arm" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          arm=os.environ["ARM"]
+          path=Path(arm)/"src/admin.rs"
+          source=path.read_text()
+          if arm == "growth":
+              for name,iterable,variable,label in [
+                  ("async fn group_named<T>(", "items", "grouped", "named"),
+                  ("async fn index_coordinators(", "coords", "by_key", "coordinator"),
+              ]:
+                  start=source.index(name)
+                  end=source.index("\n}\n",start)+2
+                  body=source[start:end]
+                  old="    for "+("item" if label == "named" else "coordinator")+" in "+iterable+" {\n"
+                  assert body.count(old)==1, name
+                  pre=("        #[cfg(test)]\n"
+                       "        let admin_growth_sample = if "+variable+".len() == "+variable+".capacity() {\n"
+                       "            Some(("+variable+".capacity(), admin_growth_probe::cpu_ticks(), std::time::Instant::now()))\n"
+                       "        } else { None };\n")
+                  body=body.replace(old,old+pre,1)
+                  boundary="        walked = walked.saturating_add(1);\n"
+                  assert body.count(boundary)==1, name
+                  post=("        #[cfg(test)]\n"
+                        "        if let Some((old, cpu, start)) = admin_growth_sample {\n"
+                        "            let new = "+variable+".capacity();\n"
+                        "            if new > old { admin_growth_probe::record(\""+label+"\", old, new, cpu, start); }\n"
+                        "        }\n")
+                  body=body.replace(boundary,post+boundary,1)
+                  source=source[:start]+body+source[end:]
+          source += Path("driver/.github/fixtures/admin_growth_observer.rs.txt").read_text()
+          path.write_text(source)
+          PY
+            git -C "$arm" hash-object src/admin.rs src/admin/pagination_tests.rs Cargo.lock
+            sha256sum "$arm/src/admin.rs" "$arm/src/admin/pagination_tests.rs" "$arm/Cargo.lock"
+            for profile in default all; do
+              flags=()
+              if test "$profile" = all; then flags=(--all-features); fi
+              target="$RUNNER_TEMP/admin-growth-$arm-$profile"
+              log="$RUNNER_TEMP/admin-growth-build-$arm-$profile.log"
+              if ! CARGO_TARGET_DIR="$target" cargo test --locked "${flags[@]}" --manifest-path "$arm/Cargo.toml" --lib --no-run > "$log" 2>&1; then
+                tail -100 "$log"
+                exit 1
+              fi
+              bins=()
+              for file in "$target"/debug/deps/partitionline-*; do
+                if [ -f "$file" ] && [ -x "$file" ]; then bins+=("$file"); fi
+              done
+              test "${#bins[@]}" = 1
+              cp "${bins[0]}" "$RUNNER_TEMP/$arm-$profile-growth-binary"
+              sha256sum "$RUNNER_TEMP/$arm-$profile-growth-binary"
+              rm -rf "$target"
+            done
+          done
+      - name: Alternating complete transformations
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          echo "pinned_cpu=$cpu"
+          mkdir -p "$RUNNER_TEMP/admin-growth"
+          for profile in default all; do
+            for case in named coordinator; do
+              if test "$case" = named; then testname=named_transform_finishes; else testname=coordinator_transform_finishes; fi
+              for pair in $(seq 1 4); do
+                if [ $((pair % 2)) = 1 ]; then order=(baseline growth); else order=(growth baseline); fi
+                for arm in "${order[@]}"; do
+                  echo "ARM_OBSERVATION profile=$profile case=$case pair=$pair arm=$arm"
+                  log="$RUNNER_TEMP/admin-growth/$profile-$case-$pair-$arm.log"
+                  taskset -c "$cpu" "$RUNNER_TEMP/$arm-$profile-growth-binary" --exact "admin::admin_growth_observer::$testname" --nocapture --test-threads=1 2>&1 | tee "$log"
+                  grep -F 'test result: ok. 1 passed; 0 failed;' "$log"
+                  grep -F "ADMIN_GROW_OBSERVE case=$case " "$log"
+                  if test "$arm" = growth; then grep -F "ADMIN_GROW case=$case " "$log" >/dev/null; fi
+                  if grep -F 'ADMIN_CPU_UNAVAILABLE' "$log"; then echo "CPU_UNQUALIFIED profile=$profile case=$case pair=$pair arm=$arm"; fi
+                done
+              done
+            done
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: admin-response-map-growth
+          path: ${{ runner.temp }}/admin-growth/
+          if-no-files-found: warn
+          retention-days: 30
