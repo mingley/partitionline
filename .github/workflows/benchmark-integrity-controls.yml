@@ -1,0 +1,19 @@
+name: Benchmark validation controls
+on:
+  push:
+    branches:
+      - qualification/benchmark-integrity-20261109
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r benchmarks/requirements.txt
+      - run: python -m unittest discover -s benchmarks/tests -p 'test_report.py' -v
+      - run: python -m unittest discover -s benchmarks/tests -p 'test_matrix.py' -v

@@ -763,5 +763,66 @@ class CompleteResultSchemaTests(unittest.TestCase):
             self.assertIn('non-finite', ' '.join(errors))
 
 
+
+class BenchmarkIntegrityRegressionTests(unittest.TestCase):
+    def setUp(self):
+        self.validator = BenchmarkValidator()
+
+    def test_reject_invalid_ack_values_and_idempotence_mismatches(self):
+        for scenario_ack, effective_ack in [("invalid", -1), (-1, "invalid"), (2, 2), (-2, -2)]:
+            with self.subTest(scenario_ack=scenario_ack, effective_ack=effective_ack):
+                data = build_valid_fixture()
+                data["scenario"]["equal_semantics"]["acks"] = scenario_ack
+                data["provenance"]["config"]["effective_settings"]["acks"] = effective_ack
+                self.assertFalse(self.validator.validate(data)[0])
+        for declared, effective in [(True, False), (False, True)]:
+            with self.subTest(declared=declared, effective=effective):
+                data = build_valid_fixture()
+                data["scenario"]["equal_semantics"]["idempotence"] = declared
+                data["provenance"]["config"]["effective_settings"]["idempotence"] = effective
+                self.assertFalse(self.validator.validate(data)[0])
+
+    def test_valid_ack_aliases_and_matching_idempotence(self):
+        for scenario_ack, effective_ack, idempotence in [
+            ("all", -1, True), ("-1", "all", False), ("+1", 1, False)
+        ]:
+            with self.subTest(scenario_ack=scenario_ack, effective_ack=effective_ack):
+                data = build_valid_fixture()
+                data["scenario"]["equal_semantics"]["acks"] = scenario_ack
+                data["scenario"]["equal_semantics"]["idempotence"] = idempotence
+                data["provenance"]["config"]["effective_settings"].update(
+                    acks=effective_ack, idempotence=idempotence
+                )
+                valid, errors, _ = self.validator.validate(data)
+                self.assertTrue(valid, errors)
+
+    def test_reject_unverified_or_duplicate_record_history(self):
+        for field in ("verified", "duplicate_ids_count"):
+            with self.subTest(field=field):
+                data = build_valid_fixture()
+                if field == "verified":
+                    data["integrity"]["verified"] = False
+                else:
+                    data["integrity"]["record_ids"][field] = 1
+                self.assertFalse(self.validator.validate(data)[0])
+
+    def test_reject_inconsistent_partition_offset_audit(self):
+        for mutation in ("wrong_delta", "wrong_total", "empty", "backwards"):
+            with self.subTest(mutation=mutation):
+                data = build_valid_fixture()
+                audit = data["integrity"]["high_watermark_audit"]
+                row = audit["partitions"][0]
+                if mutation == "wrong_delta":
+                    row["end_offset"] -= 1
+                elif mutation == "wrong_total":
+                    row["end_offset"] -= 1
+                    row["offset_delta"] -= 1
+                elif mutation == "empty":
+                    audit["partitions"] = []
+                else:
+                    row.update(start_offset=10, end_offset=5, offset_delta=0)
+                self.assertFalse(self.validator.validate(data)[0])
+
+
 if __name__ == "__main__":
     unittest.main()
