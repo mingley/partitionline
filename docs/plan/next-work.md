@@ -15,6 +15,15 @@ The Schema Registry client now honors `Retry-After` delay-seconds on HTTP
 passed on a mock; no live Schema Registry was tested. A later timeout is an
 intentional change from the earlier immediate retry.
 
+An isolated [indexed Fetch experiment](../evidence/broker/fetch-indexed-vectored-20261109/README.md)
+reduced paired median time for multi-entry in-process reads on two x86
+runners, with large adverse outliers on one. Windows file-backed qualification
+failed before Fetch, and strict checks are incomplete. It remains unapplied.
+A separate [producer comparison harness repair](../evidence/perf/kafka-ack-sampling-20261109/README.md)
+passed synthetic controls but remains unapplied: its copied C and Java paths
+and live Kafka readback need integrated testing. Earlier socket mismatches
+and an unverified arm remain unresolved.
+
 The latest complete recorded main [CI snapshot](../evidence/releases/main-ci-133d-20261108/README.md)
 is `133d2413217cee4130bca2267e4e36b7225ff86f`. Client libraries reported
 2,299 passed and 18 failed on Linux default, 2,302 passed and 15 failed with
