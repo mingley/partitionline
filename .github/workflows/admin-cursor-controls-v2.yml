@@ -1,0 +1,92 @@
+name: Isolated Admin broad-suite controls
+on:
+  push:
+    branches: [qualification/admin-cursor-control-v2-20261109]
+permissions:
+  contents: read
+jobs:
+  matched:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          ref: dfe179d7066e2c1afecb88df5ba76d2920308c46
+          path: baseline
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact source pins
+        run: |
+          set -euo pipefail
+          test "$(git -C candidate rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git -C candidate rev-parse HEAD:src/admin/pagination_tests.rs)" = d497709daffaa1cae3e6cd328aa0848a41c91567
+          test "$(git -C baseline rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git -C baseline rev-parse HEAD:src/admin/pagination_tests.rs)" = a69d5cceff56a7d1c52f321b5766d695423871aa
+          test "$(git -C candidate rev-parse HEAD:Cargo.lock)" = "$(git -C baseline rev-parse HEAD:Cargo.lock)"
+          test "$(git -C candidate rev-parse HEAD:Cargo.toml)" = "$(git -C baseline rev-parse HEAD:Cargo.toml)"
+          for arm in baseline candidate; do
+            echo "SOURCE_WITNESS arm=$arm"
+            git -C "$arm" rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:Cargo.toml HEAD:Cargo.lock
+            git -C "$arm" hash-object src/admin.rs src/admin/pagination_tests.rs Cargo.toml Cargo.lock
+            sha256sum "$arm/src/admin.rs" "$arm/src/admin/pagination_tests.rs" "$arm/Cargo.toml" "$arm/Cargo.lock"
+          done
+          rustc -Vv
+          lscpu | grep -E 'Model name|CPU\(s\)'
+      - name: Run separately built broad suites on the same machine
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/admin-controls-v2"
+          failure=0
+          for feature in default all; do
+            if test "$feature" = all; then
+              flags=(--all-features)
+              order=(candidate baseline)
+            else
+              flags=()
+              order=(baseline candidate)
+            fi
+            for arm in "${order[@]}"; do
+              name="$feature-$arm"
+              target="$RUNNER_TEMP/target-$name"
+              echo "BEGIN feature=$feature arm=$arm"
+              CARGO_TARGET_DIR="$target" cargo test --locked "${flags[@]}" --manifest-path "$arm/Cargo.toml" --lib --no-run > "$RUNNER_TEMP/admin-controls-v2/$name-build.log" 2>&1
+              bins=()
+              for file in "$target"/debug/deps/partitionline-*; do
+                if [ -f "$file" ] && [ -x "$file" ]; then bins+=("$file"); fi
+              done
+              test "${#bins[@]}" = 1
+              sha256sum "${bins[0]}" | tee "$RUNNER_TEMP/admin-controls-v2/$name-binary.sha256"
+              CARGO_TARGET_DIR="$target" cargo test --locked "${flags[@]}" --manifest-path "$arm/Cargo.toml" --lib admin::pagination_tests::dtp_cursor_history_detects_window_and_long_periods -- --exact --test-threads=1 > "$RUNNER_TEMP/admin-controls-v2/$name-witness.log" 2>&1
+              if test "$arm" = candidate; then
+                grep -F 'test result: ok. 1 passed; 0 failed;' "$RUNNER_TEMP/admin-controls-v2/$name-witness.log"
+              else
+                grep -F 'test result: ok. 0 passed; 0 failed;' "$RUNNER_TEMP/admin-controls-v2/$name-witness.log"
+              fi
+              sha256sum -c "$RUNNER_TEMP/admin-controls-v2/$name-binary.sha256"
+              if CARGO_TARGET_DIR="$target" cargo test --locked "${flags[@]}" --manifest-path "$arm/Cargo.toml" --lib admin:: -- --test-threads=1 > "$RUNNER_TEMP/admin-controls-v2/$name-suite.log" 2>&1; then
+                echo "ARM_RESULT feature=$feature arm=$arm status=pass"
+              else
+                status=$?
+                echo "ARM_RESULT feature=$feature arm=$arm status=fail exit=$status"
+                failure=1
+              fi
+              sha256sum -c "$RUNNER_TEMP/admin-controls-v2/$name-binary.sha256"
+              grep -E 'Running unittests|test result:|held the caller for|panicked at|^failures:|^    admin::' "$RUNNER_TEMP/admin-controls-v2/$name-suite.log" || true
+              echo "END feature=$feature arm=$arm"
+              rm -rf "$target"
+            done
+          done
+          exit "$failure"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: admin-broad-isolated-controls
+          path: ${{ runner.temp }}/admin-controls-v2/
+          if-no-files-found: warn
+          retention-days: 30
