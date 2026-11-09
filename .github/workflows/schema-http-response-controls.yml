@@ -22,3 +22,23 @@ jobs:
       - name: Public response controls
         if: always()
         run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml --test registry_http_protocol -- --nocapture
+      - name: Default feature suite
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml
+      - name: All feature suite
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml --all-features
+      - name: No default features
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features
+      - name: Format
+        if: always()
+        run: cargo fmt --manifest-path partitionline-schema/Cargo.toml -- --check
+      - name: Clippy
+        if: always()
+        run: cargo clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Rustdoc
+        if: always()
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --manifest-path partitionline-schema/Cargo.toml --all-features --no-deps

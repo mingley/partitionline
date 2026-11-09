@@ -1198,16 +1198,23 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
     max_body: usize,
 ) -> Result<HttpResponse, RegistryError> {
     let mut buf = Vec::new();
+    let mut head_start = 0usize;
     let mut search_from = 0usize;
     let mut budget = ResponseReadBudget::default();
-    let end = loop {
+    let (end, status) = loop {
         if let Some(end) = find_header_end(&buf[search_from..]).map(|end| search_from + end) {
             if end > MAX_HEADER_BYTES {
                 return Err(RegistryError::TooLarge {
                     limit: MAX_HEADER_BYTES,
                 });
             }
-            break end;
+            let status = parse_status(&buf[head_start..end])?;
+            if (100..200).contains(&status) && status != 101 {
+                head_start = end;
+                search_from = end;
+                continue;
+            }
+            break (end, status);
         }
         if buf.len() > MAX_HEADER_BYTES {
             return Err(RegistryError::TooLarge {
@@ -1229,17 +1236,26 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
             .get(..n)
             .ok_or_else(|| RegistryError::malformed("short socket read"))?;
         buf.extend_from_slice(chunk);
-        search_from = previous_len.saturating_sub(3);
+        search_from = previous_len.saturating_sub(3).max(head_start);
         if budget.account(n, RESPONSE_READ_YIELD_BYTES) {
             arm_yield().await;
         }
     };
 
     let head = buf
-        .get(..end)
+        .get(head_start..end)
         .ok_or_else(|| RegistryError::malformed("truncated response headers"))?;
-    let status = parse_status(head)?;
     let retry_after_secs = parse_retry_after(head);
+
+    // Protocol switches and the 204/304 statuses have no HTTP message body.
+    // A peer may leave the connection open, so do not wait for an EOF.
+    if matches!(status, 101 | 204 | 304) {
+        return Ok(HttpResponse {
+            status,
+            retry_after_secs,
+            body: Vec::new(),
+        });
+    }
 
     if is_chunked(head)? {
         return read_chunked_body(
@@ -1426,20 +1442,22 @@ fn parse_content_length(head: &[u8]) -> Result<Option<usize>, RegistryError> {
 
 fn is_chunked(head: &[u8]) -> Result<bool, RegistryError> {
     let text = head_text(head)?;
-    for line in text.split("\r\n") {
+    let mut chunked = false;
+    for line in text.split("\r\n").skip(1) {
         let Some((key, value)) = line.split_once(':') else {
             continue;
         };
         if key.eq_ignore_ascii_case("transfer-encoding") {
-            for part in value.split(',') {
-                if part.trim().eq_ignore_ascii_case("chunked") {
-                    return Ok(true);
-                }
+            // The decoder implements only chunked. Reject coding lists,
+            // including duplicates and multiple fields, rather than silently
+            // ignoring a coding we cannot decode.
+            if chunked || !value.trim().eq_ignore_ascii_case("chunked") {
+                return Err(RegistryError::malformed("unsupported transfer-encoding"));
             }
-            return Err(RegistryError::malformed("unsupported transfer-encoding"));
+            chunked = true;
         }
     }
-    Ok(false)
+    Ok(chunked)
 }
 
 /// `Retry-After` delay-seconds; HTTP-date and bad values yield `None`
@@ -2169,6 +2187,24 @@ mod tests {
                 ));
             }
         }
+    }
+
+    #[tokio::test]
+    async fn interim_response_requires_final_headers() {
+        let mut stream = &b"HTTP/1.1 103 Early Hints\r\n\r\n"[..];
+        let result =
+            read_http_response(&mut stream, Instant::now() + Duration::from_secs(3), 1024).await;
+        assert!(matches!(result, Err(RegistryError::Malformed { .. })));
+
+        let (mut writer, mut reader) = tokio::io::duplex(1024);
+        writer
+            .write_all(b"HTTP/1.1 100 Continue\r\n\r\n")
+            .await
+            .unwrap();
+        let result =
+            read_http_response(&mut reader, Instant::now() + Duration::from_millis(50), 1024).await;
+        assert!(matches!(result, Err(RegistryError::Timeout)));
+        drop(writer);
     }
 
     #[tokio::test]
