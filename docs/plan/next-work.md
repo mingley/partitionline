@@ -94,8 +94,10 @@ runs and their limits.
    handles delay-seconds for HTTP 429. The [incremental HTTP reader](../evidence/schema/registry-http-streaming-20261109/README.md)
    bounds decoded bodies and framing separately and avoids reparsing earlier
    chunks. Schema profiles and mock controls passed; no live registry was
-   tested. Qualify the supported codecs, lifecycle and registry behavior before
-   publication. The [JSON index](../evidence/schema/json-duplicate-index-20261109/README.md)
+   tested. The [HTTP response handling change](../evidence/schema/http-response-semantics-20261109/README.md)
+   handles informational and bodyless responses and rejects unsupported transfer
+   codings; mock controls and all three schema profiles passed. Qualify the
+   supported codecs, lifecycle and registry behavior before publication. The [JSON index](../evidence/schema/json-duplicate-index-20261109/README.md)
    and [compact follow-up](../evidence/schema/json-compact-index-20261109/README.md)
    remain unapplied after threshold slowdowns. [Balanced-tree experiments](../evidence/schema/json-balanced-index-20261109/README.md)
    also slowed ordinary Registry objects. An [incremental index](../evidence/schema/json-incremental-index-20261109/README.md)

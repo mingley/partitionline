@@ -32,10 +32,16 @@ have separate tests, and the companion remains unpublished.
 
 ## HTTP response limits
 
+The client reads informational HTTP responses before the final response.
+It treats HTTP 101 as an unsupported status, and does not wait for a body
+after 101, 204 or 304. It supports a single `chunked` transfer coding;
+other or repeated transfer codings are rejected.
+
 The configured body limit applies to decoded bytes for Content-Length,
-chunked and close-delimited responses. Headers, each chunk-size line and
-the trailer section are each limited to 64 KiB. Total chunk framing
-overhead is limited to five times the body limit plus 64 KiB.
+chunked and close-delimited responses. The combined informational and final
+headers, each chunk-size line and the trailer section are each limited to
+64 KiB. Total chunk framing overhead is limited to five times the body limit
+plus 64 KiB.
 
 This allows many small chunks when their decoded body fits, subject to the
 framing limit. Earlier source counted the accumulated chunked wire bytes
