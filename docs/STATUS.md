@@ -131,7 +131,10 @@ and [work plan][next] retain those results and earlier evidence.
 - **Performance.** Matched x86 comparisons against other Kafka
   implementations with independent record verification remain incomplete.
   Scoped results, including the [Admin index comparison][admin-index], are
-  not a client or server ranking. A [vectored Fetch experiment][fetch-exp]
+  not a client or server ranking. The [report validator][bench-validator]
+  rejects several inconsistent settings and record histories; it cannot
+  verify raw artifacts or prove the declared settings were used. A
+  [vectored Fetch experiment][fetch-exp]
   showed lower median time in several in-process workloads. Its Windows
   file-backed test failed before Fetch and strict checks remain incomplete;
   it is not applied. A
@@ -162,7 +165,7 @@ results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/7cfe6afd22d4099e602365e8a71428913eecf567/docs/evidence/releases/main-ci-669-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/f7c5d78d49333a754699af1cbb10fcaba1bcce74/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/4664aa3fc47f719a726e049535bdf48b8453094b/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -202,3 +205,5 @@ results and experiments.
 [ci-71]: https://github.com/mingley/partitionline/blob/7cfe6afd22d4099e602365e8a71428913eecf567/docs/evidence/releases/main-ci-71c-20261109/README.md
 
 [offer-model]: https://github.com/mingley/partitionline/blob/f7c5d78d49333a754699af1cbb10fcaba1bcce74/docs/evidence/client/producer-offer-fence-model-20261109/README.md
+
+[bench-validator]: https://github.com/mingley/partitionline/blob/4664aa3fc47f719a726e049535bdf48b8453094b/docs/evidence/perf/benchmark-report-validation-20261109/README.md
