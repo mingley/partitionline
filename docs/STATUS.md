@@ -120,8 +120,10 @@ and [work plan][next] retain those results and earlier evidence.
   A [producer socket trace][cold-trace] measured the cost of an artificial
   handshake delay in a mock; no socket-reuse optimization is applied. A
   [Produce request encoding experiment][produce-plan-exp] improved several
-  uncompressed fixtures but slowed LZ4 in all 12 pairs on one host; it is not
-  applied and does not measure the ordinary producer. The
+  uncompressed fixtures but slowed LZ4 in all 12 pairs on one host. A
+  [refinement][produce-plan-refined] also slowed empty and compressed cases in
+  several pairs on a second host. Neither is applied or measures the ordinary
+  producer. The
   [benchmark contract](benchmark-contract.md) sets out the measurement rules.
 
 An automatic security review stopped specific segmented-log recovery and
@@ -161,3 +163,4 @@ results and experiments.
 
 [owner-baseline]: https://github.com/mingley/partitionline/blob/3c29521973166b64b15fc498e7e47c4ec0eebeaa/docs/evidence/client/producer-ownership-baseline-731eb97/README.md
 [produce-plan-exp]: https://github.com/mingley/partitionline/blob/a15794155397da3842e16c5b7703e615b7be4676/docs/evidence/client/produce-request-first-length-20261109/README.md
+[produce-plan-refined]: https://github.com/mingley/partitionline/blob/af33269d4c35c84daa6a1395558ed03f73893cd6/docs/evidence/client/produce-request-uncompressed-length-20261109/README.md
