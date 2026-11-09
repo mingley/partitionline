@@ -40,14 +40,15 @@ the individual runs and results. The current branch contains later changes.
 | Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
 | Instruction-count gate | No baseline for this Rust version; no regression comparison. |
 
-An [additional client run][partial] on `dfe179d` passed 18 jobs, failed
-three Kafka compatibility jobs, canceled six and skipped one. Its
-resource-soak driver built and 11 short tests passed; that does not explain
-the earlier failure or qualify a sustained campaign. Its instruction gate
-again had no baseline. The [broker run][broker-run] passed 806 default and
-954 all-feature tests, with four ignored per profile, plus strict checks,
-inventory and fuzz supervision. Both selected [capability profiles][caps-run]
-passed; their archives were not independently inspected.
+A later [partial client run][partial] on `6ae6c675` passed 15 jobs. The
+Windows and macOS jobs and three current Kafka compatibility jobs failed;
+seven jobs were canceled and one was skipped. Its short resource-soak driver
+tests passed, without qualifying a sustained campaign. The [broker run][broker-run]
+passed 806 default and 954 all-feature tests, with four ignored per profile,
+plus strict checks, inventory and fuzz supervision. Both selected
+[capability profiles][caps-run] passed; their archives were not independently
+inspected. A separate [package documentation check][package-docs] passed;
+it did not compile examples.
 
 A focused [Schema Registry retry fix][schema-retry] now honors HTTP 429
 `Retry-After` delay-seconds across the supported response framings. Its mock
@@ -63,18 +64,28 @@ and [work plan][next] retain those results and earlier evidence.
   retry ordering and ownership problems. Accepted records can lose callbacks
   and leave buffer accounting nonzero after a worker stops. The
   [public controls][owner-controls] and [unwired batch draft][owner-draft]
-  do not establish a fix or a real-Kafka outcome. Repair ownership, sequence
+  do not establish a fix or a real-Kafka outcome. The [close change][close-fix]
+  now reports errors observed by its initial flush after shutdown; a prior
+  flush can consume an error. Focused controls passed, but broader producer
+  suites failed on baseline and candidate, with one additional candidate
+  timing failure in the all-feature comparison. Repair ownership, sequence
   allocation, flush and shutdown together, then qualify delivery and
   transaction behavior against Kafka.
 - **Client compatibility.** Current client library and Kafka jobs fail.
   Consumer and group behavior, cancellation, authentication and protocol
-  coverage remain incomplete. The [protocol gaps](gaps.md) describe the
-  individual APIs.
+  coverage remain incomplete. An [Admin cursor guard][cursor-fix] detects
+  some non-adjacent repeats with bounded history. It can reject a transient
+  repeat that would later have progressed; raw page requests remain available.
+  Focused checks passed, while broad Admin timing tests failed in both baseline
+  and candidate. The [protocol gaps](gaps.md) describe the individual APIs.
 - **Broker durability and limits.** Partition replication, native KRaft,
   authenticated network leadership, transaction marker propagation and a
   process-wide memory bound remain open. Kafka wire throttling is not
   implemented; the [quota design][quota] describes the remaining accounting
-  and transport work.
+  and transport work. The [transport fix][transport-fix] backpressures valid
+  pipelines when read-ahead is full. A disconnect behind that buffer may be
+  observed only after the active handler completes or reaches its deadline.
+  Both full broker feature profiles and strict checks passed on its candidate.
 - **Reliability.** No 24-hour fault campaign or seven-day continuity run has
   passed. Exact-commit CI, package checks and release rehearsal are still
   required by the [release guide](RELEASE.md).
@@ -86,8 +97,10 @@ and [work plan][next] retain those results and earlier evidence.
   file-backed test failed before Fetch and strict checks remain incomplete;
   it is not applied. A
   [producer comparison harness repair][sampler-exp] also remains isolated
-  pending integrated testing. The [benchmark contract](benchmark-contract.md)
-  sets out the measurement requirements.
+  pending integrated testing. A [JSON object index experiment][json-index]
+  improved large parses but introduced slowdowns at its tested thresholds;
+  it is not applied. The [benchmark contract](benchmark-contract.md) sets
+  out the measurement requirements.
 
 An automatic security review stopped specific segmented-log recovery and
 consumer/group investigations, stopped an independent v18 audit, and rejected
@@ -99,11 +112,11 @@ The [previous detailed status][history] preserves earlier qualification
 results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/d0c001b65353f865604e6cf16c94bd0d4482aa08/docs/evidence/releases/main-ci-133d-20261108/README.md
-[partial]: https://github.com/mingley/partitionline/actions/runs/42662585679
-[broker-run]: https://github.com/mingley/partitionline/actions/runs/42662585577
-[caps-run]: https://github.com/mingley/partitionline/actions/runs/42662585652
+[partial]: https://github.com/mingley/partitionline/actions/runs/42665925257
+[broker-run]: https://github.com/mingley/partitionline/actions/runs/42665925222
+[caps-run]: https://github.com/mingley/partitionline/actions/runs/42665925203
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/b0ae69f703bc1cec5ae3d8ce860035f08a37cb93/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/d3bed8c7f61d541899c455b62595fff4650d4b9c/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -112,3 +125,8 @@ results and experiments.
 [schema-retry]: https://github.com/mingley/partitionline/blob/ef20cb151dc7d310ab6f16d72b82ebc6c1071574/docs/evidence/schema/retry-after-20261109/README.md
 [fetch-exp]: https://github.com/mingley/partitionline/blob/b0ae69f703bc1cec5ae3d8ce860035f08a37cb93/docs/evidence/broker/fetch-indexed-vectored-20261109/README.md
 [sampler-exp]: https://github.com/mingley/partitionline/blob/b0ae69f703bc1cec5ae3d8ce860035f08a37cb93/docs/evidence/perf/kafka-ack-sampling-20261109/README.md
+[package-docs]: https://github.com/mingley/partitionline/actions/runs/42666130286
+[close-fix]: https://github.com/mingley/partitionline/blob/d3bed8c7f61d541899c455b62595fff4650d4b9c/docs/evidence/client/producer-close-errors-20261109/README.md
+[cursor-fix]: https://github.com/mingley/partitionline/blob/d3bed8c7f61d541899c455b62595fff4650d4b9c/docs/evidence/client/admin-cursor-history-20261109/README.md
+[transport-fix]: https://github.com/mingley/partitionline/blob/d3bed8c7f61d541899c455b62595fff4650d4b9c/docs/evidence/broker/transport-backpressure-20261109/README.md
+[json-index]: https://github.com/mingley/partitionline/blob/d3bed8c7f61d541899c455b62595fff4650d4b9c/docs/evidence/schema/json-duplicate-index-20261109/README.md
