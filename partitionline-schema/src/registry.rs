@@ -48,6 +48,9 @@
 //!   is capped at `backoff_max`.
 //! * Never retried: 401/403/404, other 3xx/4xx/5xx statuses, TLS failures,
 //!   malformed or oversize responses, and configuration errors.
+//! * For `Retry-After`, only the first field is used. A nonnegative decimal
+//!   delay in seconds is supported; HTTP-date, malformed and overflowing
+//!   values fall back to exponential backoff.
 //! * Attempt counts are bounded by `max_attempts` (1 through 8).
 //!
 //! # Errors
@@ -1198,7 +1201,8 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
     let retry_after_secs = parse_retry_after(head);
 
     if is_chunked(head)? {
-        return read_chunked_body(stream, &mut buf, end, status, deadline, max_body).await;
+        return read_chunked_body(stream, &mut buf, end, status, retry_after_secs, deadline, max_body)
+            .await;
     }
     if let Some(content_len) = parse_content_length(head)? {
         if content_len > max_body {
@@ -1269,6 +1273,7 @@ async fn read_chunked_body<S: AsyncReadExt + Unpin>(
     buf: &mut Vec<u8>,
     end: usize,
     status: u16,
+    retry_after_secs: Option<u64>,
     deadline: Instant,
     max_body: usize,
 ) -> Result<HttpResponse, RegistryError> {
@@ -1280,7 +1285,7 @@ async fn read_chunked_body<S: AsyncReadExt + Unpin>(
         if let Some(body) = try_decode_chunked_body(raw, max_body)? {
             return Ok(HttpResponse {
                 status,
-                retry_after_secs: None,
+                retry_after_secs,
                 body,
             });
         }
@@ -1377,8 +1382,10 @@ fn is_chunked(head: &[u8]) -> Result<bool, RegistryError> {
 /// (the caller falls back to exponential backoff).
 fn parse_retry_after(head: &[u8]) -> Option<u64> {
     let text = std::str::from_utf8(head).ok()?;
-    for line in text.split("\r\n") {
-        let (key, value) = line.split_once(':')?;
+    for line in text.split("\r\n").skip(1) {
+        let Some((key, value)) = line.split_once(':') else {
+            continue;
+        };
         if key.eq_ignore_ascii_case("retry-after") {
             let trimmed = value.trim();
             if trimmed.is_empty() || !trimmed.bytes().all(|b| b.is_ascii_digit()) {
@@ -2754,6 +2761,145 @@ mod tests {
         let schema = fast_client(&server).get_schema_by_id(100).await.unwrap();
         assert_eq!(schema.id, 100);
         assert_eq!(server.hits().await, 2);
+    }
+
+
+    fn rate_limited_response(kind: u8, retry_after: &str) -> MockResponse {
+        let response = MockResponse::json(429, r#"{"error_code":429}"#)
+            .header("Retry-After", retry_after);
+        match kind {
+            0 => response,
+            1 => response.chunked(),
+            2 => response.close_delimited(),
+            _ => panic!("unknown response framing"),
+        }
+    }
+
+    #[test]
+    fn retry_after_parser_handles_status_lines_and_invalid_values() {
+        let cases: &[(&[u8], Option<u64>)] = &[
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\n\r\n", Some(7)),
+            (b"HTTP/1.1 429 Too Many Requests\r\nrEtRy-AfTeR:\t0  \r\n\r\n", Some(0)),
+            (b"HTTP/1.1 429 reason: with colon\r\nX: a\r\nRetry-After: 12\r\n\r\n", Some(12)),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 1\r\nRetry-After: 2\r\n\r\n", Some(1)),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: bad\r\nRetry-After: 2\r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: \r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: -1\r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 1.5\r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 18446744073709551616\r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: Wed, 21 Oct 2015 07:28:00 GMT\r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nX: a\r\n\r\n", None),
+        ];
+        for (head, expected) in cases {
+            assert_eq!(parse_retry_after(head), *expected, "header: {head:?}");
+        }
+    }
+
+    async fn public_retry_after_deadline_case(kind: u8) {
+        let server = start_mock(
+            vec![rate_limited_response(kind, "3600"), MockResponse::json(200, BY_ID_100)],
+            None,
+        ).await;
+        let client = RegistryClient::new(
+            RegistryClientConfig::new(server.base_url.clone())
+                .max_attempts(2)
+                .retry_backoff(Duration::from_millis(5), Duration::from_secs(2))
+                .request_timeout(Duration::from_millis(700)),
+        ).unwrap();
+        let result = client.get_schema_by_id(100).await;
+        assert!(
+            matches!(result, Err(RegistryError::Timeout)),
+            "expected Timeout before the capped Retry-After delay for framing {kind}, got {result:?}"
+        );
+        assert_eq!(server.hits().await, 1, "framing {kind} retried before the deadline");
+    }
+
+    #[tokio::test]
+    async fn retry_after_public_content_length_deadline() {
+        public_retry_after_deadline_case(0).await;
+    }
+
+    #[tokio::test]
+    async fn retry_after_public_chunked_deadline() {
+        public_retry_after_deadline_case(1).await;
+    }
+
+    #[tokio::test]
+    async fn retry_after_public_close_delimited_deadline() {
+        public_retry_after_deadline_case(2).await;
+    }
+
+    #[tokio::test]
+    async fn retry_after_uses_capped_delay_and_attempt_limit() {
+        let server = start_mock(vec![rate_limited_response(1, "3600")], None).await;
+        let delay = Duration::from_millis(30);
+        let client = RegistryClient::new(
+            RegistryClientConfig::new(server.base_url.clone())
+                .max_attempts(2)
+                .retry_backoff(Duration::from_millis(5), delay)
+                .request_timeout(Duration::from_secs(3)),
+        ).unwrap();
+        let started = Instant::now();
+        let result = client.get_schema_by_id(100).await;
+        assert!(matches!(result, Err(RegistryError::RateLimited { attempts: 2 })));
+        assert!(started.elapsed() >= delay, "retry did not wait for the capped delay");
+        assert_eq!(server.hits().await, 2);
+    }
+
+    #[tokio::test]
+    async fn retry_after_invalid_and_zero_use_the_documented_paths() {
+        for value in ["0", "bad", "18446744073709551616", "Wed, 21 Oct 2015 07:28:00 GMT"] {
+            let server = start_mock(
+                vec![rate_limited_response(0, value), MockResponse::json(200, BY_ID_100)],
+                None,
+            ).await;
+            let client = RegistryClient::new(
+                RegistryClientConfig::new(server.base_url.clone())
+                    .max_attempts(2)
+                    .retry_backoff(Duration::from_millis(5), Duration::from_secs(1))
+                    .request_timeout(Duration::from_secs(3)),
+            ).unwrap();
+            let result = client.get_schema_by_id(100).await;
+            assert!(result.is_ok(), "value {value:?}: {result:?}");
+            assert_eq!(server.hits().await, 2);
+        }
+    }
+
+    #[tokio::test]
+    async fn retry_after_does_not_delay_final_attempt() {
+        let server = start_mock(vec![rate_limited_response(0, "3600")], None).await;
+        let client = RegistryClient::new(
+            RegistryClientConfig::new(server.base_url.clone())
+                .max_attempts(1)
+                .retry_backoff(Duration::from_millis(5), Duration::from_secs(3))
+                .request_timeout(Duration::from_secs(2)),
+        ).unwrap();
+        let result = client.get_schema_by_id(100).await;
+        assert!(matches!(result, Err(RegistryError::RateLimited { attempts: 1 })));
+        assert_eq!(server.hits().await, 1);
+    }
+
+    #[tokio::test]
+    async fn retry_after_cancellation_does_not_issue_another_request() {
+        let server = start_mock(
+            vec![rate_limited_response(0, "3600"), MockResponse::json(200, BY_ID_100)],
+            None,
+        ).await;
+        let client = RegistryClient::new(
+            RegistryClientConfig::new(server.base_url.clone())
+                .max_attempts(2)
+                .retry_backoff(Duration::from_millis(5), Duration::from_secs(1))
+                .request_timeout(Duration::from_secs(3)),
+        ).unwrap();
+        let mut call = Box::pin(client.get_schema_by_id(100));
+        assert!(
+            tokio::time::timeout(Duration::from_millis(200), call.as_mut()).await.is_err(),
+            "lookup retried before the Retry-After delay"
+        );
+        assert_eq!(server.hits().await, 1);
+        drop(call);
+        tokio::time::sleep(Duration::from_millis(1100)).await;
+        assert_eq!(server.hits().await, 1, "canceled lookup retried");
     }
 
     #[tokio::test]
