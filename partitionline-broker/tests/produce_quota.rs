@@ -14,7 +14,7 @@ use std::{
     sync::{atomic::{AtomicU64, Ordering}, Arc},
     time::{Duration, Instant},
 };
-use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream, sync::Notify};
+use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::{TcpListener, TcpStream}, sync::Notify};
 
 type Result<T = ()> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 static NEXT: AtomicU64 = AtomicU64::new(0);
@@ -54,6 +54,42 @@ async fn receive(socket: &mut TcpStream) -> Result<Vec<u8>> {
     socket.read_exact(&mut bytes).await?;
     Ok(bytes)
 }
+#[derive(Debug, PartialEq, Eq)]
+enum SocketObservation {
+    NoData,
+    Byte(u8),
+    Eof,
+}
+
+async fn observe_socket(socket: &TcpStream, wait: Duration) -> Result<SocketObservation> {
+    let mut byte = [0u8; 1];
+    match tokio::time::timeout(wait, socket.peek(&mut byte)).await {
+        Err(_) => Ok(SocketObservation::NoData),
+        Ok(Ok(0)) => Ok(SocketObservation::Eof),
+        Ok(Ok(_)) => Ok(SocketObservation::Byte(byte[0])),
+        Ok(Err(error)) => Err(error.into()),
+    }
+}
+
+#[tokio::test]
+async fn socket_probe_distinguishes_empty_data_and_eof() -> Result {
+    let listener = TcpListener::bind(([127, 0, 0, 1], 0)).await?;
+    let mut client = TcpStream::connect(listener.local_addr()?).await?;
+    let (mut server, _) = listener.accept().await?;
+    server.write_all(&[7]).await?;
+    client.readable().await?;
+    let mut byte = [0u8; 1];
+    assert_eq!(client.try_read(&mut byte)?, 1);
+    assert_eq!(byte[0], 7);
+    assert_eq!(observe_socket(&client, Duration::from_millis(100)).await?, SocketObservation::NoData);
+    server.write_all(&[9]).await?;
+    assert_eq!(observe_socket(&client, Duration::from_secs(1)).await?, SocketObservation::Byte(9));
+    client.read_exact(&mut byte).await?;
+    server.shutdown().await?;
+    assert_eq!(observe_socket(&client, Duration::from_secs(1)).await?, SocketObservation::Eof);
+    Ok(())
+}
+
 fn metadata_request() -> Vec<u8> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&3i16.to_be_bytes());
@@ -136,7 +172,11 @@ async fn throttle_response_is_sent_before_mute_and_shutdown_interrupts_it() -> R
     let response = tokio::time::timeout(Duration::from_millis(500), receive(&mut socket)).await??;
     assert_eq!(i32::from_be_bytes(response[response.len()-4..].try_into()?), 2_000);
     send(&mut socket, &metadata_request()).await?;
-    assert!(tokio::time::timeout(Duration::from_millis(100), socket.readable()).await.is_err());
+    if let Ok(readiness) = tokio::time::timeout(Duration::from_millis(100), socket.readable()).await {
+        readiness?;
+        let actual = observe_socket(&socket, Duration::from_millis(100)).await?;
+        panic!("readiness returned during mute; byte-level observation: {actual:?}");
+    }
     tokio::time::timeout(Duration::from_secs(1), transport.shutdown()).await??;
     router.shutdown().await?;
     fs::remove_dir_all(root)?;
