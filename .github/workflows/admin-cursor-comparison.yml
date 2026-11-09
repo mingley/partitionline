@@ -1,0 +1,161 @@
+name: Compare bounded Admin cursor history
+on:
+  push:
+    branches: [qualification/admin-cursor-comparison-20261109]
+permissions:
+  contents: read
+jobs:
+  semantics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arm: baseline
+            ref: dfe179d7066e2c1afecb88df5ba76d2920308c46
+            source: 8c2f94353e04c2925b1bfaf8478285190dd317d7
+            tests: a69d5cceff56a7d1c52f321b5766d695423871aa
+          - arm: candidate
+            ref: 02c93aca513c1ed1ddcc99eae69eecd167282434
+            source: e6c9899f3c645023782a9a33531665e3ef4b741c
+            tests: 6c47b3cb7cb2f1d99700263a099dfcb84f6a2724
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: driver
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.ref }}
+          path: arm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify same transient-response script on each source
+        env:
+          DTP_QUALIFICATION_ARM: ${{ matrix.arm }}
+        run: |
+          set -euo pipefail
+          test "$(git -C arm rev-parse HEAD:src/admin.rs)" = "${{ matrix.source }}"
+          test "$(git -C arm rev-parse HEAD:src/admin/pagination_tests.rs)" = "${{ matrix.tests }}"
+          test "$(git -C driver hash-object .github/fixtures/admin_cursor_comparison.rs.txt)" = f6f531aed278e3df5c216cd8404830bddcd64161
+          cp driver/.github/fixtures/admin_cursor_comparison.rs.txt arm/src/admin/pagination_tests.rs
+          git -C arm hash-object src/admin.rs src/admin/pagination_tests.rs Cargo.toml Cargo.lock
+          rustc -Vv
+          cargo test --locked --manifest-path arm/Cargo.toml --lib admin::pagination_tests::dtp_transient_repeat_qualification -- --exact --nocapture --test-threads=1 | tee transient.log
+          grep -F 'test result: ok. 1 passed; 0 failed;' transient.log
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: driver
+      - uses: actions/checkout@v7
+        with:
+          ref: dfe179d7066e2c1afecb88df5ba76d2920308c46
+          path: baseline
+      - uses: actions/checkout@v7
+        with:
+          ref: 02c93aca513c1ed1ddcc99eae69eecd167282434
+          path: candidate
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin sources and compile matched release test binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          lscpu | grep -E 'Model name|CPU\(s\)'
+          if test -r /sys/fs/cgroup/cpu.max; then cat /sys/fs/cgroup/cpu.max; else echo 'cpu.max unavailable'; fi
+          test "$(git -C baseline rev-parse HEAD:src/admin.rs)" = 8c2f94353e04c2925b1bfaf8478285190dd317d7
+          test "$(git -C baseline rev-parse HEAD:src/admin/pagination_tests.rs)" = a69d5cceff56a7d1c52f321b5766d695423871aa
+          test "$(git -C candidate rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git -C candidate rev-parse HEAD:src/admin/pagination_tests.rs)" = 6c47b3cb7cb2f1d99700263a099dfcb84f6a2724
+          test "$(git -C driver hash-object .github/fixtures/admin_cursor_comparison.rs.txt)" = f6f531aed278e3df5c216cd8404830bddcd64161
+          test "$(git -C baseline rev-parse HEAD:Cargo.lock)" = "$(git -C candidate rev-parse HEAD:Cargo.lock)"
+          test "$(git -C baseline rev-parse HEAD:Cargo.toml)" = "$(git -C candidate rev-parse HEAD:Cargo.toml)"
+          for arm in baseline candidate; do
+            cp driver/.github/fixtures/admin_cursor_comparison.rs.txt "$arm/src/admin/pagination_tests.rs"
+            cmp driver/.github/fixtures/admin_cursor_comparison.rs.txt "$arm/src/admin/pagination_tests.rs"
+            git -C "$arm" hash-object src/admin.rs src/admin/pagination_tests.rs Cargo.toml Cargo.lock
+            target="$RUNNER_TEMP/target-$arm"
+            CARGO_TARGET_DIR="$target" cargo test --locked --release --manifest-path "$arm/Cargo.toml" --lib --no-run
+            bins=()
+            for f in "$target"/release/deps/partitionline-*; do
+              if [ -f "$f" ] && [ -x "$f" ]; then bins+=("$f"); fi
+            done
+            test "${#bins[@]}" = 1
+            cp "${bins[0]}" "$RUNNER_TEMP/$arm-binary"
+            sha256sum "$RUNNER_TEMP/$arm-binary"
+          done
+      - name: Report future sizes and paired loopback timings
+        shell: bash
+        run: |
+          set -euo pipefail
+          cpu=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          printf 'pinned_cpu=%s\n' "$cpu"
+          mkdir -p "$RUNNER_TEMP/cursor-perf"
+          printf 'block,shape,arm,elapsed_ns\n' > "$RUNNER_TEMP/cursor-perf/results.csv"
+          for arm in baseline candidate; do
+            taskset -c "$cpu" "$RUNNER_TEMP/$arm-binary" --exact admin::pagination_tests::dtp_cursor_future_size_qualification --nocapture | tee "$RUNNER_TEMP/cursor-perf/size-$arm.txt"
+            grep -F 'test result: ok. 1 passed; 0 failed;' "$RUNNER_TEMP/cursor-perf/size-$arm.txt"
+            grep -F 'FUTURE_SIZE' "$RUNNER_TEMP/cursor-perf/size-$arm.txt"
+          done
+          shapes=(single two_pages many_pages long_names many_names_pages)
+          for shape in "${shapes[@]}"; do
+            case "$shape" in
+              single|many_pages) testname="dtp_pagination_benchmark_$shape" ;;
+              two_pages|long_names) testname="dtp_cursor_benchmark_$shape" ;;
+              many_names_pages) testname="dtp_requested_name_benchmark_$shape" ;;
+            esac
+            for arm in baseline candidate; do
+              taskset -c "$cpu" "$RUNNER_TEMP/$arm-binary" --exact "admin::pagination_tests::$testname" --ignored --nocapture > /dev/null
+            done
+          done
+          for block in $(seq 0 11); do
+            offset=0
+            for shape in "${shapes[@]}"; do
+              case "$shape" in
+                single|many_pages) testname="dtp_pagination_benchmark_$shape" ;;
+                two_pages|long_names) testname="dtp_cursor_benchmark_$shape" ;;
+                many_names_pages) testname="dtp_requested_name_benchmark_$shape" ;;
+              esac
+              if [ $(((block + offset) % 2)) = 0 ]; then order=(baseline candidate); else order=(candidate baseline); fi
+              for arm in "${order[@]}"; do
+                out=$(taskset -c "$cpu" "$RUNNER_TEMP/$arm-binary" --exact "admin::pagination_tests::$testname" --ignored --nocapture)
+                printf '%s\n' "$out" | grep -F 'test result: ok. 1 passed; 0 failed;' >/dev/null
+                ns=$(printf '%s\n' "$out" | sed -n 's/.*MEASURE .* elapsed_ns=\([0-9]*\).*/\1/p')
+                test -n "$ns"
+                printf '%s,%s,%s,%s\n' "$block" "$shape" "$arm" "$ns" >> "$RUNNER_TEMP/cursor-perf/results.csv"
+              done
+              offset=$((offset + 1))
+            done
+          done
+          cat "$RUNNER_TEMP/cursor-perf/results.csv"
+          python3 - "$RUNNER_TEMP/cursor-perf/results.csv" <<'PY'
+          import csv,statistics,sys
+          rows=list(csv.DictReader(open(sys.argv[1])))
+          assert len(rows)==120, len(rows)
+          for shape in ('single','two_pages','many_pages','long_names','many_names_pages'):
+              ratios=[]
+              base=[]
+              cand=[]
+              for block in range(12):
+                  pair={r['arm']:int(r['elapsed_ns']) for r in rows if r['shape']==shape and int(r['block'])==block}
+                  base.append(pair['baseline'])
+                  cand.append(pair['candidate'])
+                  ratios.append(pair['candidate']/pair['baseline'])
+              print('RESULT',shape,'baseline_median_ns',statistics.median(base),'candidate_median_ns',statistics.median(cand),'paired_median',statistics.median(ratios),'range',min(ratios),max(ratios),'slower',sum(x>1 for x in ratios),'paired',ratios)
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: admin-cursor-paired-loopback
+          path: ${{ runner.temp }}/cursor-perf/
+          if-no-files-found: warn
+          retention-days: 30

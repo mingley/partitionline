@@ -1,0 +1,94 @@
+name: Bounded Admin cursor live Kafka smoke
+on:
+  push:
+    branches: [qualification/admin-cursor-comparison-20261109]
+permissions:
+  contents: read
+jobs:
+  kafka:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+      KAFKA_BOOTSTRAP: '127.0.0.1:19092'
+      PL_DTP_TOPIC: 'pl-admin-dtp-slot-smoke'
+      KAFKA_REFERENCE: 'apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin exact source, smoke fixture and compiler
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          test "$(git rev-parse HEAD:src/admin.rs)" = e6c9899f3c645023782a9a33531665e3ef4b741c
+          test "$(git rev-parse HEAD:src/admin/pagination_tests.rs)" = 6c47b3cb7cb2f1d99700263a099dfcb84f6a2724
+          test "$(git rev-parse HEAD:tests/admin_dtp_row_live_qualification.rs)" = 5aefcf29a857f49317d94cbdef56bf60ae787f7e
+          git rev-parse HEAD HEAD:src/admin.rs HEAD:src/admin/pagination_tests.rs HEAD:tests/admin_dtp_row_live_qualification.rs HEAD:Cargo.lock | tee evidence/blobs.txt
+          sha256sum src/admin.rs src/admin/pagination_tests.rs tests/admin_dtp_row_live_qualification.rs Cargo.lock | tee evidence/sources.sha256
+          rustc -Vv | tee evidence/rust.txt
+          cargo -V | tee evidence/cargo.txt
+      - name: Build both live smoke profiles
+        run: |
+          set -euo pipefail
+          cargo test --locked --test admin_dtp_row_live_qualification --no-run 2>&1 | tee evidence/build-default.txt
+          cargo test --locked --all-features --test admin_dtp_row_live_qualification --no-run 2>&1 | tee evidence/build-all.txt
+      - name: Start digest-pinned Kafka 4.1.2
+        run: |
+          set -euo pipefail
+          docker create --name "pl-dtp-$GITHUB_RUN_ID" -p 127.0.0.1:19092:9092 \
+            -e KAFKA_NODE_ID=1 -e KAFKA_PROCESS_ROLES=broker,controller \
+            -e KAFKA_LISTENERS=PLAINTEXT://:9092,INTERNAL://:9094,CONTROLLER://:9093 \
+            -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:19092,INTERNAL://localhost:9094 \
+            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT \
+            -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+            -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 -e KAFKA_AUTO_CREATE_TOPICS_ENABLE=false \
+            "$KAFKA_REFERENCE" | tee evidence/container-id.txt
+          docker start "pl-dtp-$GITHUB_RUN_ID" | tee evidence/start.txt
+          docker inspect --format '{{.Config.Image}} {{.Image}}' "pl-dtp-$GITHUB_RUN_ID" | tee evidence/container-image.txt
+          docker image inspect --format '{{.Id}} {{json .RepoDigests}}' "$KAFKA_REFERENCE" | tee evidence/image.txt
+          ready=0
+          for attempt in $(seq 1 60); do
+            if timeout 10s docker exec "pl-dtp-$GITHUB_RUN_ID" /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9094 >"evidence/readiness-$attempt.txt" 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = 1
+          docker exec "pl-dtp-$GITHUB_RUN_ID" /opt/kafka/bin/kafka-topics.sh --version | tee evidence/kafka-version.txt
+          docker exec "pl-dtp-$GITHUB_RUN_ID" /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9094 --create --topic "$PL_DTP_TOPIC" --partitions 7 --replication-factor 1 | tee evidence/create-topic.txt
+          ready=0
+          for attempt in $(seq 1 30); do
+            docker exec "pl-dtp-$GITHUB_RUN_ID" /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9094 --describe --topic "$PL_DTP_TOPIC" > evidence/describe-topic.txt
+            parts="$(grep -c 'Partition:' evidence/describe-topic.txt || true)"
+            if test "$parts" = 7 && ! grep -Eq 'Leader: *-1' evidence/describe-topic.txt; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          cat evidence/describe-topic.txt
+          test "$ready" = 1
+      - name: Run real-broker pagination in both feature profiles
+        run: |
+          set -euo pipefail
+          cargo test --locked --test admin_dtp_row_live_qualification -- --exact kafka_412_admin_describe_topic_partitions_paginates --nocapture 2>&1 | tee evidence/test-default.txt
+          grep -F 'test result: ok. 1 passed; 0 failed;' evidence/test-default.txt
+          cargo test --locked --all-features --test admin_dtp_row_live_qualification -- --exact kafka_412_admin_describe_topic_partitions_paginates --nocapture 2>&1 | tee evidence/test-all.txt
+          grep -F 'test result: ok. 1 passed; 0 failed;' evidence/test-all.txt
+      - name: Capture broker log
+        if: always()
+        run: docker logs "pl-dtp-$GITHUB_RUN_ID" > evidence/broker.log 2>&1 || true
+      - name: Retain live qualification records
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-cursor-kafka-412
+          path: evidence
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Remove the test broker
+        if: always()
+        run: docker rm -f "pl-dtp-$GITHUB_RUN_ID" || true
