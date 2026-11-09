@@ -2530,6 +2530,22 @@ impl Mock {
         st.produce_drop_response_node = None;
     }
 
+    /// Seed the expected sequence for an isolated stale-rollback control.
+    #[cfg(stale_identity_witness)]
+    pub fn __test_seed_expected_sequence(
+        &self,
+        producer_id: i64,
+        epoch: i16,
+        topic: &str,
+        partition: i32,
+        next: i32,
+    ) {
+        let _ = self.state.lock().expected_seq.insert(
+            (producer_id, epoch, topic.to_owned(), partition),
+            next,
+        );
+    }
+
     pub fn last_produce_base_sequence(&self) -> Option<i32> {
         self.state.lock().last_produce_base_sequence
     }

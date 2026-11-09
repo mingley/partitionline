@@ -1,0 +1,98 @@
+name: Producer generation guard candidate qualification
+
+on:
+  push:
+    branches: [qualification/producer-generation-guard-20261109]
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      RUSTFLAGS: "--check-cfg=cfg(stale_identity_witness)"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        timeout-minutes: 10
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+            .qualification
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format and identify source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo fmt --all
+          printf '\nFORMATTED_DIFF_BEGIN\n'
+          git diff -- src/producer.rs
+          printf '\nFORMATTED_DIFF_END\n'
+          git hash-object src/producer.rs
+          sha256sum src/producer.rs Cargo.lock tests/common/mod.rs tests/stale_identity_rollback.rs
+          cp src/producer.rs "$RUNNER_TEMP/producer-clean.rs"
+      - name: Candidate unit and public controls
+        shell: bash
+        run: |
+          set -uo pipefail
+          failures=0
+          check() {
+            printf '\nCHECK: %s\n' "$*"
+            "$@" || failures=$((failures + 1))
+          }
+          for profile in default all; do
+            flags=()
+            if [[ "$profile" == all ]]; then flags+=(--all-features); fi
+            printf '\nPROFILE: %s\n' "$profile"
+            check cargo test --locked "${flags[@]}" --lib sequence_guard_ -- --nocapture
+            check cargo test --locked "${flags[@]}" --test buffer_ownership
+            check cargo test --locked "${flags[@]}" --test producer_close_errors
+            check cargo test --locked "${flags[@]}" --test produce_cancel
+            check cargo test --locked "${flags[@]}" --test sticky_partitioner
+            check cargo test --locked "${flags[@]}" --test producer_initialization
+            check cargo test --locked "${flags[@]}" --test client_api txn_abort_
+            check cargo test --locked "${flags[@]}" --test full_surface transactional_fenced_produce_
+          done
+          printf '\nFAILED_COMMANDS=%s\n' "$failures"
+          test "$failures" -eq 0
+      - name: Seeded public stale rollback control
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          failures=0
+          cp "$RUNNER_TEMP/producer-clean.rs" src/producer.rs
+          python3 .qualification/inject-stale-rollback.py || exit 1
+          sha256sum src/producer.rs tests/common/mod.rs tests/stale_identity_rollback.rs
+          export RUSTFLAGS="--cfg stale_identity_witness --check-cfg=cfg(stale_identity_witness)"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/instrumented-target"
+          for profile in default all; do
+            flags=()
+            if [[ "$profile" == all ]]; then flags+=(--all-features); fi
+            printf '\nINSTRUMENTED_PROFILE=%s\n' "$profile"
+            cargo test --locked "${flags[@]}" --test stale_identity_rollback -- --nocapture || failures=$((failures + 1))
+          done
+          cp "$RUNNER_TEMP/producer-clean.rs" src/producer.rs
+          git hash-object src/producer.rs
+          test "$failures" -eq 0
+      - name: Format and strict all-target checks
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          cp "$RUNNER_TEMP/producer-clean.rs" src/producer.rs
+          failures=0
+          cargo fmt --all -- --check || failures=$((failures + 1))
+          cargo clippy --locked --all-targets --all-features -- -D warnings || failures=$((failures + 1))
+          RUSTDOCFLAGS="-D warnings" cargo doc --locked --all-features --no-deps || failures=$((failures + 1))
+          test "$failures" -eq 0
