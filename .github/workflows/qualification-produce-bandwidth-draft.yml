@@ -1,23 +1,26 @@
-name: Isolated Produce bandwidth draft compile
+name: "Produce quota draft compile controls"
 on:
   push:
-    branches: [qualification/produce-bandwidth-draft-20261109]
+    branches:
+      - qualification/produce-bandwidth-draft-20261109
 permissions:
   contents: read
 jobs:
   compile:
+    name: Compile quota draft
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
         with:
           sparse-checkout: |
             /partitionline-broker
           sparse-checkout-cone-mode: false
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compile isolated broker
+      - name: Compile isolated broker and meter tests
+        shell: bash
         run: |
           set -euo pipefail
           cp -a partitionline-broker "$RUNNER_TEMP/isolated-broker"
           cargo check --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib --all-features
-          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib metadata::bandwidth::tests
+          cargo test --locked --manifest-path "$RUNNER_TEMP/isolated-broker/Cargo.toml" --lib 'metadata::bandwidth::tests'

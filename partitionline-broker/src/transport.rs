@@ -1714,15 +1714,17 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             if close {
                 return Exit::HandlerError;
             }
-            #[cfg(feature = "sasl")]
-            let authority = auth.as_ref().and_then(|auth| auth.operation_deadline());
-            #[cfg(not(feature = "sasl"))]
-            let authority: Option<Instant> = None;
-            let pause = wait_for_resume(resume_at, authority);
-            #[cfg(feature = "oidc")]
-            let pause = authorized(auth.as_ref().and_then(|a| a.lease()), pause);
-            if let Err(exit) = pause.await {
-                return exit;
+            if resume_at.is_some() {
+                #[cfg(feature = "sasl")]
+                let authority = auth.as_ref().and_then(|auth| auth.operation_deadline());
+                #[cfg(not(feature = "sasl"))]
+                let authority: Option<Instant> = None;
+                let pause = wait_for_resume(resume_at, authority);
+                #[cfg(feature = "oidc")]
+                let pause = authorized(auth.as_ref().and_then(|a| a.lease()), pause);
+                if let Err(exit) = pause.await {
+                    return exit;
+                }
             }
         }
     }
