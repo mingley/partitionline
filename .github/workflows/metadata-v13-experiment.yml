@@ -14,8 +14,8 @@ on:
       - 'tests/conformance/java/ConformanceMetadataWire.java'
       - 'tests/conformance/java/generate_metadata_wire.py'
       - 'tests/metadata_wire_conformance.rs'
-      - 'docs/evidence/conformance/q-conf-metadatawire/apache-pairs.txt'
-      - 'docs/evidence/conformance/q-conf-metadatawire/rust-pairs.txt'
+      - 'tests/fixtures/metadata_wire/apache-pairs.txt'
+      - 'tests/fixtures/metadata_wire/rust-pairs.txt'
       - '.github/workflows/metadata-v13-experiment.yml'
   pull_request:
     paths:
@@ -27,8 +27,8 @@ on:
       - 'tests/conformance/java/ConformanceMetadataWire.java'
       - 'tests/conformance/java/generate_metadata_wire.py'
       - 'tests/metadata_wire_conformance.rs'
-      - 'docs/evidence/conformance/q-conf-metadatawire/apache-pairs.txt'
-      - 'docs/evidence/conformance/q-conf-metadatawire/rust-pairs.txt'
+      - 'tests/fixtures/metadata_wire/apache-pairs.txt'
+      - 'tests/fixtures/metadata_wire/rust-pairs.txt'
       - '.github/workflows/metadata-v13-experiment.yml'
 permissions:
   contents: read
@@ -64,7 +64,7 @@ jobs:
           peers = ("4.1.2", "4.2.1", "4.3.1")
           apache = (root / peers[0] / "apache.txt").read_bytes()
           rust = (root / peers[0] / "default-rust.txt").read_bytes()
-          evidence = Path("docs/evidence/conformance/q-conf-metadatawire")
+          evidence = Path("tests/fixtures/metadata_wire")
           if apache != (evidence / "apache-pairs.txt").read_bytes():
               raise ValueError("Apache corpus differs from retained bytes")
           if rust != (evidence / "rust-pairs.txt").read_bytes():
@@ -85,6 +85,22 @@ jobs:
               print(body.decode("ascii"), end="")
               print("END_" + label + "_CORPUS")
           PY
+      - name: Offline corpus in the checkout
+        run: |
+          cargo test --locked --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact
+          cargo test --locked --all-features --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact
+      - name: Offline corpus in the packed crate
+        run: |
+          cargo package --locked --allow-dirty --no-verify
+          crate_stem=$(python3 -c 'import json,subprocess; m=json.loads(subprocess.check_output(["cargo","metadata","--no-deps","--format-version","1"])); p=next(p for p in m["packages"] if p["name"]=="partitionline"); print(p["name"]+"-"+p["version"])')
+          package_dir="$RUNNER_TEMP/metadata-v13-package"
+          mkdir -p "$package_dir"
+          tar -xzf "target/package/$crate_stem.crate" -C "$package_dir"
+          manifest="$package_dir/$crate_stem/Cargo.toml"
+          test -f "$package_dir/$crate_stem/tests/fixtures/metadata_wire/apache-pairs.txt"
+          test -f "$package_dir/$crate_stem/tests/fixtures/metadata_wire/rust-pairs.txt"
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --manifest-path "$manifest" --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --all-features --manifest-path "$manifest" --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact
       - name: Strict lint
         if: always()
         run: cargo clippy --locked --all-features --test metadata_wire_conformance -- -D warnings

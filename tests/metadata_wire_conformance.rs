@@ -67,22 +67,20 @@ fn expected_response() -> MetadataResponse {
     }
 }
 
-#[test]
-#[ignore = "requires generated pinned Apache SDK fixtures"]
-fn metadata_v13_apache_wire() -> Result<(), Box<dyn Error>> {
-    let input = std::env::var("METADATA_WIRE_INPUT")?;
-    let output = std::env::var("METADATA_WIRE_OUTPUT")?;
-    let text = std::fs::read_to_string(input)?;
+fn verify_corpus(text: &str) -> Result<String, Box<dyn Error>> {
     assert!(text.len() <= 32_768);
     let lines = text.lines().collect::<Vec<_>>();
     assert_eq!(lines.len(), CASES.len());
     let mut reverse = String::new();
     for (line, cell) in lines.iter().zip(CASES) {
-        let fields = line.split_whitespace().collect::<Vec<_>>();
-        assert_eq!(fields.len(), 3);
-        assert_eq!(fields[0], cell);
-        let request_bytes = decode_hex(fields[1])?;
-        let response_bytes = decode_hex(fields[2])?;
+        let mut fields = line.split_whitespace();
+        let actual_cell = fields.next().ok_or("missing case")?;
+        let request_bytes = decode_hex(fields.next().ok_or("missing request")?)?;
+        let response_bytes = decode_hex(fields.next().ok_or("missing response")?)?;
+        if fields.next().is_some() {
+            return Err("unexpected extra field".into());
+        }
+        assert_eq!(actual_cell, cell);
         let expected_topics = match cell {
             "all" => None,
             "empty" => Some(vec![]),
@@ -124,6 +122,23 @@ fn metadata_v13_apache_wire() -> Result<(), Box<dyn Error>> {
             encode_hex(&response_out)
         ));
     }
-    std::fs::write(output, reverse)?;
+    Ok(reverse)
+}
+
+#[test]
+fn metadata_v13_committed_corpus() -> Result<(), Box<dyn Error>> {
+    let input = include_str!("fixtures/metadata_wire/apache-pairs.txt");
+    let expected = include_str!("fixtures/metadata_wire/rust-pairs.txt");
+    assert_eq!(verify_corpus(input)?, expected);
+    Ok(())
+}
+
+#[test]
+#[ignore = "requires generated pinned Apache SDK fixtures"]
+fn metadata_v13_apache_wire() -> Result<(), Box<dyn Error>> {
+    let input = std::env::var("METADATA_WIRE_INPUT")?;
+    let output = std::env::var("METADATA_WIRE_OUTPUT")?;
+    let text = std::fs::read_to_string(input)?;
+    std::fs::write(output, verify_corpus(&text)?)?;
     Ok(())
 }

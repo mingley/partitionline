@@ -39,18 +39,25 @@ after its parent exited. Its process group was gone after KILL.
 
 The [fourth run](https://github.com/mingley/partitionline/actions/runs/42704216370)
 on `3c462e2b2355c7001ee3eeb1938bb4e0ffce1bbe` also passed and printed the
-bounded synthetic corpora. The five [Apache pairs](apache-pairs.txt) and five
-[Rust pairs](rust-pairs.txt) were extracted from those logs; their independently
+bounded synthetic corpora. The five [Apache pairs](../../../../tests/fixtures/metadata_wire/apache-pairs.txt) and five
+[Rust pairs](../../../../tests/fixtures/metadata_wire/rust-pairs.txt) were extracted from those logs; their independently
 recomputed SHA-256 values are respectively
 `0f0e18942643b10ef0cd3512c9e97e8b237921cca64906710d8f509ce54cacc9`
 and `3a1ef65a8406a184b59112c704a0377d1cea3bf5fd9d514ff8bd81cdbb9e45c4`.
 These match the per-peer and per-profile run receipts. The uploaded artifacts
 were not independently inspected.
 
-A later runner version adds a separately bounded readiness handshake and a
-startup-timeout control; its results must be recorded separately. The workflow
-is also configured to compare regenerated corpora byte-for-byte with these
-retained files. The runner checks its owned process groups without reading
-`/proc` and escalates from TERM to KILL on timeout. A process that escapes
-its group, permission errors, kernel failures or abrupt termination of the
-runner can prevent cleanup from being proved.
+The [fifth run](https://github.com/mingley/partitionline/actions/runs/42705108869)
+on `e0868e875fc70cd7fe87972ed48a10606cd13b5a` passed the peer comparison,
+byte-for-byte checks against both retained corpora, formatting and strict
+Clippy. Runtime-timeout and readiness-timeout controls both observed an
+already-exited parent with a TERM-resistant descendant, escalated to KILL and
+observed the process group gone. The readiness handshake had a separate
+bounded deadline.
+
+The follow-up adds an ordinary offline Rust test and verifies its execution
+from the packaged crate; those changed sources require a separate run. The
+runner checks its owned process groups without reading `/proc` and escalates
+from TERM to KILL on timeout. A process that escapes its group, permission
+errors, kernel failures or abrupt termination of the runner can prevent
+cleanup from being proved.
