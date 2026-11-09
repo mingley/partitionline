@@ -83,8 +83,10 @@ and [work plan][next] retain those results and earlier evidence.
   and 65,544 bytes remained accounted for within a four-second observation
   after abort or timed close; this does not establish a permanent leak. An
   [ownership attempt][owner-attempt] passed selected cancellation controls
-  but failed retry during close; a separate [sealed-retry experiment][sealed-retry]
-  lacks partition and identity fences. Neither is applied.
+  but failed retry during close. An [admission-seal follow-up][owner-seal]
+  passed that mock but lacks a fatal write fence; a separate
+  [sealed-retry experiment][sealed-retry] lacks partition and identity fences.
+  None is applied.
   [Seeded retry controls][retry-membership] also show that equal numeric bases
   can group records from different topics, partitions or identity generations;
   they do not establish a natural Kafka history. A
@@ -157,7 +159,7 @@ results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/b78c9cfd89bd02a35ac04040ba9be43041cb0364/docs/evidence/releases/main-ci-71c-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/3590bdab599875cdea560590353999e26cf28f2b/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/ce488cd1d71febefd1dd9abff9b3ba774443e73e/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -193,3 +195,4 @@ results and experiments.
 [json-incremental]: https://github.com/mingley/partitionline/blob/ad7d671c7cbfdc87dbf1c797b02c5ea9890f1808/docs/evidence/schema/json-incremental-index-20261109/README.md
 [ci-previous]: https://github.com/mingley/partitionline/blob/b78c9cfd89bd02a35ac04040ba9be43041cb0364/docs/evidence/releases/main-ci-f1be-20261109/README.md
 [admin-growth]: https://github.com/mingley/partitionline/blob/658620ca4681aefe208aab9aa486ecb7a4afe89e/docs/evidence/client/admin-response-growth-20261109/README.md
+[owner-seal]: https://github.com/mingley/partitionline/blob/ce488cd1d71febefd1dd9abff9b3ba774443e73e/docs/evidence/client/producer-admission-seal-v4-20261109/README.md
