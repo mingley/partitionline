@@ -101,7 +101,7 @@ async fn txn_abort_fatal_fencing_is_terminal_across_coordinator_versions() {
             assert_eq!(mock.end_txn_calls(), 0, "fatal state sends no EndTxn");
             assert_eq!(mock.init_producer_id_nodes().len(), 1);
             assert_eq!(producer.__test_producer_epoch(), 0);
-            producer.close().await.unwrap();
+            assert_eq!(producer.close().await.unwrap_err().broker_code(), Some(code));
         }
     }
 }

@@ -4214,6 +4214,11 @@ impl Producer {
 
     /// Flush, then stop workers. Further sends on **any** clone return [`Error::Closed`].
     ///
+    /// Returns the initial flush result after attempting worker shutdown.
+    /// Errors already consumed by an earlier flush and errors arising only
+    /// during shutdown are not returned. A successful close does not establish
+    /// delivery of every record; see [`Self::flush`].
+    ///
     /// Prefer an explicit `close` over dropping the last handle: drop alone does
     /// not wait for in-flight produce outcomes (see the guide cancellation table).
     pub async fn close(self) -> Result<()> {
@@ -4233,15 +4238,16 @@ impl Producer {
         for _ in 0..8 {
             tokio::task::yield_now().await;
         }
-        match flush {
-            Err(Error::Timeout) => Err(Error::Timeout),
-            _ => Ok(()),
-        }
+        flush
     }
 
     /// Flush for up to `timeout`, then stop workers (Java `close(Duration)`).
     ///
-    /// A flush timeout is returned after the producer is closed.
+    /// Returns the initial flush result after attempting worker shutdown.
+    /// Errors already consumed by an earlier flush and errors arising only
+    /// during shutdown are not returned. A successful close does not establish
+    /// delivery of every record; see [`Self::flush`]. A synchronous interceptor
+    /// callback can delay shutdown beyond the deadline.
     pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
         let deadline = Instant::now() + timeout;
         let flush = self.flush_until(deadline).await;
@@ -4253,10 +4259,7 @@ impl Producer {
         for _ in 0..8 {
             tokio::task::yield_now().await;
         }
-        match flush {
-            Err(Error::Timeout) => Err(Error::Timeout),
-            _ => Ok(()),
-        }
+        flush
     }
 
     /// Abort `send_all` metadata refreshes and wait until they leave the runtime.

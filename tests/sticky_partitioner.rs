@@ -395,7 +395,12 @@ async fn broker_terminal_error_and_acks_zero_both_retire_rows() {
         assert_eq!(result.is_ok(), acks == 0);
         assert_eq!(producer.__test_sticky_state().unwrap().1, 0);
         assert_eq!(producer.metrics().bytes_buffered, 0);
-        producer.close().await.unwrap();
+        let close = producer.close().await;
+        if acks == 0 {
+            assert!(close.is_ok());
+        } else {
+            assert_eq!(close.unwrap_err().broker_code(), Some(error::INVALID_RECORD));
+        }
     }
 }
 
