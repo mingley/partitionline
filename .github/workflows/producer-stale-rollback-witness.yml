@@ -1,0 +1,47 @@
+name: Stale producer rollback baseline witness
+on:
+  push:
+    branches: [qualification/producer-stale-rollback-20261109]
+permissions:
+  contents: read
+jobs:
+  witness:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RUSTFLAGS: '--cfg stale_identity_witness --check-cfg=cfg(stale_identity_witness)'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /README.md
+            /CHANGELOG.md
+            /clippy.toml
+            /src
+            /tests
+            /examples
+            /docs
+          sparse-checkout-cone-mode: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Baseline must reproduce stale rollback and public wire reuse
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          git hash-object src/producer.rs tests/common/mod.rs tests/stale_identity_rollback.rs
+          flags=()
+          if [[ "${{ matrix.profile }}" == "all" ]]; then flags+=(--all-features); fi
+          set +e
+          cargo test --locked "${flags[@]}" --test stale_identity_rollback -- --nocapture > "$RUNNER_TEMP/stale.log" 2>&1
+          rc=$?
+          set -e
+          cat "$RUNNER_TEMP/stale.log"
+          test "$rc" -eq 101
+          grep -F 'STALE_IDENTITY after=0 first_base=0' "$RUNNER_TEMP/stale.log"
+          grep -F 'stale rollback rewound the new generation' "$RUNNER_TEMP/stale.log"
