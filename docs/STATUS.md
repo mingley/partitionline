@@ -24,15 +24,15 @@ the current TLS and OIDC behavior.
 ## Validation
 
 The latest complete recorded snapshot is main commit
-`fd4fd96e3bda329eef213180e4c38a9047d8a361`; the [CI record][ci] links
-the individual runs and results. The current branch contains later changes.
+`19979b3a22e56b37a1a03d60fe8f67b746a1f047`; the [CI record][ci] links the individual runs and
+results. The current branch contains later changes.
 
-| Check at `fd4fd96` | Result |
+| Check at `19979b3` | Result |
 | --- | --- |
-| Client library, Linux default | 2,307 passed, 21 failed; later targets did not run. |
-| Client library, Linux all features | 2,307 passed, 21 failed; later targets did not run. |
-| Client library, Windows default | 2,307 passed, 21 failed; later runtime and package steps did not run. |
-| Client library, macOS arm64 default | 2,314 passed, 14 failed; later runtime and package steps did not run. |
+| Client library, Linux default | 2,317 passed, 11 failed; later targets did not run. |
+| Client library, Linux all features | 2,318 passed, 10 failed; later targets did not run. |
+| Client library, Windows default | 2,316 passed, 12 failed; later runtime and package steps did not run. |
+| Client library, macOS arm64 default | 2,317 passed, 11 failed; later runtime and package steps did not run. |
 | Kafka compatibility | 4.1.2, 4.2.1 and 4.3.1 profiles failed; 3.9.1 and 4.1.0 smoke jobs failed. |
 | Resource-soak CI job | Passed its finite job; no 24-hour campaign completed. |
 | Broker default and all-feature targets | 814 and 962 passed respectively, with four ignored in each profile. |
@@ -41,11 +41,11 @@ the individual runs and results. The current branch contains later changes.
 | Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
 | Instruction-count gate | No baseline for this Rust version; no regression comparison. |
 
-The [preceding complete snapshot][ci-669] stopped the broker default suite
-after 580 passes, one failure and four ignored, and its resource-soak setup
-failed on an OS-denied `/proc` access. The later passes do not explain those
-failures. An [earlier broker run][ci-previous] stopped after 579 passes, two
-failures and four ignored across default targets.
+The [preceding complete snapshot][ci-fd4] also failed client and Kafka jobs
+and passed the broker. An [earlier snapshot][ci-669] stopped the broker default
+suite after 580 passes, one failure and four ignored, and its resource-soak
+setup failed on an OS-denied `/proc` access. Later passes do not explain
+those failures.
 
 The [combined-head checks][combined] passed formatting, strict client checks,
 focused Admin, producer and broker transport tests in both feature profiles,
@@ -117,7 +117,10 @@ and [work plan][next] retain those results and earlier evidence.
   Focused checks passed, while broad Admin timing tests failed in both baseline
   and candidate. An [Admin response diagnostic][admin-growth] observed long
   map-growth polls in a synthetic debug fixture; it did not explain those
-  earlier timing failures. The [protocol gaps](gaps.md) describe the APIs.
+  earlier timing failures. An offline [Metadata v13 fixture][metadata-wire]
+  was compared with three Apache SDKs; other versions, historical peers,
+  error variants and live-broker behavior remain open. The
+  [protocol gaps](gaps.md) describe the APIs.
 - **Broker durability and limits.** Partition replication, native KRaft,
   authenticated network leadership, transaction marker propagation and a
   process-wide memory bound remain open. Kafka wire throttling is not
@@ -169,9 +172,9 @@ The [work plan][next] and its linked evidence track the outstanding work.
 The [previous detailed status][history] preserves earlier qualification
 results and experiments.
 
-[ci]: https://github.com/mingley/partitionline/blob/88a6dc53222445aa611b4b782ed832aed433ed99/docs/evidence/releases/main-ci-fd4-20261109/README.md
+[ci]: https://github.com/mingley/partitionline/blob/2463421e6137185a506c71fdb0fe4acaee530cab/docs/evidence/releases/main-ci-199-20261109/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/88a6dc53222445aa611b4b782ed832aed433ed99/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/2463421e6137185a506c71fdb0fe4acaee530cab/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -219,3 +222,6 @@ results and experiments.
 [quota-live]: https://github.com/mingley/partitionline/blob/ad0e8944dcd5e5a704e1a1d5439aa3e0d84a43f4/docs/evidence/broker/produce-quota-live-idle-20261109/README.md
 
 [ci-669]: https://github.com/mingley/partitionline/blob/7cfe6afd22d4099e602365e8a71428913eecf567/docs/evidence/releases/main-ci-669-20261109/README.md
+
+[ci-fd4]: https://github.com/mingley/partitionline/blob/88a6dc53222445aa611b4b782ed832aed433ed99/docs/evidence/releases/main-ci-fd4-20261109/README.md
+[metadata-wire]: https://github.com/mingley/partitionline/blob/2463421e6137185a506c71fdb0fe4acaee530cab/docs/evidence/conformance/q-conf-metadatawire/README.md
