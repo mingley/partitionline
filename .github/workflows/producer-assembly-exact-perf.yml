@@ -32,7 +32,7 @@ jobs:
           python3 - "$RUNNER_TEMP/assembly-baseline/src/producer.rs" "$RUNNER_TEMP/assembly-baseline-origin.rs" src/producer.rs "$RUNNER_TEMP/assembly-candidate-origin.rs" <<'PY'
           import hashlib,sys
           from pathlib import Path
-          marker=b'#[cfg(test)]\\nmod tests {'
+          marker=b'#[cfg(test)]\nmod tests {'
           def before_tests(path):
               data=Path(path).read_bytes()
               if data.count(marker)!=1: raise ValueError("missing unique tests module: "+path)
