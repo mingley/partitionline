@@ -12585,10 +12585,9 @@ mod tests {
         )));
         fail_pendings(&shared, batch, Error::Closed);
         assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
-        assert!(receivers.iter_mut().all(|receiver| matches!(
-            receiver.try_recv(),
-            Ok(Err(Error::Closed))
-        )));
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
     }
 
     #[tokio::test(flavor = "current_thread")]
