@@ -22,3 +22,5 @@ jobs:
           sha256sum scripts/benchmark-report.py benchmarks/tests/test_report.py benchmarks/result-schema.json
       - name: Run reporter controls
         run: python -B -m unittest discover -s benchmarks/tests -p test_report.py -v
+      - name: Run existing matrix tests
+        run: python -B -m unittest discover -s benchmarks/tests -p test_matrix.py -v
