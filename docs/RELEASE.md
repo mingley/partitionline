@@ -35,8 +35,10 @@ release must be at least 0.2.0; do not relabel them as a 0.1.x patch.
    checks on the candidate. Retain failed and skipped cases. A focused passing
    test does not replace a failed full suite.
 2. Update `Cargo.toml` and `Cargo.lock`, and move the relevant unreleased notes
-   into a dated changelog section. Document API migrations and the compiler
-   requirement. Keep production and performance claims within the evidence.
+   into a dated changelog section. Update installation examples for the
+   target version and verify the packaged README; the published 0.1.0 overview
+   still contains pre-publication instructions. Document API migrations and the
+   compiler requirement. Keep production and performance claims within the evidence.
 3. Commit and push the candidate to `main`. Require successful `ci` for that
    exact commit, then validate the packaged crate with
    `scripts/ci-crate-consumer.sh` and `scripts/ci-publish-ready.sh`.

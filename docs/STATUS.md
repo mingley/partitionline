@@ -9,7 +9,9 @@ The client provides producer, consumer, group, transaction and Admin APIs.
 Version 0.1.0 is published; the repository contains later changes. The next
 client release must be at least 0.2.0 because the public API and compiler
 requirements have changed. The broker and Schema Registry companion are
-unpublished. No new release is ready.
+unpublished. No new release is ready. The published
+[0.1.0 overview](https://docs.rs/crate/partitionline/0.1.0) still contains
+pre-publication installation instructions and older benchmark figures.
 
 The broker is experimental. It has an RF1 data path and a separate metadata
 quorum, but does not replicate partition data or implement native Kafka KRaft.

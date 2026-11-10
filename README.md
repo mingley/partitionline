@@ -18,7 +18,9 @@ Version 0.1.0 is available on [crates.io](https://crates.io/crates/partitionline
 The examples and features below describe the newer repository source; some are
 not available in 0.1.0. For the published API, see the
 [0.1.0 documentation](https://docs.rs/partitionline/0.1.0/partitionline/).
-To try the current source, clone the repository and point your application's
+The published 0.1.0 overview still contains pre-publication installation
+instructions and older benchmark figures. To try the current source, clone the
+repository and point your application's
 dependency at that checkout (adjust the relative path as needed):
 
 ```toml
