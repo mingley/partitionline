@@ -32,10 +32,12 @@ production-prefix blob `ac545b081e38d3f20f07289d158f1fdde126c2df`.
 [Run 42887339170](https://github.com/mingley/partitionline/actions/runs/42887339170)
 passed 11 focused controls in both profiles, strict test Clippy and rustdoc,
 but failed formatting. Its broader producer unit subset reported 132 passed
-and one failed in each profile; failure identities and causes were not
-inspected. The baseline producer subset was still running when this note was
-recorded. The candidate has additional tests, so raw totals have different
-denominators.
+and one failed in each profile. The same run's baseline producer subset
+reported 120 passed and two failed in each profile; its seven injected drain
+controls failed as expected in each profile. Failure identities and causes in
+the broader subsets were not inspected, so these totals do not establish that
+the same tests failed or that the candidate has no regressions. The candidate
+has additional tests, so raw totals have different denominators.
 
 A [format-only successor](https://github.com/mingley/partitionline/commit/e7fe196d4b9f6dc02166a4819e6dafbd1652d586)
 changed one test line's formatting and passed
