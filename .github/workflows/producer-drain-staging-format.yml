@@ -1,0 +1,22 @@
+name: Producer drain staging format
+on:
+  push:
+    branches:
+      - qualification/producer-drain-staging-format-20261110
+permissions:
+  contents: read
+jobs:
+  formatting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check exact source formatting
+        run: |
+          rustc --version
+          git rev-parse HEAD
+          git hash-object src/producer.rs
+          cargo fmt --all -- --check
