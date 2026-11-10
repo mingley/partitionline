@@ -5079,6 +5079,56 @@ mod quota_accounting_tests {
     }
 
     #[test]
+    fn internal_control_corruption_fails_every_client_bucket_closed() {
+        let now = Instant::now();
+        let quota = ProduceQuota::new(100, 100, 10_000).unwrap();
+        let configured = ClientProduceQuotas::new(
+            quota,
+            vec![("alpha".into(), quota), ("bravo".into(), quota)],
+        ).unwrap();
+        let mut meters = Some(QuotaMeters::new(QuotaPolicy::Clients(configured), now));
+        let mut invalid = produce::Produced {
+            response: Some(vec![0; 4]),
+            throttle_at: Some(usize::MAX),
+        };
+        assert!(matches!(
+            charge_produce(&mut meters, Some(0), Some(1), Some(&mut invalid), || now),
+            Some(QuotaMark::Failed)
+        ));
+        assert!(matches!(
+            charge_produce(&mut meters, Some(1), Some(1), None, || now),
+            Some(QuotaMark::Failed)
+        ));
+        assert!(matches!(
+            charge_produce(&mut meters, None, Some(1), None, || now),
+            Some(QuotaMark::Failed)
+        ));
+    }
+
+    #[test]
+    fn missing_charge_length_fails_every_client_bucket_closed() {
+        let now = Instant::now();
+        let quota = ProduceQuota::new(100, 100, 10_000).unwrap();
+        let configured = ClientProduceQuotas::new(
+            quota,
+            vec![("alpha".into(), quota), ("bravo".into(), quota)],
+        ).unwrap();
+        let mut meters = Some(QuotaMeters::new(QuotaPolicy::Clients(configured), now));
+        assert!(matches!(
+            charge_produce(&mut meters, Some(0), None, None, || now),
+            Some(QuotaMark::Failed)
+        ));
+        assert!(matches!(
+            charge_produce(&mut meters, Some(1), Some(1), None, || now),
+            Some(QuotaMark::Failed)
+        ));
+        assert!(matches!(
+            charge_produce(&mut meters, None, Some(1), None, || now),
+            Some(QuotaMark::Failed)
+        ));
+    }
+
+    #[test]
     fn response_patch_failure_can_follow_a_committed_append(
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let root = std::env::temp_dir().join(format!(
