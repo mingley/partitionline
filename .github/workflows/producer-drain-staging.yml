@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 5
+          fetch-depth: 6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -67,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 5
+          fetch-depth: 6
       - uses: dtolnay/rust-toolchain@stable
       - name: Create baseline with candidate controls
         run: |
@@ -105,12 +105,13 @@ jobs:
             echo "baseline=$profile exit=$code"
             grep -E 'test result:|grouping_drain_(cancellation_retains_receipts|cancellation_during_deadline_scan|worker_abort_restores_before_drop)' "$RUNNER_TEMP/baseline-$profile.log" || true
             test "$code" -ne 0
-            grep -F 'producer::tests::grouping_drain_cancellation_retains_receipts' "$RUNNER_TEMP/baseline-$profile.log"
-            grep -F 'producer::tests::grouping_drain_cancellation_during_deadline_scan' "$RUNNER_TEMP/baseline-$profile.log"
-            grep -F 'producer::tests::grouping_drain_worker_abort_restores_before_drop' "$RUNNER_TEMP/baseline-$profile.log"
-            grep -F 'producer::tests::grouping_drain_open_worker_requeues_restored_records' "$RUNNER_TEMP/baseline-$profile.log"
-            grep -F 'producer::tests::grouping_drain_open_worker_closed_retry_completes_records' "$RUNNER_TEMP/baseline-$profile.log"
-            grep -F 'test result: FAILED. 4 passed; 5 failed; 1 ignored' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -Fx 'test producer::tests::grouping_drain_cancellation_retains_receipts ... FAILED' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -Fx 'test producer::tests::grouping_drain_cancellation_during_deadline_scan ... FAILED' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -Fx 'test producer::tests::grouping_drain_worker_abort_restores_before_drop ... FAILED' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -Fx 'test producer::tests::grouping_drain_open_worker_requeues_restored_records ... FAILED' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -Fx 'test producer::tests::grouping_drain_open_worker_closed_retry_completes_records ... FAILED' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -Fx 'test producer::tests::grouping_drain_open_worker_full_retry_completes_records ... FAILED' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -F 'test result: FAILED. 4 passed; 6 failed; 1 ignored' "$RUNNER_TEMP/baseline-$profile.log"
           done
       - name: Retain baseline logs
         if: always()

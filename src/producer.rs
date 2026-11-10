@@ -12911,6 +12911,57 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_open_worker_full_retry_completes_records() {
+        use std::task::Poll;
+
+        let count = 8_193;
+        let GroupingDrainOpenFixture {
+            mut worker,
+            shared,
+            mut receivers,
+            mut retries,
+            callbacks,
+        } = grouping_drain_open_fixture(count).await;
+        shared.closed.store(false, Ordering::SeqCst);
+        for _ in 0..count {
+            assert!(shared.retry_tx.try_send(queued("sentinel", Some(0))).is_ok());
+        }
+        let permits = Arc::new(StickyRecordBudget::new(count));
+        for pending in &mut worker.pending {
+            pending.sticky_record = Some(permits.acquire().expect("record permit"));
+        }
+        let (started, observed) = oneshot::channel();
+        let task = tokio::spawn(async move {
+            let mut draining = Box::pin(worker.drain_pending(count));
+            let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "drain did not reach its first yield");
+            drop(started.send(()));
+            std::future::pending::<()>().await;
+            drop(draining);
+        });
+        observed.await.expect("drain task did not reach yield");
+        task.abort();
+        assert!(task.await.unwrap_err().is_cancelled());
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+        assert_eq!(permits.used.load(Ordering::SeqCst), 0);
+        assert_eq!(callbacks.load(Ordering::SeqCst), count);
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(count).unwrap_or(u64::MAX)
+        );
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::QueueFull)))));
+        let mut retained = 0usize;
+        while let Ok(pending) = retries.try_recv() {
+            assert_eq!(pending.rec.topic.as_ref(), "sentinel");
+            retained = retained.saturating_add(1);
+        }
+        assert_eq!(retained, count);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn grouping_drain_small_and_empty_preserve_order() {
         let (mut worker, shared, mut receivers) = grouping_drain_fixture(4).await;
         for (index, pending) in worker.pending.iter_mut().enumerate() {
