@@ -861,5 +861,81 @@ class BenchmarkIntegrityRegressionTests(unittest.TestCase):
                 self.assertFalse(self.validator.validate(data)[0])
 
 
+
+class MalformedReportCliTests(unittest.TestCase):
+    def run_report(self, path, *args):
+        return subprocess.run(
+            [sys.executable, str(SCRIPT_PATH), *args, str(path)],
+            capture_output=True, text=True, timeout=20,
+        )
+
+    def test_duplicate_keys_are_rejected_at_any_depth(self):
+        source = json.dumps(build_valid_fixture())
+        top = source.replace(
+            '"schema_version": "1.0.0"',
+            '"schema_version": "1.0.0", "schema_version": "1.0.0"',
+            1,
+        )
+        nested = source.replace(
+            '"acks": -1',
+            r'"acks": 1, "\u0061cks": -1',
+            1,
+        )
+        self.assertNotEqual(top, source)
+        self.assertNotEqual(nested, source)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            for encoded in (top, nested):
+                path.write_text(encoded, encoding="utf-8")
+                for flags in ((), ("--json",), ("--quiet",)):
+                    with self.subTest(duplicate=encoded is top, flags=flags):
+                        result = self.run_report(path, *flags)
+                        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                        self.assertIn("duplicate JSON key", result.stderr)
+                        self.assertNotIn("Traceback", result.stderr)
+
+    def test_duplicate_keys_in_custom_schema_are_rejected(self):
+        fixture = json.dumps(build_valid_fixture())
+        original = (REPO_ROOT / "benchmarks" / "result-schema.json").read_text()
+        duplicate = original.replace(
+            '"type": "object",', '"type": "array", "type": "object",', 1
+        )
+        self.assertNotEqual(duplicate, original)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            schema = Path(directory) / "schema.json"
+            path.write_text(fixture, encoding="utf-8")
+            schema.write_text(duplicate, encoding="utf-8")
+            result = self.run_report(path, "--schema", str(schema))
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("duplicate JSON key", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+
+    def test_malformed_nested_values_return_validation_errors_without_traceback(self):
+        mutations = (
+            lambda value: value.update(scenario=None),
+            lambda value: value["provenance"].update(broker=[]),
+            lambda value: value["measurements"].update(latency="wrong type"),
+            lambda value: value["outcomes"].update(offered="wrong type"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            for mutate in mutations:
+                value = build_valid_fixture()
+                mutate(value)
+                path.write_text(json.dumps(value), encoding="utf-8")
+                with self.subTest(value=value):
+                    result = self.run_report(path)
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn("VALIDATION FAILED", result.stdout)
+                    self.assertIn("Schema ", result.stdout)
+                    self.assertNotIn("Traceback", result.stderr)
+                    result_json = self.run_report(path, "--json")
+                    self.assertEqual(result_json.returncode, 1, result_json.stderr)
+                    self.assertFalse(json.loads(result_json.stdout)["valid"])
+                    quiet = self.run_report(path, "--quiet")
+                    self.assertEqual(quiet.returncode, 1, quiet.stderr)
+                    self.assertEqual(quiet.stdout, "")
+
 if __name__ == "__main__":
     unittest.main()
