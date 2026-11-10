@@ -1701,7 +1701,8 @@ fn json_key_height(nodes: &[JsonKeyNode], slot: u32) -> u8 {
 fn json_key_update_height(nodes: &mut [JsonKeyNode], slot: u32) {
     let left = nodes[slot as usize].left;
     let right = nodes[slot as usize].right;
-    nodes[slot as usize].height = 1 + json_key_height(nodes, left).max(json_key_height(nodes, right));
+    nodes[slot as usize].height =
+        1 + json_key_height(nodes, left).max(json_key_height(nodes, right));
 }
 
 fn json_key_rotate_left(nodes: &mut [JsonKeyNode], root: u32) -> u32 {
@@ -2267,7 +2268,8 @@ mod tests {
             let key = entries[i].0.as_str();
             assert!(low.is_none_or(|bound| bound < key));
             assert!(high.is_none_or(|bound| key < bound));
-            let (left_height, left_count) = check_tree(entries, nodes, nodes[i].left, low, Some(key));
+            let (left_height, left_count) =
+                check_tree(entries, nodes, nodes[i].left, low, Some(key));
             let (right_height, right_count) =
                 check_tree(entries, nodes, nodes[i].right, Some(key), high);
             assert!(left_height.abs_diff(right_height) <= 1);
@@ -2399,9 +2401,7 @@ mod tests {
                 what: "json duplicate key".into()
             }
         );
-        let err = JsonParser::new(r#"{"a":1,"a":tru}"#)
-            .parse()
-            .unwrap_err();
+        let err = JsonParser::new(r#"{"a":1,"a":tru}"#).parse().unwrap_err();
         assert_eq!(
             err,
             RegistryError::Malformed {
@@ -2437,7 +2437,6 @@ mod tests {
             }
         );
     }
-
 
     // END_JSON_INDEX_CONTROLS
 
