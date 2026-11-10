@@ -17017,12 +17017,13 @@ mod tests {
             },
         );
         let mut sample_counts = Vec::new();
-        reserve_grouped_topic_counts(
+        let total_groups = reserve_grouped_topic_counts(
             std::slice::from_ref(&topic),
             &mut sample,
             &mut sample_counts,
         )
         .await;
+        assert_eq!(total_groups, 2);
         let groups = sample.get(topic.as_ref()).expect("orders");
         assert_eq!(groups.slots.get(&1).copied(), Some(0));
         assert_eq!(groups.slots.get(&0).copied(), Some(1));
@@ -17181,8 +17182,10 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn assembly_count_mixed_groups_keep_order_and_capacity() {
-        let mut scratch = ProduceGroupScratch::default();
-        scratch.spare_groups = Vec::with_capacity(16);
+        let mut scratch = ProduceGroupScratch {
+            spare_groups: Vec::with_capacity(16),
+            ..ProduceGroupScratch::default()
+        };
         let expected_capacity = scratch.spare_groups.capacity();
         let mut batch = Vec::new();
         for (topic, partition, value) in [
@@ -17259,6 +17262,45 @@ mod tests {
         assert_eq!(groups.get(1).map(|group| group.0.as_ref()), Some("fair-1"));
         assert_eq!(assembly_count_closed(&mut receivers), 0);
         assert!(scratch.buckets.is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assembly_count_stale_fallback_does_not_inflate_reservation() {
+        // This seeds inconsistent private state; it is not a natural worker history.
+        let mut scratch = ProduceGroupScratch::default();
+        let mut batch = Vec::new();
+        for index in 0..1_024 {
+            let topic: Arc<str> = Arc::from(format!("stale-{index}"));
+            let previous = scratch.buckets.insert(
+                Arc::clone(&topic),
+                PendingParts {
+                    order: vec![(7, Vec::new())],
+                    slots: HashMap::from([(0, usize::MAX)]),
+                },
+            );
+            assert!(previous.is_none());
+            let mut pending = queued("placeholder", Some(0));
+            pending.rec.topic = topic;
+            batch.push(pending);
+        }
+        for index in 0..4 {
+            let topic: Arc<str> = Arc::from(format!("fresh-{index}"));
+            let mut pending = queued("placeholder", Some(0));
+            pending.rec.topic = topic;
+            batch.push(pending);
+        }
+        let mut expected: Vec<(Arc<str>, i32, Vec<Pending>)> = Vec::new();
+        expected.reserve(4);
+        let expected_capacity = expected.capacity();
+        let (groups, _) = group_pending(batch, &mut scratch).await;
+        let ProduceGroups::Many(groups) = groups else {
+            panic!("expected fresh groups");
+        };
+        println!(
+            "ASSEMBLY_STALE output_groups={} retained_topics={} capacity={} expected_capacity={expected_capacity}",
+            groups.len(), scratch.buckets.len(), groups.capacity()
+        );
+        assert_eq!(groups.capacity(), expected_capacity);
     }
 
     #[tokio::test(flavor = "current_thread")]
