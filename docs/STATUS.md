@@ -119,6 +119,9 @@ and [work plan][next] retain those results and earlier evidence.
   A [drain-to-grouping design][grouping-design] records a separate private
   control in which receipt senders closed and seeded bytes remained charged
   after cancellation; it does not establish a real Kafka history or a fix.
+  A [drain-staging prototype][drain-staging] passed focused controls, but its
+  broader producer tests failed and its performance cost remains unmeasured.
+  It is unapplied and does not cover the later grouping phase.
 - **Client compatibility.** Current client library and Kafka jobs fail.
   Consumer and group behavior, cancellation, authentication and protocol
   coverage remain incomplete. An [Admin cursor guard][cursor-fix] detects
@@ -188,7 +191,7 @@ results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/596b1017822cded139ebbad9c786dba0a030cc31/docs/evidence/releases/main-ci-7e6-20261110/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/596b1017822cded139ebbad9c786dba0a030cc31/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/d645a9c458adff74665571f05a694906b1e92f90/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -263,3 +266,5 @@ results and experiments.
 [json-report]: https://github.com/mingley/partitionline/blob/8913f1a00a3b770bba7eb64eff836274e35c23b4/docs/evidence/perf/report-json-validation-20261110/README.md
 
 [ci-ffad]: https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/docs/evidence/releases/main-ci-ffad-20261110/README.md
+
+[drain-staging]: https://github.com/mingley/partitionline/blob/d645a9c458adff74665571f05a694906b1e92f90/docs/evidence/client/producer-drain-staging-20261110/README.md
