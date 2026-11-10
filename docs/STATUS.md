@@ -26,34 +26,27 @@ the current TLS and OIDC behavior.
 ## Validation
 
 The latest complete recorded snapshot is main commit
-`ffad9ef5d24f42cc5d8123288a8deffa8e4dc8c9`; the [CI record][ci]
+`7e6dff932db4128596ad45811f03c8c9d4afb4b7`; the [CI record][ci]
 links the individual runs and results. The current branch contains later changes.
 
-| Check at `ffad9ef` | Result |
+| Check at `7e6dff9` | Result |
 | --- | --- |
-| Client library, Linux default | 2,312 passed, 16 failed; later targets did not run. |
-| Client library, Linux all features | 2,305 passed, 23 failed; later targets did not run. |
-| Client library, Windows default | 2,318 passed, 10 failed; later runtime and package steps did not all run. |
-| Client library, macOS arm64 default | 2,310 passed, 18 failed; later runtime and package steps did not all run. |
+| Client library, Linux default | 2,313 passed, 15 failed; later targets did not run. |
+| Client library, Linux all features | 2,314 passed, 14 failed; later targets did not run. |
+| Client library, Windows default | 2,308 passed, 20 failed; later runtime and package steps did not all run. |
+| Client library, macOS arm64 default | 2,313 passed, 15 failed; later runtime and package steps did not all run. |
 | Kafka compatibility | 4.1.2, 4.2.1 and 4.3.1 profiles failed; 3.9.1 and 4.1.0 smoke jobs failed. |
 | Resource-soak CI job | Passed its finite job; no 24-hour campaign completed. |
-| Broker behavior and strict checks | Default and all-feature profiles, formatting, Clippy, rustdoc and doctests passed. Inventory and fuzz supervision also passed. |
+| Broker behavior and strict checks | Default library passed 496 tests with four ignored; a later default target failed. All-feature and strict checks did not run. Inventory and fuzz supervision passed. |
 | Client capability profiles | Both selected profiles passed; their archives were not independently inspected. |
-| Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
+| Schema, docs, package, format, Clippy, audit, auth and integrity jobs | Passed. Other jobs failed or were skipped. |
 | Instruction-count gate | No baseline for this Rust version; no regression comparison. |
 
-On the later [8570b01 client CI run][main-857-ci], the Schema job passed,
-while the Linux and Windows client libraries and current Kafka jobs failed.
-The docs and package jobs failed because of mutable links; the run was then
-cancelled before its macOS job completed. The separate [broker run][broker-857-ci]
-failed its default library. A [targeted documentation repair][docs-package]
-passed the extracted-crate check. On [665fbd6 CI][main-665-ci], the repaired
-package, docs and Schema jobs passed, but Kafka compatibility jobs failed and
-other jobs were still running at this record. Full release gates remain open.
-
-The [preceding complete snapshot][ci-92a] failed its broker default library;
-the later pass does not explain that failure. An [earlier snapshot][ci-669]
-recorded an OS-denied process-descriptor sample; later passes do not explain it.
+The previous [ffad9ef snapshot][ci-ffad] passed broker checks; it does not
+explain the later failure. The [packaged-documentation repair][docs-package]
+fixed mutable links that had failed an intermediate CI run. An
+[earlier snapshot][ci-669] recorded an OS-denied process-descriptor sample;
+later passes do not explain it.
 
 The [combined-head checks][combined] passed formatting, strict client checks,
 focused Admin, producer and broker transport tests in both feature profiles,
@@ -193,9 +186,9 @@ The [work plan][next] and its linked evidence track the outstanding work.
 The [previous detailed status][history] preserves earlier qualification
 results and experiments.
 
-[ci]: https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/docs/evidence/releases/main-ci-ffad-20261110/README.md
+[ci]: https://github.com/mingley/partitionline/blob/596b1017822cded139ebbad9c786dba0a030cc31/docs/evidence/releases/main-ci-7e6-20261110/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/8913f1a00a3b770bba7eb64eff836274e35c23b4/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/596b1017822cded139ebbad9c786dba0a030cc31/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -268,3 +261,5 @@ results and experiments.
 [broker-857-ci]: https://github.com/mingley/partitionline/actions/runs/42878680382
 [main-665-ci]: https://github.com/mingley/partitionline/actions/runs/42881952564
 [json-report]: https://github.com/mingley/partitionline/blob/8913f1a00a3b770bba7eb64eff836274e35c23b4/docs/evidence/perf/report-json-validation-20261110/README.md
+
+[ci-ffad]: https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/docs/evidence/releases/main-ci-ffad-20261110/README.md
