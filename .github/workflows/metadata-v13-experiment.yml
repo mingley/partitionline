@@ -1,0 +1,121 @@
+name: Metadata v13 Apache wire
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - qualification/metadata-v13-wire-20261109
+    paths:
+      - 'src/protocol/**'
+      - 'src/error.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'clippy.toml'
+      - 'tests/conformance/java/ConformanceMetadataWire.java'
+      - 'tests/conformance/java/generate_metadata_wire.py'
+      - 'tests/metadata_wire_conformance.rs'
+      - 'tests/fixtures/metadata_wire/apache-pairs.txt'
+      - 'tests/fixtures/metadata_wire/rust-pairs.txt'
+      - '.github/workflows/metadata-v13-experiment.yml'
+  pull_request:
+    paths:
+      - 'src/protocol/**'
+      - 'src/error.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'clippy.toml'
+      - 'tests/conformance/java/ConformanceMetadataWire.java'
+      - 'tests/conformance/java/generate_metadata_wire.py'
+      - 'tests/metadata_wire_conformance.rs'
+      - 'tests/fixtures/metadata_wire/apache-pairs.txt'
+      - 'tests/fixtures/metadata_wire/rust-pairs.txt'
+      - '.github/workflows/metadata-v13-experiment.yml'
+permissions:
+  contents: read
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Record tools and source
+        run: |
+          rustc --version
+          cargo --version
+          java --version
+          git rev-parse HEAD
+          sha256sum tests/conformance/java/ConformanceMetadataWire.java tests/conformance/java/generate_metadata_wire.py tests/metadata_wire_conformance.rs
+      - name: Compare bounded body fixtures
+        run: timeout 600s python3 tests/conformance/java/generate_metadata_wire.py --output target/metadata-v13
+      - name: Log bounded synthetic body corpus
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+
+          root = Path("target/metadata-v13")
+          peers = ("4.1.2", "4.2.1", "4.3.1")
+          apache = (root / peers[0] / "apache.txt").read_bytes()
+          rust = (root / peers[0] / "default-rust.txt").read_bytes()
+          evidence = Path("tests/fixtures/metadata_wire")
+          if apache != (evidence / "apache-pairs.txt").read_bytes():
+              raise ValueError("Apache corpus differs from retained bytes")
+          if rust != (evidence / "rust-pairs.txt").read_bytes():
+              raise ValueError("Rust corpus differs from retained bytes")
+          for peer in peers:
+              if (root / peer / "apache.txt").read_bytes() != apache:
+                  raise ValueError("Apache peer corpus differs")
+              for profile in ("default", "all-features"):
+                  if (root / peer / (profile + "-rust.txt")).read_bytes() != rust:
+                      raise ValueError("Rust profile corpus differs")
+          for label, body in (("APACHE", apache), ("RUST", rust)):
+              if len(body) > 32768 or not body.endswith(b"\n"):
+                  raise ValueError("corpus size or terminator")
+              if len(body.splitlines()) != 5 or any(len(line.split()) != 3 for line in body.splitlines()):
+                  raise ValueError("corpus shape")
+              print(label + "_SHA256 " + hashlib.sha256(body).hexdigest())
+              print("BEGIN_" + label + "_CORPUS")
+              print(body.decode("ascii"), end="")
+              print("END_" + label + "_CORPUS")
+          PY
+      - name: Offline corpus in the checkout
+        run: |
+          cargo test --locked --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact
+          cargo test --locked --all-features --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact
+      - name: Offline corpus in the packed crate
+        run: |
+          if test -n "$(git status --porcelain)"; then
+            git status --short
+            exit 1
+          fi
+          cargo package --locked --no-verify
+          crate_stem=$(python3 -c 'import json,subprocess; m=json.loads(subprocess.check_output(["cargo","metadata","--no-deps","--format-version","1"])); p=next(p for p in m["packages"] if p["name"]=="partitionline"); print(p["name"]+"-"+p["version"])')
+          package_dir="$RUNNER_TEMP/metadata-v13-package"
+          mkdir -p "$package_dir"
+          tar -xzf "target/package/$crate_stem.crate" -C "$package_dir"
+          manifest="$package_dir/$crate_stem/Cargo.toml"
+          test -f "$package_dir/$crate_stem/tests/fixtures/metadata_wire/apache-pairs.txt"
+          test -f "$package_dir/$crate_stem/tests/fixtures/metadata_wire/rust-pairs.txt"
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --manifest-path "$manifest" --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --all-features --manifest-path "$manifest" --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact
+      - name: Strict lint
+        if: always()
+        run: cargo clippy --locked --all-features --test metadata_wire_conformance -- -D warnings
+      - name: Formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Retain fixtures and process receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metadata-v13-${{ github.sha }}
+          path: target/metadata-v13
+          if-no-files-found: warn
+          retention-days: 30

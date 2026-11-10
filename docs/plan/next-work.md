@@ -11,15 +11,15 @@ an established fastest-in-the-world result. Client 0.1.0 is published; the
 next client release must be at least 0.2.0. The experimental broker and schema
 companion are unpublished.
 
-The latest complete [main CI record](../evidence/releases/main-ci-fd4-20261109/README.md)
-is for `fd4fd96e3bda329eef213180e4c38a9047d8a361`. Linux client libraries
-reported 2,307 passes and 21 failures in both default and all-feature profiles.
-Windows reported 2,307 passes and 21 failures; macOS reported 2,314 passes and
-14 failures. All three current Kafka compatibility jobs and both historical
-smoke jobs failed. The broker passed 814 default and 962 all-feature tests,
-with four ignored in each profile, plus strict checks. The finite resource-soak
-CI job passed; no sustained campaign has passed. The earlier [669 snapshot](../evidence/releases/main-ci-669-20261109/README.md)
-had a broker failure and an OS-denied `/proc` access; the later passes do not
+The latest complete [main CI record](../evidence/releases/main-ci-199-20261109/README.md)
+is for `19979b3a22e56b37a1a03d60fe8f67b746a1f047`. Linux client libraries reported 2,317 passes and 11
+failures with default features and 2,318 passes and 10 failures with all
+features. Windows reported 2,316 passes and 12 failures; macOS reported 2,317
+passes and 11 failures. All three current Kafka compatibility jobs and both
+historical smoke jobs failed. The broker passed 814 default and 962 all-feature
+tests, with four ignored in each profile, plus strict checks. The finite
+resource-soak CI job passed; no sustained campaign has passed. An [earlier 669 snapshot](../evidence/releases/main-ci-669-20261109/README.md)
+had a broker failure and an OS-denied `/proc` access; later passes do not
 explain them.
 
 Separate [combined-head checks](../evidence/ci/combined-a7b6-20261109/README.md)
@@ -61,7 +61,10 @@ runs and their limits.
    ownership, ordering, deadlines and authentication across cancellation and
    reconnects. Keep mock, live-broker and independent peer results distinct.
    The [protocol gaps](../gaps.md) and [support matrix](../support.md) describe
-   the current API and version boundaries.
+   the current API and version boundaries. A [Metadata v13 body fixture](../evidence/conformance/q-conf-metadatawire/README.md)
+   now runs offline and has been compared with three Apache SDKs. Other
+   versions, error variants, historical peers and live-broker behavior remain
+   open.
 
    The [Admin cursor guard](../evidence/client/admin-cursor-history-20261109/README.md)
    catches some non-adjacent repeats with fixed-size history. It can reject a

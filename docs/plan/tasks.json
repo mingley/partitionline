@@ -52049,7 +52049,29 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "e3b06f651d78aed3ac39b3ed6f8d0408193a94e8",
+          "commands": [
+            "timeout 600s python3 tests/conformance/java/generate_metadata_wire.py --output target/metadata-v13 (exit 0)",
+            "cargo test --locked [--all-features] --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact (each exit 0)",
+            "cargo package --locked --no-verify, then the same two targeted tests in the extracted crate (each exit 0)",
+            "cargo clippy --locked --all-features --test metadata_wire_conformance -- -D warnings; cargo fmt --all -- --check (exit 0)"
+          ],
+          "results": "Three SHA-256-pinned Apache SDKs (4.1.2, 4.2.1, 4.3.1), default and all-feature Rust profiles, five body pairs in each lane; Java verified the Rust re-encodings and two deliberate top-error corruption controls were rejected. One offline fixture test passed in each checkout and extracted-crate profile. Cleanup controls observed owned process groups exit after TERM/KILL.",
+          "artifacts": [
+            "docs/evidence/conformance/q-conf-metadatawire/README.md",
+            "tests/fixtures/metadata_wire/apache-pairs.txt",
+            "tests/fixtures/metadata_wire/rust-pairs.txt",
+            "https://github.com/mingley/partitionline/actions/runs/42706549956"
+          ],
+          "limits": [
+            "Metadata v13 only, five synthetic body pairs; all responses use top-level error 31 and unknown tags are discarded.",
+            "Historical peers, other versions, complete registered case coverage, broader error variants and live-broker behavior remain open.",
+            "Packaging used --no-verify followed by targeted tests; it is not a complete package or release gate."
+          ]
+        }
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceMetadataWire.java",
         "tests/conformance/java/generate_metadata_wire.py",
