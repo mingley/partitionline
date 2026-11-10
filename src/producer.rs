@@ -17261,6 +17261,65 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    #[ignore = "scoped first-poll and destructor benchmark"]
+    async fn assembly_count_benchmark() {
+        use std::task::Poll;
+        for size in [1usize, 4, 64, 200_000] {
+            let reps = if size >= 200_000 { 3 } else { 64 };
+            let mut polls = Vec::new();
+            let mut drops = Vec::new();
+            for _ in 0..reps {
+                let (mut scratch, order, _) = assembly_count_fixture(size, true, false);
+                let mut task = Box::pin(assembly_count_run(&mut scratch, order, size));
+                let start = std::time::Instant::now();
+                let state = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
+                polls.push(start.elapsed().as_nanos());
+                let start = std::time::Instant::now();
+                drop(state);
+                drop(task);
+                drops.push(start.elapsed().as_nanos());
+                drop(scratch);
+            }
+            println!("ASSEMBLY_BENCH size={size} poll_ns={polls:?} drop_ns={drops:?}");
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore = "scoped mixed-batch grouping benchmark"]
+    async fn assembly_count_grouping_benchmark() {
+        for (label, records, topics, partitions) in [
+            ("two_topic", 512usize, 2usize, 2usize),
+            ("many_topic", 64, 64, 1),
+            ("large_topic", 20_000, 20_000, 1),
+        ] {
+            let reps = if records >= 20_000 { 3 } else { 64 };
+            let mut times = Vec::new();
+            let mut counts = Vec::new();
+            for _ in 0..reps {
+                let names: Vec<Arc<str>> = (0..topics)
+                    .map(|i| Arc::from(format!("bench-{i}")))
+                    .collect();
+                let mut batch = Vec::with_capacity(records);
+                for index in 0..records {
+                    let partition = i32::try_from(index % partitions).unwrap_or(0);
+                    let mut pending = queued("placeholder", Some(partition));
+                    pending.rec.topic = Arc::clone(&names[index % topics]);
+                    batch.push(pending);
+                }
+                let mut scratch = ProduceGroupScratch::default();
+                let start = std::time::Instant::now();
+                let (groups, shell) = group_pending(batch, &mut scratch).await;
+                times.push(start.elapsed().as_nanos());
+                counts.push(groups.len());
+                drop(groups);
+                drop(shell);
+                drop(scratch);
+            }
+            println!("GROUP_BENCH label={label} ns={times:?} group_counts={counts:?}");
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn assembling_many_produce_topics_does_not_hold_the_caller() {
         // 200_000 topics: draining each group held the caller 119ms.
         let mut scratch = ProduceGroupScratch::default();

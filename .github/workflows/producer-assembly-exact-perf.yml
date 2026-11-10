@@ -1,0 +1,73 @@
+name: Producer assembly paired measurements
+on:
+  push:
+    branches: [qualification/producer-assembly-exact-perf-20261110]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record environment
+        run: |
+          uname -m
+          rustc -Vv
+          cargo -V
+          git rev-parse HEAD
+          echo "baseline 1c308efc64eec454e3a9744a1b077819099c809d"
+          echo "candidate 561d3235471dddd6ac87d048f586b53c47dd9430"
+      - name: Build paired release test binaries
+        run: |
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/assembly-perf-target"
+          git worktree add --detach "$RUNNER_TEMP/assembly-baseline" "1c308efc64eec454e3a9744a1b077819099c809d"
+          git show "5cd53d3c84eb23671b1d74f2c488d95ba69208e5:src/producer.rs" > "$RUNNER_TEMP/assembly-baseline-origin.rs"
+          git show "561d3235471dddd6ac87d048f586b53c47dd9430:src/producer.rs" > "$RUNNER_TEMP/assembly-candidate-origin.rs"
+          python3 - "$RUNNER_TEMP/assembly-baseline/src/producer.rs" "$RUNNER_TEMP/assembly-baseline-origin.rs" src/producer.rs "$RUNNER_TEMP/assembly-candidate-origin.rs" <<'PY'
+          import hashlib,sys
+          from pathlib import Path
+          marker=b'#[cfg(test)]\\nmod tests {'
+          def before_tests(path):
+              data=Path(path).read_bytes()
+              if data.count(marker)!=1: raise ValueError("missing unique tests module: "+path)
+              return data.split(marker,1)[0]
+          baseline, baseline_origin, candidate, candidate_origin = map(before_tests,sys.argv[1:])
+          if baseline != baseline_origin: raise ValueError("baseline production source differs")
+          if candidate != candidate_origin: raise ValueError("candidate production source differs")
+          print("BASELINE_PRODUCTION_SHA256",hashlib.sha256(baseline).hexdigest())
+          print("CANDIDATE_PRODUCTION_SHA256",hashlib.sha256(candidate).hexdigest())
+          PY
+          (
+            cd "$RUNNER_TEMP/assembly-baseline"
+            cargo test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/assembly-baseline.json"
+          )
+          python3 - "$RUNNER_TEMP/assembly-baseline.json" "$RUNNER_TEMP/assembly-baseline-test" <<'PY'
+          import json,shutil,sys
+          data=[json.loads(line) for line in open(sys.argv[1]) if line.startswith('{')]
+          paths=[x['executable'] for x in data if x.get('reason')=='compiler-artifact' and x['target']['name']=='partitionline' and x['profile']['test'] and x.get('executable')]
+          if len(paths)!=1: raise ValueError('expected one baseline test executable: '+repr(paths))
+          shutil.copy2(paths[0],sys.argv[2])
+          PY
+          cargo test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/assembly-candidate.json"
+          python3 - "$RUNNER_TEMP/assembly-candidate.json" "$RUNNER_TEMP/assembly-candidate-test" <<'PY'
+          import json,shutil,sys
+          data=[json.loads(line) for line in open(sys.argv[1]) if line.startswith('{')]
+          paths=[x['executable'] for x in data if x.get('reason')=='compiler-artifact' and x['target']['name']=='partitionline' and x['profile']['test'] and x.get('executable')]
+          if len(paths)!=1: raise ValueError('expected one candidate test executable: '+repr(paths))
+          shutil.copy2(paths[0],sys.argv[2])
+          PY
+          "$RUNNER_TEMP/assembly-baseline-test" --list | python3 -c 'import sys; s=sys.stdin.read(); assert "assembly_count_first_poll_limits_topic_lookups" not in s'
+          "$RUNNER_TEMP/assembly-candidate-test" --list | python3 -c 'import sys; s=sys.stdin.read(); assert "assembly_count_first_poll_limits_topic_lookups" not in s'
+      - name: Alternate paired measurements
+        run: |
+          for arm in baseline candidate candidate baseline baseline candidate candidate baseline; do
+            printf 'ASSEMBLY_ARM %s\n' "$arm"
+            timeout 240s "$RUNNER_TEMP/assembly-${arm}-test" producer::tests::assembly_count_benchmark --exact --ignored --nocapture --test-threads=1
+            timeout 240s "$RUNNER_TEMP/assembly-${arm}-test" producer::tests::assembly_count_grouping_benchmark --exact --ignored --nocapture --test-threads=1
+          done
