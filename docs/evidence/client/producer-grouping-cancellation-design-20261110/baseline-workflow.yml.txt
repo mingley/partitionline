@@ -1,0 +1,75 @@
+name: Producer drain cancellation control
+on:
+  push:
+    branches:
+      - qualification/producer-grouping-drain-control-20261110
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify production source unchanged
+        run: |
+          rustc --version
+          git rev-parse HEAD
+          git hash-object src/producer.rs
+          git show 8570b01da6693acbcaa66120c861c5fd689628c4:src/producer.rs > "$RUNNER_TEMP/drain-baseline.rs"
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import os
+          marker = b"#[cfg(test)]\nmod tests {"
+          baseline = (Path(os.environ["RUNNER_TEMP"]) / "drain-baseline.rs").read_bytes()
+          candidate = Path("src/producer.rs").read_bytes()
+          if baseline.count(marker) != 1 or candidate.count(marker) != 1:
+              raise ValueError("missing unique test module")
+          baseline_prefix = baseline.split(marker, 1)[0]
+          candidate_prefix = candidate.split(marker, 1)[0]
+          if baseline_prefix != candidate_prefix:
+              raise ValueError("production source differs")
+          print("production_prefix_sha256=" + hashlib.sha256(baseline_prefix).hexdigest())
+          PY
+      - name: Normal completion controls
+        run: |
+          cargo test --locked --lib producer::tests::grouping_drain_completion_control -- --exact
+          cargo test --locked --all-features --lib producer::tests::grouping_drain_completion_control -- --exact
+      - name: Expected cancellation failures
+        run: |
+          set -eu
+          for profile in default all-features; do
+            set +e
+            if test "$profile" = default; then
+              cargo test --locked --lib producer::tests::grouping_drain_cancellation_retains_receipts -- --exact --nocapture > "$RUNNER_TEMP/drain-$profile.log" 2>&1
+            else
+              cargo test --locked --all-features --lib producer::tests::grouping_drain_cancellation_retains_receipts -- --exact --nocapture > "$RUNNER_TEMP/drain-$profile.log" 2>&1
+            fi
+            code=$?
+            set -e
+            echo "profile=$profile exit=$code"
+            grep -E 'DRAIN_WITNESS|test result:' "$RUNNER_TEMP/drain-$profile.log" || true
+            test "$code" -ne 0
+            grep -F 'DRAIN_WITNESS total=8193 closed=8193 still_accounted=8193 pending=0' "$RUNNER_TEMP/drain-$profile.log"
+            grep -F 'accepted receipt senders were dropped' "$RUNNER_TEMP/drain-$profile.log"
+          done
+      - name: Formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Strict test lint
+        if: always()
+        run: cargo clippy --locked --all-features --lib --tests -- -D warnings
+      - name: Retain cancellation output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drain-control-${{ github.sha }}
+          path: ${{ runner.temp }}/drain-*.log
+          if-no-files-found: warn
+          retention-days: 30

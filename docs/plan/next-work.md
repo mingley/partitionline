@@ -61,6 +61,10 @@ runs and their limits.
    An isolated [count-reuse candidate](../evidence/client/producer-assembly-count-20261110/README.md)
    removes a redundant walk, but both baseline and candidate broad client
    profiles failed. The candidate remains unapplied and is not a delivery fix.
+   A [worker-owned staging design](../evidence/client/producer-grouping-cancellation-design-20261110/README.md)
+   covers the earlier drain boundary too. Its private-state cancellation control
+   closed receipt senders and left a seeded byte charge at observation; no
+   production fix or real Kafka delivery history is established.
 
 2. **Client correctness and compatibility.** Work through the applicable
    failing client and Kafka profiles using the task registry. Preserve record
