@@ -75,12 +75,46 @@ before starting a job because it used a runner context at job level. A later
 [source-marker attempt](https://github.com/mingley/partitionline/actions/runs/42870131054)
 failed before measurement. The corrected
 [measurement run](https://github.com/mingley/partitionline/actions/runs/42870370271)
-uses separate Cargo target directories, checks production-source prefixes
-against the baseline and clean candidate, records executable hashes and refuses
-identical executables. It was still running when this note was written. Its
-release test binaries add benchmark-only code, so even a completed result
-would be an in-process diagnostic rather than the shipped binary or a Kafka
-ranking. It does not use socket sampling or explicitly access `/proc`.
+used separate Cargo target directories, checked production-source prefixes
+against the baseline and clean candidate, recorded executable hashes and refused
+identical executables. It passed. The baseline and candidate source-prefix
+SHA-256 values were `e7e3555f4b0661488f682176b23b5af559aee4f563b628ff3323c66faafd71c3`
+and `194a3da5d9fc5a89a4f71ed430bd873baf860f2c842b0ea34be397bc9e3ac673`;
+the executable hashes were
+`10dbbaca35c84b06e5ac29c4def4b0acd52a417fcb40718d119795dbe371e348`
+and `7722613ef422c17f91058ea85692699149143fb3dd341f01eb2f7a7aa238b501`.
+
+On one shared x86_64 runner, the test invoked baseline, candidate, candidate,
+baseline, baseline, candidate, candidate, baseline. Each invocation recorded
+64 repetitions of the small shapes and three of the large shapes; no separate
+warmup was recorded. The table reports the median of each arm's four
+per-invocation medians, and the median and range of the four adjacent
+candidate/baseline ratios. Units are microseconds. The complete
+[2,608 raw timing samples](measurements.csv) and the
+[benchmark functions](benchmark-functions.rs.txt) are retained.
+
+| Whole grouping fixture | Baseline µs | Candidate µs | Paired ratio median (range) |
+| --- | ---: | ---: | ---: |
+| 512 records, two topics | 61.174 | 59.239 | 0.969 (0.962–1.217) |
+| 64 records, 64 topics | 29.378 | 28.130 | 0.960 (0.943–0.981) |
+| 20,000 records, 20,000 topics | 37,724.504 | 37,019.610 | 0.990 (0.975–0.999) |
+
+Grouping times start with a prepared batch and stop when grouping returns;
+batch construction and destruction are excluded. The 512-record case has
+two topic/partition groups. The wide paired range and small number of pairs do
+not establish a general speedup or regression bound.
+
+A separate direct first-poll fixture with 200,000 prepared topics had median
+23.849 ms baseline and 2.521 ms candidate, with paired ratio median 0.106
+(range 0.096–0.109). It supplies the candidate's count in advance, excluding
+the reservation work needed to obtain it, so it is not a total-batch speedup.
+Task/output-drop medians for that fixture ranged from 5.690 to 6.198 ms
+across invocations; they exclude scratch destruction.
+
+The release test binaries add benchmark-only code, so these are in-process
+diagnostics rather than shipped-binary, socket, Kafka throughput or ranking
+measurements. The workflow does not sample sockets or explicitly access
+`/proc`.
 
 The [broad client and Kafka run](https://github.com/mingley/partitionline/actions/runs/42870880409)
 uses separate Cargo targets for the baseline and clean candidate. Its Kafka
@@ -95,8 +129,21 @@ the shared smoke example was
 `8553578f832b30e77053775111e03c2713e7435dcc86be453737900d647244bc`.
 The reader stops after 64 values per topic, so it does not rule out extra
 records after those reads. The smoke does not establish fault behavior,
-durability modes, mixed-request batching, or production readiness. Its broad
-client job was still running when this note was updated.
+durability modes, mixed-request batching, or production readiness.
+
+The broad job ran `cargo test --locked --all-targets` with default and
+all-feature profiles in separate targets for both sources. All four failed in
+their library target, so subsequent targets did not run:
+
+| Source | Default | All features |
+| --- | --- | --- |
+| Baseline | 2,310 passed, 18 failed | 2,308 passed, 20 failed |
+| Candidate | 2,316 passed, 17 failed | 2,315 passed, 18 failed |
+
+The candidate contains five additional tests. Failure identities and causes
+were not inspected; these totals do not establish that the same tests failed
+or that the candidate introduced no regressions. The
+[aggregate result lines](broad-results.txt) are retained.
 
 The [clean patch](clean.patch), [instrumented patch](instrumented.patch),
 [focused workflow](focused-workflow.yml.txt), [broad/live workflow](broad-live-workflow.yml.txt),

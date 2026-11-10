@@ -1,0 +1,8 @@
+2026-11-10T18:12:32.7445652Z ASSEMBLY_BROAD baseline default exit=101 result_lines=1
+2026-11-10T18:12:32.7459840Z ASSEMBLY_BROAD_RESULT baseline default test result: FAILED. 2310 passed; 18 failed; 0 ignored; 0 measured; 0 filtered out; finished in 156.64s
+2026-11-10T18:19:40.0681222Z ASSEMBLY_BROAD baseline all-features exit=101 result_lines=1
+2026-11-10T18:19:40.0683882Z ASSEMBLY_BROAD_RESULT baseline all-features test result: FAILED. 2308 passed; 20 failed; 0 ignored; 0 measured; 0 filtered out; finished in 156.98s
+2026-11-10T18:26:48.2603167Z ASSEMBLY_BROAD candidate default exit=101 result_lines=1
+2026-11-10T18:26:48.2604166Z ASSEMBLY_BROAD_RESULT candidate default test result: FAILED. 2316 passed; 17 failed; 0 ignored; 0 measured; 0 filtered out; finished in 157.07s
+2026-11-10T18:33:54.7857748Z ASSEMBLY_BROAD candidate all-features exit=101 result_lines=1
+2026-11-10T18:33:54.7865941Z ASSEMBLY_BROAD_RESULT candidate all-features test result: FAILED. 2315 passed; 18 failed; 0 ignored; 0 measured; 0 filtered out; finished in 157.39s
