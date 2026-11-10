@@ -9799,6 +9799,7 @@ async fn group_pending(
     let mut spare_orders = std::mem::take(&mut scratch.spare_orders);
     let mut order = std::mem::take(&mut scratch.spare_topic_order);
     let mut counts = std::mem::take(&mut scratch.record_counts);
+    let mut total_groups = 0usize;
     order.clear();
     {
         let buckets = &mut scratch.buckets;
@@ -9818,6 +9819,7 @@ async fn group_pending(
                 let mut part = spare_parts.pop().unwrap_or_default();
                 part.clear();
                 groups.order.push((partition, part));
+                total_groups = total_groups.saturating_add(1);
                 continue;
             }
             let topic = Arc::clone(&pending.rec.topic);
@@ -9837,6 +9839,7 @@ async fn group_pending(
                     slots,
                 },
             );
+            total_groups = total_groups.saturating_add(1);
         }
         reserve_grouped_topic_counts(&order, buckets, &mut counts).await;
         let mut walked = 0usize;
@@ -9858,6 +9861,7 @@ async fn group_pending(
                 part.clear();
                 part.push(pending);
                 groups.order.push((partition, part));
+                total_groups = total_groups.saturating_add(1);
                 continue;
             }
             let topic = Arc::clone(&pending.rec.topic);
@@ -9878,13 +9882,14 @@ async fn group_pending(
                     slots,
                 },
             );
+            total_groups = total_groups.saturating_add(1);
         }
     }
     scratch.record_counts = counts;
     scratch.spare_parts = spare_parts;
     scratch.spare_slots = spare_slots;
     scratch.spare_orders = spare_orders;
-    let out = assemble_mixed_groups(scratch, order).await;
+    let out = assemble_mixed_groups(scratch, order, total_groups).await;
     (ProduceGroups::from_vec(out), batch)
 }
 
@@ -9900,38 +9905,28 @@ fn observe_assembly_lookup() {
 
 /// Build produce groups after a mixed batch has been counted.
 ///
-/// Draining 200,000 topics held the caller for 119 milliseconds. The walk
-/// pauses every 8,192 partitions. Topic order and partition order stay the
-/// same. Empty partition lists are kept for the next batch, up to the spare
-/// cap.
+/// Build output in topic and partition order using the count collected during
+/// mixed-batch classification. One allocation and cancellation-time
+/// destruction remain synchronous.
 async fn assemble_mixed_groups(
     scratch: &mut ProduceGroupScratch,
     mut order: Vec<Arc<str>>,
+    total_groups: usize,
 ) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
     let spare_parts = std::mem::take(&mut scratch.spare_parts);
     let mut spare_slots = std::mem::take(&mut scratch.spare_slots);
     let mut spare_orders = std::mem::take(&mut scratch.spare_orders);
-    let mut total = 0usize;
-    for topic in &order {
-        #[cfg(all(test, debug_assertions))]
-        observe_assembly_lookup();
-        total = total.saturating_add(
-            scratch
-                .buckets
-                .get(topic.as_ref())
-                .map(|groups| groups.order.len())
-                .unwrap_or(0),
-        );
-    }
     let mut out = take_group_shell(scratch);
-    reserve_len(&mut out, total);
+    reserve_len(&mut out, total_groups);
     let mut walked = 0usize;
     for topic in order.drain(..) {
         #[cfg(all(test, debug_assertions))]
         observe_assembly_lookup();
         let Some(mut groups) = scratch.buckets.remove(topic.as_ref()) else {
+            pause_walk(&mut walked).await;
             continue;
         };
+        let empty = groups.order.is_empty();
         for (partition, pending) in groups.order.drain(..) {
             out.push((Arc::clone(&topic), partition, pending));
             walked = walked.saturating_add(1);
@@ -9939,6 +9934,9 @@ async fn assemble_mixed_groups(
                 walked = 0;
                 tokio::task::yield_now().await;
             }
+        }
+        if empty {
+            pause_walk(&mut walked).await;
         }
         groups.slots.clear();
         if spare_slots.len() < 64 {
@@ -17147,9 +17145,9 @@ mod tests {
     async fn assembly_count_run(
         scratch: &mut ProduceGroupScratch,
         order: Vec<Arc<str>>,
-        _total: usize,
+        total: usize,
     ) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
-        assemble_mixed_groups(scratch, order).await
+        assemble_mixed_groups(scratch, order, total).await
     }
 
     #[cfg(debug_assertions)]
@@ -17358,7 +17356,7 @@ mod tests {
         }
         let started = std::time::Instant::now();
         tokio::select! {
-            _ = assemble_mixed_groups(&mut scratch, order) => {}
+            _ = assemble_mixed_groups(&mut scratch, order, 200_000) => {}
             () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
         }
         let elapsed = started.elapsed();
@@ -17393,6 +17391,7 @@ mod tests {
         let grouped = assemble_mixed_groups(
             &mut scratch,
             vec![Arc::clone(&orders), Arc::clone(&payments)],
+            3,
         )
         .await;
         assert_eq!(grouped.len(), 3);
