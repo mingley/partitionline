@@ -17253,6 +17253,24 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn assembly_count_missing_tail_adds_no_cancellation_point() {
+        use std::task::Poll;
+        let (mut scratch, mut order, mut receivers) = assembly_count_fixture(1, true, true);
+        for index in 0..8_192 {
+            order.push(Arc::from(format!("missing-{index}")));
+        }
+        let mut task = Box::pin(assembly_count_run(&mut scratch, order, 1));
+        let state = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
+        drop(task);
+        let Poll::Ready(groups) = state else {
+            panic!("a missing tail added a cancellation point");
+        };
+        assert_eq!(groups.len(), 1);
+        assert_eq!(assembly_count_closed(&mut receivers), 0);
+        assert!(scratch.buckets.is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn assembly_count_missing_topic_and_low_hint_preserve_output() {
         let (mut scratch, mut order, mut receivers) = assembly_count_fixture(2, true, true);
         order.insert(1, Arc::from("missing-topic"));
@@ -17289,8 +17307,7 @@ mod tests {
             pending.rec.topic = topic;
             batch.push(pending);
         }
-        let mut expected: Vec<(Arc<str>, i32, Vec<Pending>)> = Vec::new();
-        expected.reserve(4);
+        let expected: Vec<(Arc<str>, i32, Vec<Pending>)> = Vec::with_capacity(4);
         let expected_capacity = expected.capacity();
         let (groups, _) = group_pending(batch, &mut scratch).await;
         let ProduceGroups::Many(groups) = groups else {
