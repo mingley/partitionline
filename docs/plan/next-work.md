@@ -66,6 +66,10 @@ runs and their limits.
    covers the earlier drain boundary too. Its private-state cancellation control
    closed receipt senders and left a seeded byte charge at observation; no
    production fix or real Kafka delivery history is established.
+   A [drain-staging prototype](../evidence/client/producer-drain-staging-20261110/README.md)
+   restores records when the drain future is dropped. Focused controls passed,
+   but its broader producer tests failed and its cost is not yet measured; it
+   remains unapplied and does not cover the later grouping boundary.
 
 2. **Client correctness and compatibility.** Work through the applicable
    failing client and Kafka profiles using the task registry. Preserve record
