@@ -34,7 +34,15 @@ TLS/SASL compatibility, or a timing bound.
 The wire run used commit
 [`0f3205e`](https://github.com/mingley/partitionline/commit/0f3205e590e9076d59890a42194b6d84189b0473).
 Its production metadata and bandwidth blobs were identical to candidate
-`b4c78673ddbdcf28ac46fcb1c35e628592ec1a64`.
+`b4c78673ddbdcf28ac46fcb1c35e628592ec1a64`. A
+[later run](https://github.com/mingley/partitionline/actions/runs/42869711275) repeated the
+same scenarios using commit
+[`4419b1f`](https://github.com/mingley/partitionline/commit/4419b1f9c99056f4a636c8d044c4cedad6cf364d),
+whose two production blobs match the later
+`e993aabcaef316380e7c13ff31c0a81ab9b5be64` candidate. Fresh Bravo again had
+zero throttle and its second connection reported 4,700 ms for v3 and 4,697 ms
+for v6. Alpha's following Metadata responses took 4,701.601 ms and 4,699.527 ms.
+The [later raw samples](candidate-wire-v5-samples.jsonl) retain all six entries.
 
 ## In-process selector cost
 
