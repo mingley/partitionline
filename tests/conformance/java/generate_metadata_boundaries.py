@@ -86,7 +86,7 @@ def main():
             if release == "3.9.1":
                 result["unsupported13"] = common.run(
                     java + ["unsupported13", str(directory / "unused")], directory / "unsupported13.log",
-                    marker="metadata_v13_unsupported=true")
+                    marker="metadata_v13_declared_max=12_raw_write_bytes=")
             for profile in ("default", "all-features"):
                 import os
                 reverse = directory / (profile + "-rust.txt")

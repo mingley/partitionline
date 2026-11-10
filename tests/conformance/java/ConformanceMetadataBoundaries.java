@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 import org.apache.kafka.common.Uuid;
-import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.apache.kafka.common.message.MetadataRequestData;
 import org.apache.kafka.common.message.MetadataResponseData;
 import org.apache.kafka.common.protocol.ByteBufferAccessor;
@@ -142,12 +141,13 @@ public final class ConformanceMetadataBoundaries {
             case "generate" -> generate(Path.of(args[2]));
             case "verify" -> verify(Path.of(args[2]));
             case "unsupported13" -> {
-                try {
-                    encode(new MetadataRequestData(), (short) 13);
-                    throw new AssertionError("3.9.1 unexpectedly accepted Metadata v13");
-                } catch (UnsupportedVersionException expected) {
-                    System.out.println("metadata_v13_unsupported=true");
+                var request = new MetadataRequestData();
+                if (request.highestSupportedVersion() != 12) {
+                    throw new AssertionError("unexpected 3.9.1 Metadata maximum");
                 }
+                // Generated message writes can accept versions beyond their declared range.
+                var raw = encode(request, (short) 13);
+                System.out.println("metadata_v13_declared_max=12_raw_write_bytes=" + raw.length);
             }
             default -> throw new IllegalArgumentException("unknown mode");
         }
