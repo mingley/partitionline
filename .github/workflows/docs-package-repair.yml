@@ -1,0 +1,49 @@
+name: Packaged documentation qualification
+on:
+  push:
+    branches: [qualification/docs-package-repair-20261110]
+permissions:
+  contents: read
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record exact source
+        run: |
+          rustc --version
+          cargo --version
+          git rev-parse HEAD
+          git hash-object docs/ADOPTION.md docs/RELEASE.md docs/support.md docs/index.md
+          test -z "$(git status --porcelain)"
+      - name: Documentation unit tests
+        run: python3 -B -m unittest discover -s tests/docs -p 'test_*.py'
+      - name: Check the actual extracted crate
+        run: |
+          cargo package --locked --no-verify
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import tarfile
+          import tomllib
+
+          package = tomllib.loads(Path("Cargo.toml").read_text())["package"]
+          stem = package["name"] + "-" + package["version"]
+          metadata = json.loads(subprocess.check_output(
+              ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"],
+              text=True,
+          ))
+          archive = Path(metadata["target_directory"]) / "package" / (stem + ".crate")
+          dest = Path(os.environ["RUNNER_TEMP"]) / "docs-package"
+          dest.mkdir()
+          with tarfile.open(archive) as packed:
+              packed.extractall(dest, filter="data")
+          subprocess.run(
+              ["python3", "-B", "scripts/check-package-docs.py", str(dest / stem)],
+              check=True,
+          )
+          PY

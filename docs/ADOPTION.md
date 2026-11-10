@@ -50,7 +50,7 @@ does not close KL-08 or lift Suite HOLD until real records are filed.
 | crates.io release | **0.1.0 published.** Depend on `partitionline = "0.1"`. |
 | zstd | Optional feature, off by default. Encoding and decoding exist. Qualification is finite. See [zstd](zstd-spike.md). |
 | Kerberos / GSSAPI | Not implemented. The [provider proposal](gssapi-boundary.md) is waiting for approval. |
-| Schema Registry | Separate unpublished [companion](https://github.com/mingley/partitionline/blob/main/partitionline-schema/README.md). The application picks the serializer. |
+| Schema Registry | Separate unpublished [companion](https://github.com/mingley/partitionline/blob/8570b01da6693acbcaa66120c861c5fd689628c4/partitionline-schema/README.md). The application picks the serializer. |
 | Signed Suite HOLD benches | Still unsigned. See [STATUS.md](STATUS.md). |
 
 Tell us what blocks a pilot: issue
