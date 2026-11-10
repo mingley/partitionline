@@ -83,11 +83,20 @@ would be an in-process diagnostic rather than the shipped binary or a Kafka
 ranking. It does not use socket sampling or explicitly access `/proc`.
 
 The [broad client and Kafka run](https://github.com/mingley/partitionline/actions/runs/42870880409)
-was running when this note was updated. It compares the baseline and clean
-candidate in separate Cargo targets, and tests a pinned single-broker Kafka
-4.3.1 instance with four topics per arm. The intended independent reader
-checks the first 64 values per topic; a pass would not prove all possible
-records, durability modes, mixed-request batching or production readiness.
+uses separate Cargo targets for the baseline and clean candidate. Its Kafka
+job passed on a pinned, plaintext, single-broker Apache Kafka 4.3.1 instance.
+Each arm acknowledged 256 records across four fresh single-partition topics;
+the returned offsets were 0–63 for each topic. A separate Java CLI reader
+observed the first 64 values in order in each topic. The baseline and candidate
+producer source SHA-256 values were
+`0a2807aa920d2d9ac9eee5d05d45e3a58a99e9633d2e3d0097537376420d9fa0` and
+`7fe720f54497f1b99a70b37c7794b0d378593ad5f7750ad580a801cbef6c42c6`;
+the shared smoke example was
+`8553578f832b30e77053775111e03c2713e7435dcc86be453737900d647244bc`.
+The reader stops after 64 values per topic, so it does not rule out extra
+records after those reads. The smoke does not establish fault behavior,
+durability modes, mixed-request batching, or production readiness. Its broad
+client job was still running when this note was updated.
 
 The [clean patch](clean.patch), [instrumented patch](instrumented.patch),
 [focused workflow](focused-workflow.yml.txt), [broad/live workflow](broad-live-workflow.yml.txt),
