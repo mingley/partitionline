@@ -1096,10 +1096,12 @@ class ReportOutputSafetyTests(unittest.TestCase):
                         self.assertIn("VALIDATION PASSED" if valid else "VALIDATION FAILED", report)
 
     def test_unexpected_validation_exception_fails_closed(self):
-        from unittest.mock import patch
         validator = BenchmarkValidator()
-        with patch.object(validator.schema_validator, "iter_errors", side_effect=RuntimeError("sentinel")):
-            valid, errors, _ = validator.validate(build_valid_fixture())
+        class BrokenSchema:
+            def iter_errors(self, _data):
+                raise RuntimeError("sentinel")
+        validator.schema_validator = BrokenSchema()
+        valid, errors, _ = validator.validate(build_valid_fixture())
         self.assertFalse(valid)
         self.assertTrue(any("could not complete" in error for error in errors), errors)
         self.assertFalse(any("sentinel" in error for error in errors), errors)

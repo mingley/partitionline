@@ -95,8 +95,7 @@ def semantic_shape_errors(data: Dict[str, Any]) -> List[str]:
         *(("outcomes", key) for key in
           ("offered", "accepted", "acknowledged", "consumed", "rejected", "timed_out", "unknown")),
         *(("integrity", "record_ids", key) for key in
-          ("start_id", "end_id", "expected_count", "verified_count",
-           "missing_ids_count", "duplicate_ids_count")),
+          ("expected_count", "verified_count", "missing_ids_count", "duplicate_ids_count")),
         ("integrity", "high_watermark_audit", "total_offset_delta"),
         ("repetition_history", "total_attempts"), ("repetition_history", "failed_attempts"),
     )
@@ -168,6 +167,18 @@ class BenchmarkValidator:
             "has_retained_integrity_failure": False,
         }
 
+        try:
+            return self._validate(data, require_clean, errors, summary)
+        except Exception as error:
+            # Invalid input or an unusable alternate schema must never produce
+            # a successful result or an unhandled traceback.
+            errors.append(f"Result validation could not complete ({type(error).__name__})")
+            return False, errors, summary
+
+    def _validate(
+        self, data: Dict[str, Any], require_clean: bool,
+        errors: List[str], summary: Dict[str, Any]
+    ) -> Tuple[bool, List[str], Dict[str, Any]]:
         if not isinstance(data, dict):
             return False, ["Root benchmark result must be a JSON object"], summary
 
@@ -841,16 +852,27 @@ class BenchmarkValidator:
         return is_valid, errors, summary
 
 
-def format_report_summary(data: Dict[str, Any], errors: List[str]) -> str:
-    """Format human-readable summary report of benchmark result."""
+def format_report_summary(
+    data: Dict[str, Any], errors: List[str],
+    schema_path: Optional[Path] = None, canonical_checked: bool = True
+) -> str:
+    """Format a report, identifying when an alternate schema was selected."""
     lines = []
     lines.append("=" * 78)
     lines.append("PARTITIONLINE BENCHMARK RESULT & PROVENANCE REPORT")
     lines.append("=" * 78)
+    if schema_path is not None:
+        lines.append(f"Schema: {schema_path}")
+    if not canonical_checked:
+        lines.append("Canonical repository schema was not checked.")
     # Invalid input need not have the types that the detailed report expects.
     if errors:
         lines.append(f"VALIDATION FAILED ({len(errors)} error(s)):")
         lines.extend(f"  [FAIL] {error}" for error in errors)
+        lines.append("=" * 78)
+        return "\n".join(lines)
+    if not canonical_checked:
+        lines.append("VALIDATION PASSED using the alternate schema and semantic checks; this is not qualification.")
         lines.append("=" * 78)
         return "\n".join(lines)
 
@@ -938,7 +960,7 @@ def format_report_summary(data: Dict[str, Any], errors: List[str]) -> str:
     )
     lines.append("-" * 78)
 
-    lines.append("VALIDATION PASSED: Result conforms strictly to fail-closed result schema.")
+    lines.append("VALIDATION PASSED: Result conforms to the selected schema and semantic checks.")
     lines.append("=" * 78)
     return "\n".join(lines)
 
@@ -978,13 +1000,10 @@ def main() -> int:
         return 2
 
     # Locate default schema if not provided
+    canonical_schema = Path(__file__).resolve().parent.parent / "benchmarks" / "result-schema.json"
     schema_path = args.schema
-    if schema_path is None:
-        default_schema = (
-            Path(__file__).resolve().parent.parent / "benchmarks" / "result-schema.json"
-        )
-        if default_schema.is_file():
-            schema_path = default_schema
+    if schema_path is None and canonical_schema.is_file():
+        schema_path = canonical_schema
 
     try:
         content = args.result_file.read_text(encoding="utf-8")
@@ -999,17 +1018,23 @@ def main() -> int:
         sys.stderr.write(f"Error: {error}\n")
         return 2
     is_valid, errors, summary = validator.validate(data, require_clean=args.require_clean)
+    canonical_checked = validator.schema_path.resolve() == canonical_schema.resolve()
 
     if args.json_output:
         out_doc = {
             "valid": is_valid,
+            "schema": {"path": str(validator.schema_path), "canonical_checked": canonical_checked},
             "error_count": len(errors),
             "errors": errors,
             "summary": summary,
         }
         print(json.dumps(out_doc, indent=2))
     elif not args.quiet:
-        print(format_report_summary(data, errors))
+        try:
+            print(format_report_summary(data, errors, validator.schema_path, canonical_checked))
+        except Exception as error:
+            sys.stderr.write(f"Error: could not format validation report ({type(error).__name__})\n")
+            return 1
 
     return 0 if is_valid else 1
 
