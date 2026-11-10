@@ -59,13 +59,15 @@ failed formatting and Clippy. That failure was corrected in the later source.
 
 ## Measurements and further checks
 
-Two preliminary paired benchmark workflows,
-[42867330546](https://github.com/mingley/partitionline/actions/runs/42867330546) and
-[42868849526](https://github.com/mingley/partitionline/actions/runs/42868849526), completed
-successfully but are **invalid**: both worktrees shared one Cargo target
-directory and the candidate invocation did not recompile after the baseline
-build. They could reuse the baseline executable, so none of their measurements
-should be used.
+Three preliminary paired benchmark workflows,
+[42867330546](https://github.com/mingley/partitionline/actions/runs/42867330546),
+[42868849526](https://github.com/mingley/partitionline/actions/runs/42868849526), and
+[42870207763](https://github.com/mingley/partitionline/actions/runs/42870207763)
+completed successfully but are **invalid**: their worktrees shared one Cargo
+target directory and the candidate invocation did not recompile after the
+baseline build. They could reuse the baseline executable, so none of their
+measurements should be used. The third run verified different source prefixes,
+which does not establish that it ran different binaries.
 
 The first measurement workflow
 [42867269317](https://github.com/mingley/partitionline/actions/runs/42867269317) failed
@@ -81,7 +83,7 @@ would be an in-process diagnostic rather than the shipped binary or a Kafka
 ranking. It does not use socket sampling or explicitly access `/proc`.
 
 The [broad client and Kafka run](https://github.com/mingley/partitionline/actions/runs/42870880409)
-was queued when this note was written. It compares the baseline and clean
+was running when this note was updated. It compares the baseline and clean
 candidate in separate Cargo targets, and tests a pinned single-broker Kafka
 4.3.1 instance with four topics per arm. The intended independent reader
 checks the first 64 values per topic; a pass would not prove all possible
