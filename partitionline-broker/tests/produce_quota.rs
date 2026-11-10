@@ -66,8 +66,17 @@ async fn open(root: &Path, millis: u32) -> Result<QuotaRouter> {
 }
 fn with_client_id(request: &[u8], name: &str) -> Result<Vec<u8>> {
     let prefix = request.get(..8).ok_or("short request prefix")?;
-    let old_len = i16::from_be_bytes(request.get(8..10).ok_or("short client length")?.try_into()?);
-    let old_len = if old_len == -1 { 0 } else { usize::try_from(old_len)? };
+    let old_len = i16::from_be_bytes(
+        request
+            .get(8..10)
+            .ok_or("short client length")?
+            .try_into()?,
+    );
+    let old_len = if old_len == -1 {
+        0
+    } else {
+        usize::try_from(old_len)?
+    };
     let tail = request.get(10 + old_len..).ok_or("short client ID")?;
     let mut result = Vec::with_capacity(prefix.len() + 2 + name.len() + tail.len());
     result.extend_from_slice(prefix);
@@ -299,13 +308,17 @@ async fn unconfigured_and_malformed_clients_charge_the_shared_fallback() -> Resu
     let mut null = with_client_id(&fixture, "")?;
     null[8..10].copy_from_slice(&(-1i16).to_be_bytes());
     let alpha = with_client_id(&fixture, "alpha")?;
-    let slow = ProduceQuota::new(3, u64::try_from(unknown.len())?, 60_000)?;
+    let slow = ProduceQuota::new(1, u64::try_from(unknown.len())?, 60_000)?;
     let fast = ProduceQuota::new(1_000_000, 1_000_000, 60_000)?;
     let policies = ClientProduceQuotas::new(slow, vec![("alpha".to_owned(), fast)])?;
     let (router, _) = QuotaRouter::open_with_client_quotas(
-        root.join("catalog"), common(), produce::Config::new(root.join("parts")),
-        fetch::Limits::default(), policies,
-    ).await?;
+        root.join("catalog"),
+        common(),
+        produce::Config::new(root.join("parts")),
+        fetch::Limits::default(),
+        policies,
+    )
+    .await?;
 
     // A started Produce with a malformed UTF-8 client ID fails parsing but
     // still consumes fallback quota, just like other started work.
@@ -318,9 +331,15 @@ async fn unconfigured_and_malformed_clients_charge_the_shared_fallback() -> Resu
         let start = response.len().checked_sub(4).ok_or("short response")?;
         reported.push(i32::from_be_bytes(response[start..].try_into()?));
     }
-    assert!(reported[0] > 0, "malformed work was not charged to fallback");
-    assert!(reported[1] > reported[0] + 1_000, "null ID did not share fallback");
-    assert!(reported[2] > reported[1] + 1_000, "empty ID did not share fallback");
+    assert!(
+        reported[0] > 0,
+        "malformed work was not charged to fallback"
+    );
+    assert!(
+        reported[1] > reported[0] + 1_000,
+        "null ID did not share fallback"
+    );
+    assert!(reported[2] > 0, "empty ID did not share fallback");
     assert_eq!(reported[3], 0, "named alpha inherited fallback debt");
     router.shutdown().await?;
     fs::remove_dir_all(root)?;
@@ -330,24 +349,40 @@ async fn unconfigured_and_malformed_clients_charge_the_shared_fallback() -> Resu
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn client_quota_separates_connections_and_sequences_acks_zero() -> Result {
     let root = scratch()?;
-    let slow = ProduceQuota::new(1, 1, 4_000)?;
-    let fast = ProduceQuota::new(1_000_000, 1_000_000, 4_000)?;
-    let policies = ClientProduceQuotas::new(fast, vec![
-        ("alpha".to_owned(), slow),
-        ("bravo".to_owned(), fast),
-    ])?;
-    let router = Arc::new(QuotaRouter::open_with_client_quotas(
-        root.join("catalog"), common(), produce::Config::new(root.join("parts")),
-        fetch::Limits::default(), policies,
-    ).await?.0);
-    let Observations { handler, mut started, mut deadlines } = observing(&router, false);
+    let slow = ProduceQuota::new(25, 1, 15_000)?;
+    let fast = ProduceQuota::new(1_000_000, 1_000_000, 15_000)?;
+    let policies = ClientProduceQuotas::new(
+        fast,
+        vec![("alpha".to_owned(), slow), ("bravo".to_owned(), fast)],
+    )?;
+    let router = Arc::new(
+        QuotaRouter::open_with_client_quotas(
+            root.join("catalog"),
+            common(),
+            produce::Config::new(root.join("parts")),
+            fetch::Limits::default(),
+            policies,
+        )
+        .await?
+        .0,
+    );
+    let Observations {
+        handler,
+        mut started,
+        mut deadlines,
+    } = observing(&router, false);
     let mut transport = Transport::bind(
-        ([127, 0, 0, 1], 0).into(), transport::Config::default(), handler,
-    ).await?;
+        ([127, 0, 0, 1], 0).into(),
+        transport::Config::default(),
+        handler,
+    )
+    .await?;
     let mut first = TcpStream::connect(transport.local_addr()).await?;
     let mut second = TcpStream::connect(transport.local_addr()).await?;
+    let mut third = TcpStream::connect(transport.local_addr()).await?;
     let a = with_client_id(&fixture("produce-v3-acks0", "request").await?, "alpha")?;
     let b = with_client_id(&fixture("produce-v9-acks1", "request").await?, "bravo")?;
+    let a_again = with_client_id(&fixture("produce-v3-acks1", "request").await?, "alpha")?;
 
     send(&mut first, &a).await?;
     started_request(&mut started, 0).await?;
@@ -355,21 +390,54 @@ async fn client_quota_separates_connections_and_sequences_acks_zero() -> Result 
     send(&mut first, &metadata_request()).await?;
     send(&mut second, &b).await?;
     let b_started = started_request(&mut started, 0).await?;
-    assert!(b_started < deadline, "unrelated label waited for alpha's mute");
+    assert!(
+        b_started < deadline,
+        "unrelated label waited for alpha's mute"
+    );
     let b_deadline = tokio::time::timeout(Duration::from_secs(2), deadlines.recv())
-        .await?.ok_or("deadline observation closed")?;
+        .await?
+        .ok_or("deadline observation closed")?;
     assert!(b_deadline.is_none(), "bravo inherited alpha's debt");
     let response = tokio::time::timeout(Duration::from_secs(2), receive(&mut second)).await??;
     let mut expected = fixture("produce-v9-acks1", "response").await?;
     // Alpha's already completed acks=0 append advances the sole partition.
     assert_eq!(&expected[19..27], &0i64.to_be_bytes());
     expected[19..27].copy_from_slice(&1i64.to_be_bytes());
-    assert_eq!(response, expected, "bravo response, offset and zero throttle");
+    assert_eq!(
+        response, expected,
+        "bravo response, offset and zero throttle"
+    );
     assert!(Instant::now() < deadline);
-    assert!(started.try_recv().is_err(), "alpha's metadata reached the handler during mute");
+
+    // A second connection with alpha's label must see the first connection's
+    // debt. The first alpha request had acks=0, but it was already charged.
+    send(&mut third, &a_again).await?;
+    assert!(started_request(&mut started, 0).await? < deadline);
+    let _second_alpha_deadline = produce_deadline(&mut deadlines).await?;
+    let alpha_response = tokio::time::timeout(Duration::from_secs(2), receive(&mut third)).await??;
+    let field = alpha_response.len().checked_sub(4).ok_or("short response")?;
+    let alpha_throttle = i32::from_be_bytes(alpha_response[field..].try_into()?);
+    let standalone_ms = i32::try_from((a_again.len() - 1) * 40)?;
+    assert!(
+        alpha_throttle > standalone_ms + 1_000,
+        "second alpha connection did not retain first connection's debt"
+    );
+    let mut alpha_expected = fixture("produce-v3-acks1", "response").await?;
+    assert_eq!(&alpha_expected[25..33], &0i64.to_be_bytes());
+    alpha_expected[25..33].copy_from_slice(&2i64.to_be_bytes());
+    let throttle_field = alpha_expected.len() - 4;
+    alpha_expected[throttle_field..].copy_from_slice(&alpha_throttle.to_be_bytes());
+    assert_eq!(alpha_response, alpha_expected, "second alpha response and offset");
+    assert!(Instant::now() < deadline);
+    assert!(
+        started.try_recv().is_err(),
+        "alpha's metadata reached the handler during mute"
+    );
     let reply = tokio::time::timeout(
-        Duration::from_secs(6), receive_after_mute(&mut first, deadline),
-    ).await??;
+        Duration::from_secs(6),
+        receive_after_mute(&mut first, deadline),
+    )
+    .await??;
     assert_eq!(&reply[..4], &77i32.to_be_bytes());
     assert!(started_request(&mut started, 3).await? >= deadline);
 

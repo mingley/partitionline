@@ -31,6 +31,9 @@ jobs:
       - name: All-feature public quota controls
         if: always()
         run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --test produce_quota -- --nocapture
+      - name: Existing authenticated quota control
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-features --test sasl_sessions quota_sasl_authenticated_mute_and_expiry -- --exact
       - name: Format
         if: always()
         run: cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
@@ -47,3 +50,15 @@ jobs:
         run: |
           cargo fmt --manifest-path partitionline-broker/Cargo.toml
           git diff -- partitionline-broker/src/metadata.rs partitionline-broker/src/metadata/bandwidth.rs partitionline-broker/tests/produce_quota.rs
+  full-behavior:
+    needs: focused
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Default all targets
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets
+      - name: All-feature all targets
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features

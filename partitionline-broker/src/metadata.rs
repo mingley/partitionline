@@ -1519,15 +1519,13 @@ fn actor(
                         take_queued_produce(&mut queued_jobs, &mut queued_admitted, &mut batch);
                         let mut sizes = [None; 8];
                         let mut selections = [None; 8];
-                        for ((size, selection), body) in sizes
-                            .iter_mut()
-                            .zip(&mut selections)
-                            .zip(&batch.bodies)
+                        for ((size, selection), body) in
+                            sizes.iter_mut().zip(&mut selections).zip(&batch.bodies)
                         {
                             *size = Some(body.len());
-                            *selection = quota.as_ref().and_then(|meters| {
-                                meters.select(body, config.protocol_limits)
-                            });
+                            *selection = quota
+                                .as_ref()
+                                .and_then(|meters| meters.select(body, config.protocol_limits));
                         }
                         let senders = &batch.senders;
                         batch.results = produce::process_queued(
@@ -1560,9 +1558,8 @@ fn actor(
                                 .get_mut(index)
                                 .and_then(|result| result.as_mut().ok());
                             let selection = selections.get(index).copied().flatten();
-                            let mark = charge_produce(
-                                &mut quota, selection, size, produced, quota_clock,
-                            );
+                            let mark =
+                                charge_produce(&mut quota, selection, size, produced, quota_clock);
                             if let Some(slot) = marks.get_mut(index) {
                                 *slot = mark;
                             }
@@ -5117,7 +5114,10 @@ mod quota_accounting_tests {
         // Inject a corrupted control-field offset after the append has completed.
         produced.throttle_at = Some(usize::MAX);
         let policy = ProduceQuota::new(1, 1, 1_000)?;
-        let mut meter = Some(QuotaMeters::new(QuotaPolicy::Shared(policy), Instant::now()));
+        let mut meter = Some(QuotaMeters::new(
+            QuotaPolicy::Shared(policy),
+            Instant::now(),
+        ));
         let mark = charge_produce(
             &mut meter,
             None,
@@ -5268,7 +5268,11 @@ mod quota_accounting_tests {
     ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
         let prefix = request.get(..8).ok_or("short request prefix")?;
         let old_len = i16::from_be_bytes(request.get(8..10).ok_or("short length")?.try_into()?);
-        let old_len = if old_len == -1 { 0 } else { usize::try_from(old_len)? };
+        let old_len = if old_len == -1 {
+            0
+        } else {
+            usize::try_from(old_len)?
+        };
         let tail = request.get(10 + old_len..).ok_or("short client ID")?;
         let mut result = Vec::new();
         result.extend_from_slice(prefix);
@@ -5296,9 +5300,10 @@ mod quota_accounting_tests {
         let store = produce::Store::open(produce::Config::new(root.join("parts")), &catalog)?;
 
         let policy = ProduceQuota::new(100, 1, 60_000)?;
-        let policies = ClientProduceQuotas::new(policy, vec![
-            ("alpha".to_owned(), policy), ("bravo".to_owned(), policy),
-        ])?;
+        let policies = ClientProduceQuotas::new(
+            policy,
+            vec![("alpha".to_owned(), policy), ("bravo".to_owned(), policy)],
+        )?;
         let fixed = Instant::now();
         let (sender, receiver) = mpsc::channel(3);
         let (pre_tx, pre_rx) = std::sync::mpsc::channel();

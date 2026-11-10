@@ -56,7 +56,9 @@ impl ClientProduceQuotas {
         clients: Vec<(String, ProduceQuota)>,
     ) -> Result<Self, QuotaConfigError> {
         if clients.len() > 256
-            || clients.iter().any(|(name, _)| name.is_empty() || name.len() > 256)
+            || clients
+                .iter()
+                .any(|(name, _)| name.is_empty() || name.len() > 256)
         {
             return Err(QuotaConfigError);
         }
@@ -120,7 +122,9 @@ impl QuotaMeters {
             },
             QuotaPolicy::Clients(policy) => Self {
                 fallback: QuotaMeter::new(policy.fallback, now),
-                clients: policy.clients.into_iter()
+                clients: policy
+                    .clients
+                    .into_iter()
                     .map(|(name, quota)| (name, QuotaMeter::new(quota, now)))
                     .collect(),
             },
@@ -130,15 +134,12 @@ impl QuotaMeters {
     /// Select before processing mutates the request. Parse failures and unknown
     /// names use the shared fallback, and the unconfigured common path does not
     /// parse a header a second time.
-    pub(super) fn select(
-        &self,
-        request: &[u8],
-        limits: crate::protocol::Limits,
-    ) -> Option<usize> {
+    pub(super) fn select(&self, request: &[u8], limits: crate::protocol::Limits) -> Option<usize> {
         if self.clients.is_empty() {
             return None;
         }
-        let version = request.get(2..4)
+        let version = request
+            .get(2..4)
             .and_then(|bytes| <[u8; 2]>::try_from(bytes).ok())
             .map(i16::from_be_bytes)?;
         if !(3..=13).contains(&version) {
@@ -148,12 +149,15 @@ impl QuotaMeters {
             request,
             if version >= 9 { 2 } else { 1 },
             limits,
-        ).ok()?;
+        )
+        .ok()?;
         if header.api_key != 0 {
             return None;
         }
         let name = header.client_id?;
-        self.clients.binary_search_by(|(entry, _)| entry.as_ref().cmp(name)).ok()
+        self.clients
+            .binary_search_by(|(entry, _)| entry.as_ref().cmp(name))
+            .ok()
     }
 
     pub(super) fn meter(&mut self, selection: Option<usize>) -> Option<&mut QuotaMeter> {
@@ -306,10 +310,11 @@ mod tests {
     fn named_client_buckets_are_independent_and_fallback_is_shared() {
         let now = Instant::now();
         let policy = ProduceQuota::new(1_000, 100, 10_000).unwrap();
-        let config = ClientProduceQuotas::new(policy, vec![
-            ("bravo".into(), policy),
-            ("alpha".into(), policy),
-        ]).unwrap();
+        let config = ClientProduceQuotas::new(
+            policy,
+            vec![("bravo".into(), policy), ("alpha".into(), policy)],
+        )
+        .unwrap();
         let mut meters = QuotaMeters::new(QuotaPolicy::Clients(config), now);
         let limits = crate::protocol::Limits::default();
         let a = meters.select(&header(3, Some("alpha")), limits);
@@ -325,6 +330,13 @@ mod tests {
         assert_eq!(meters.select(&[0, 0, 0, 9], limits), None);
         assert_eq!(ms(meters.meter(None).unwrap().charge(150, now)), 50);
         assert_eq!(ms(meters.meter(None).unwrap().charge(50, now)), 100);
+
+        // The original shared policy deliberately aggregates different labels.
+        let mut shared = QuotaMeters::new(QuotaPolicy::Shared(policy), now);
+        assert_eq!(shared.select(&header(3, Some("alpha")), limits), None);
+        assert_eq!(shared.select(&header(9, Some("bravo")), limits), None);
+        assert_eq!(ms(shared.meter(None).unwrap().charge(200, now)), 100);
+        assert_eq!(ms(shared.meter(None).unwrap().charge(50, now)), 150);
     }
 
     #[test]
@@ -342,17 +354,22 @@ mod tests {
     fn failed_named_meter_does_not_erase_or_poison_other_debts() {
         let now = Instant::now();
         let q = ProduceQuota::new(100, 100, 10_000).unwrap();
-        let config = ClientProduceQuotas::new(q, vec![
-            ("alpha".into(), q), ("bravo".into(), q)
-        ]).unwrap();
+        let config =
+            ClientProduceQuotas::new(q, vec![("alpha".into(), q), ("bravo".into(), q)]).unwrap();
         let mut meters = QuotaMeters::new(QuotaPolicy::Clients(config), now);
         let limits = crate::protocol::Limits::default();
         let a = meters.select(&header(3, Some("alpha")), limits);
         let b = meters.select(&header(3, Some("bravo")), limits);
         meters.meter(a).unwrap().balance = Balance::Debt(u128::MAX);
-        assert!(matches!(meters.meter(a).unwrap().charge(1, now), QuotaMark::Failed));
+        assert!(matches!(
+            meters.meter(a).unwrap().charge(1, now),
+            QuotaMark::Failed
+        ));
         assert_eq!(ms(meters.meter(b).unwrap().charge(150, now)), 500);
-        assert!(matches!(meters.meter(a).unwrap().charge(1, now), QuotaMark::Failed));
+        assert!(matches!(
+            meters.meter(a).unwrap().charge(1, now),
+            QuotaMark::Failed
+        ));
         assert_eq!(ms(meters.meter(b).unwrap().charge(1, now)), 510);
     }
 
