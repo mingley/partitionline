@@ -9,11 +9,12 @@ import shutil
 import statistics
 import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "partitionline-schema"
 QUALIFICATION = ROOT / "qualification" / "schema-json-avl"
-WORK = ROOT / "target" / "schema-json-avl"
+WORK = Path(tempfile.gettempdir()) / ("schema-json-avl-" + str(os.getpid()))
 MARKER = "#[cfg(test)]\nmod tests {\n"
 BEGIN = "    // BEGIN_JSON_INDEX_CONTROLS\n"
 END = "    // END_JSON_INDEX_CONTROLS\n\n"
