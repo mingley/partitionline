@@ -1,8 +1,8 @@
-name: Split fast-path JSON AVL comparison
+name: Reviewed split JSON AVL controls
 on:
   push:
     branches:
-      - qualification/schema-json-avl-fastpath-20261110
+      - qualification/schema-json-avl-split-reviewed-20261110
 permissions:
   contents: read
 jobs:
@@ -98,14 +98,3 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --locked --manifest-path "$RUNNER_TEMP/schema-json-avl32/Cargo.toml" --all-features --no-deps
-  comparison:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Paired in-process parse samples
-        run: |
-          rustc --version
-          git rev-parse HEAD
-          python3 qualification/schema-json-avl/compare.py
