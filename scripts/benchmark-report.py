@@ -70,6 +70,17 @@ def normalize_acks(acks: Any) -> Optional[int]:
     return None
 
 
+
+def reject_duplicate_keys(pairs: List[Tuple[str, Any]]) -> Dict[str, Any]:
+    """Reject ambiguous JSON objects before their keys are discarded."""
+    result: Dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
+
+
 class BenchmarkValidator:
     """Fail-closed validator for benchmark result documents."""
 
@@ -77,7 +88,7 @@ class BenchmarkValidator:
         self.schema_path = schema_path or Path(__file__).resolve().parent.parent / "benchmarks/result-schema.json"
         try:
             from jsonschema import Draft7Validator
-            self.schema = json.loads(self.schema_path.read_text(encoding="utf-8"))
+            self.schema = json.loads(self.schema_path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
             Draft7Validator.check_schema(self.schema)
             self.schema_validator = Draft7Validator(self.schema)
         except ImportError as e:
@@ -779,6 +790,12 @@ def format_report_summary(data: Dict[str, Any], errors: List[str]) -> str:
     lines.append("=" * 78)
     lines.append("PARTITIONLINE BENCHMARK RESULT & PROVENANCE REPORT")
     lines.append("=" * 78)
+    # Invalid input need not have the types that the detailed report expects.
+    if errors:
+        lines.append(f"VALIDATION FAILED ({len(errors)} error(s)):")
+        lines.extend(f"  [FAIL] {error}" for error in errors)
+        lines.append("=" * 78)
+        return "\n".join(lines)
 
     scenario = data.get("scenario", {})
     provenance = data.get("provenance", {})
@@ -864,12 +881,7 @@ def format_report_summary(data: Dict[str, Any], errors: List[str]) -> str:
     )
     lines.append("-" * 78)
 
-    if errors:
-        lines.append(f"VALIDATION FAILED ({len(errors)} error(s)):")
-        for err in errors:
-            lines.append(f"  [FAIL] {err}")
-    else:
-        lines.append("VALIDATION PASSED: Result conforms strictly to fail-closed result schema.")
+    lines.append("VALIDATION PASSED: Result conforms strictly to fail-closed result schema.")
     lines.append("=" * 78)
     return "\n".join(lines)
 
@@ -919,7 +931,7 @@ def main() -> int:
 
     try:
         content = args.result_file.read_text(encoding="utf-8")
-        data = json.loads(content)
+        data = json.loads(content, object_pairs_hook=reject_duplicate_keys)
     except Exception as e:
         sys.stderr.write(f"Error reading JSON from {args.result_file}: {e}\n")
         return 2
