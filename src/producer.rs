@@ -9890,10 +9890,9 @@ async fn group_pending(
 
 /// Build produce groups after a mixed batch has been counted.
 ///
-/// Draining 200,000 topics held the caller for 119 milliseconds. The walk
-/// pauses every 8,192 partitions. Topic order and partition order stay the
-/// same. Empty partition lists are kept for the next batch, up to the spare
-/// cap.
+/// Build the output in topic and partition order. Counted topics and drained
+/// partitions (including empty or missing topics) share bounded walk budgets.
+/// A single allocation and cancellation-time destruction remain synchronous.
 async fn assemble_mixed_groups(
     scratch: &mut ProduceGroupScratch,
     mut order: Vec<Arc<str>>,
@@ -9902,6 +9901,7 @@ async fn assemble_mixed_groups(
     let mut spare_slots = std::mem::take(&mut scratch.spare_slots);
     let mut spare_orders = std::mem::take(&mut scratch.spare_orders);
     let mut total = 0usize;
+    let mut counted = 0usize;
     for topic in &order {
         total = total.saturating_add(
             scratch
@@ -9910,21 +9910,23 @@ async fn assemble_mixed_groups(
                 .map(|groups| groups.order.len())
                 .unwrap_or(0),
         );
+        pause_walk(&mut counted).await;
     }
     let mut out = take_group_shell(scratch);
     reserve_len(&mut out, total);
     let mut walked = 0usize;
     for topic in order.drain(..) {
         let Some(mut groups) = scratch.buckets.remove(topic.as_ref()) else {
+            pause_walk(&mut walked).await;
             continue;
         };
+        let empty = groups.order.is_empty();
         for (partition, pending) in groups.order.drain(..) {
             out.push((Arc::clone(&topic), partition, pending));
-            walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
-                walked = 0;
-                tokio::task::yield_now().await;
-            }
+            pause_walk(&mut walked).await;
+        }
+        if empty {
+            pause_walk(&mut walked).await;
         }
         groups.slots.clear();
         if spare_slots.len() < 64 {
