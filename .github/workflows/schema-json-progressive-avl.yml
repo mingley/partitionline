@@ -1,8 +1,8 @@
-name: Progressive JSON AVL candidate
+name: Progressive JSON AVL threshold comparison
 on:
   push:
     branches:
-      - qualification/schema-json-progressive-avl-20261110
+      - qualification/schema-json-progressive-avl64-20261110
 permissions:
   contents: read
 jobs:

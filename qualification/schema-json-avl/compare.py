@@ -2,6 +2,7 @@
 """Paired, in-process comparison of the Registry JSON object index."""
 import csv
 import json
+import itertools
 import os
 from pathlib import Path
 import re
@@ -48,7 +49,11 @@ def compile_arm(name, source):
     path = root / "src" / "registry.rs"
     if source.count(MARKER) != 1:
         raise ValueError("benchmark injection point")
+    path.write_text(source)
+    production_sha = checked(["git", "hash-object", str(path)], cwd=ROOT).strip()
     path.write_text(source.replace(MARKER, MARKER + BENCH, 1))
+    benchmark_sha = checked(["git", "hash-object", str(path)], cwd=ROOT).strip()
+    print("source={} stripped={} instrumented={}".format(name, production_sha, benchmark_sha), flush=True)
     env = os.environ.copy()
     env["CARGO_TARGET_DIR"] = str(WORK / (name + "-target"))
     args = [
@@ -134,11 +139,17 @@ def main():
     cpu = min(allowed)
     WORK.mkdir(parents=True)
     baseline = (QUALIFICATION / "baseline.rs.txt").read_text()
-    candidate = source_without_controls((SCHEMA / "src" / "registry.rs").read_text())
-    if baseline[baseline.index(MARKER):] != candidate[candidate.index(MARKER):]:
-        raise ValueError("benchmark test scaffolds differ")
+    candidate64 = source_without_controls((SCHEMA / "src" / "registry.rs").read_text())
+    threshold = "const JSON_LINEAR_TAIL: usize = 64;"
+    if candidate64.count(threshold) != 1:
+        raise ValueError("candidate threshold marker")
+    candidate32 = candidate64.replace(threshold, "const JSON_LINEAR_TAIL: usize = 32;", 1)
+    for candidate in (candidate32, candidate64):
+        if baseline[baseline.index(MARKER):] != candidate[candidate.index(MARKER):]:
+            raise ValueError("benchmark test scaffolds differ")
     arms = {"baseline": compile_arm("baseline", baseline),
-            "candidate": compile_arm("candidate", candidate)}
+            "candidate32": compile_arm("candidate32", candidate32),
+            "candidate64": compile_arm("candidate64", candidate64)}
     os.sched_setaffinity(0, {cpu})
     print("cpu=" + str(cpu), flush=True)
     for name, path in arms.items():
@@ -148,8 +159,9 @@ def main():
     values = {}
     writer = csv.writer(sys.stdout, lineterminator="\n")
     writer.writerow(["pair", "order", "arm", "shape", "iterations", "total_ns", "body_bytes"])
+    orders = list(itertools.permutations(("baseline", "candidate32", "candidate64")))
     for pair in range(12):
-        order = ["baseline", "candidate"] if pair % 2 == 0 else ["candidate", "baseline"]
+        order = orders[pair % len(orders)]
         for position, arm in enumerate(order):
             rows = measure(arms[arm])
             for shape in sorted(rows):
@@ -158,10 +170,12 @@ def main():
                 writer.writerow([pair, position, arm, shape, iterations, ns, body_bytes])
         sys.stdout.flush()
     for shape in sorted(SHAPES):
-        ratios = [100 * (values[p, "candidate", shape] / values[p, "baseline", shape] - 1)
-                  for p in range(12)]
-        print("SUMMARY shape={} paired_median_pct={:.4f} min_pct={:.4f} max_pct={:.4f}".format(
-            shape, statistics.median(ratios), min(ratios), max(ratios)), flush=True)
+        for arm, reference in (("candidate32", "baseline"), ("candidate64", "baseline"),
+                               ("candidate64", "candidate32")):
+            ratios = [100 * (values[p, arm, shape] / values[p, reference, shape] - 1)
+                      for p in range(12)]
+            print("SUMMARY arm={} reference={} shape={} paired_median_pct={:.4f} min_pct={:.4f} max_pct={:.4f}".format(
+                arm, reference, shape, statistics.median(ratios), min(ratios), max(ratios)), flush=True)
 
     for shape, payload, keys, trials in [
         ("many_keys", 0, 16384, 5),
@@ -169,7 +183,7 @@ def main():
         ("max_limit", 64 * 1024 * 1024 - 13, 0, 3),
     ]:
         for trial in range(trials):
-            order = ["baseline", "candidate"] if trial % 2 == 0 else ["candidate", "baseline"]
+            order = orders[trial % len(orders)]
             for arm in order:
                 observe_resource(arms[arm], arm, shape, trial, payload, keys)
 

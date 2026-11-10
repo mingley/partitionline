@@ -1638,7 +1638,7 @@ impl JsonValue {
 // Keep a short linear suffix while progressively indexing the older keys.
 // This avoids an all-at-once index rebuild at the threshold. Tree slots are
 // positions in the original entries vector, so the index does not copy keys.
-const JSON_LINEAR_TAIL: usize = 32;
+const JSON_LINEAR_TAIL: usize = 64;
 const JSON_NO_SLOT: u32 = u32::MAX;
 
 #[derive(Clone, Copy)]
