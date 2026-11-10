@@ -101,4 +101,7 @@ client job was still running when this note was updated.
 The [clean patch](clean.patch), [instrumented patch](instrumented.patch),
 [focused workflow](focused-workflow.yml.txt), [broad/live workflow](broad-live-workflow.yml.txt),
 [measurement workflow](measurement-workflow.yml.txt), and
-[live producer example](producer-smoke.rs.txt) are retained as evidence.
+[live producer example](producer-smoke.rs.txt) are retained as evidence. In
+[run 42871918359](https://github.com/mingley/partitionline/actions/runs/42871918359),
+both patches applied to the exact baseline and reproduced their recorded
+producer source Git blob hashes.
