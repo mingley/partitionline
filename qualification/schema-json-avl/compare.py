@@ -89,8 +89,6 @@ def main():
         raise ValueError("comparison directory already exists")
     allowed = os.sched_getaffinity(0)
     cpu = min(allowed)
-    os.sched_setaffinity(0, {cpu})
-    print("cpu=" + str(cpu), flush=True)
     WORK.mkdir(parents=True)
     baseline = (QUALIFICATION / "baseline.rs.txt").read_text()
     candidate = source_without_controls((SCHEMA / "src" / "registry.rs").read_text())
@@ -98,6 +96,8 @@ def main():
         raise ValueError("benchmark test scaffolds differ")
     arms = {"baseline": compile_arm("baseline", baseline),
             "candidate": compile_arm("candidate", candidate)}
+    os.sched_setaffinity(0, {cpu})
+    print("cpu=" + str(cpu), flush=True)
     for name, path in arms.items():
         digest = checked(["sha256sum", path], cwd=ROOT).strip()
         print("binary=" + name + " " + digest, flush=True)
