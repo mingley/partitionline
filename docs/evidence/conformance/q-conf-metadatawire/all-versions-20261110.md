@@ -32,8 +32,26 @@ were extracted from the bounded run log and independently hashed:
 `e1b124fbbd9447551d0fe69aadc911f43900ce22056f7c0c38efaf762449b3a2`
 and
 `c25e37b8c1ad8e5c6d3bb7e97e94c616f5bc9ab534401cfe3220f5a5fb3b97d0`.
-The retained corpus and offline packaged-crate checks require a separate
-exact-source run. The SDK artifact hashes are in the
+The [intermediate offline run](https://github.com/mingley/partitionline/actions/runs/42869397012)
+at `02cb51450579c92f59f11f56a842ddc94a8fe0df` passed the matrix,
+checkout and clean packaged-crate tests, formatting and strict test-target
+Clippy, but also retained the stale Python version list in its summary.
+
+The [corrected exact-source run](https://github.com/mingley/partitionline/actions/runs/42869639976)
+at `935177c2cdccc5be39f1d349bc6daa195dd222ad` passed the five-peer matrix,
+the version/case consistency check and its deliberately corrupted-label
+control, both v3-throttle corruption controls, and retained-byte comparisons.
+The offline test passed once in each default and all-feature profile in the
+checkout and in the extracted crate; each invocation filtered the separately
+ignored live-SDK test. Packaging used a clean checkout and
+`cargo package --locked --no-verify`, followed by those targeted
+extracted-crate tests. Formatting and strict test-target Clippy passed. This
+is not a complete package or release gate. The process-cleanup controls also
+passed; escaped process groups, permission errors, kernel failures and abrupt
+runner termination can prevent cleanup from being proved. The uploaded
+artifacts were not independently inspected.
+
+The SDK artifact hashes are in the
 [runner](../../../../tests/conformance/java/generate_metadata_boundaries.py).
 
 The [earlier boundary record](boundaries-20261110.md) retains the eight-version
