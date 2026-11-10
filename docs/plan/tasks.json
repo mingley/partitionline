@@ -52054,9 +52054,13 @@
           "source_sha": "e3b06f651d78aed3ac39b3ed6f8d0408193a94e8",
           "commands": [
             "timeout 600s python3 tests/conformance/java/generate_metadata_wire.py --output target/metadata-v13 (exit 0)",
-            "cargo test --locked [--all-features] --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact (each exit 0)",
-            "cargo package --locked --no-verify, then the same two targeted tests in the extracted crate (each exit 0)",
-            "cargo clippy --locked --all-features --test metadata_wire_conformance -- -D warnings; cargo fmt --all -- --check (exit 0)"
+            "cargo test --locked --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact (exit 0)",
+            "cargo test --locked --all-features --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact (exit 0)",
+            "cargo package --locked --no-verify (exit 0)",
+            "CARGO_TARGET_DIR=\"$GITHUB_WORKSPACE/target\" cargo test --locked --manifest-path \"$manifest\" --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact (exit 0)",
+            "CARGO_TARGET_DIR=\"$GITHUB_WORKSPACE/target\" cargo test --locked --all-features --manifest-path \"$manifest\" --test metadata_wire_conformance metadata_v13_committed_corpus -- --exact (exit 0)",
+            "cargo clippy --locked --all-features --test metadata_wire_conformance -- -D warnings (exit 0)",
+            "cargo fmt --all -- --check (exit 0)"
           ],
           "results": "Three SHA-256-pinned Apache SDKs (4.1.2, 4.2.1, 4.3.1), default and all-feature Rust profiles, five body pairs in each lane; Java verified the Rust re-encodings and two deliberate top-error corruption controls were rejected. One offline fixture test passed in each checkout and extracted-crate profile. Cleanup controls observed owned process groups exit after TERM/KILL.",
           "artifacts": [
@@ -52069,6 +52073,31 @@
             "Metadata v13 only, five synthetic body pairs; all responses use top-level error 31 and unknown tags are discarded.",
             "Historical peers, other versions, complete registered case coverage, broader error variants and live-broker behavior remain open.",
             "Packaging used --no-verify followed by targeted tests; it is not a complete package or release gate."
+          ]
+        },
+        {
+          "source_sha": "a6e2af9876e635f62d963667c1764c935b79de2f",
+          "commands": [
+            "timeout 900s python3 tests/conformance/java/generate_metadata_boundaries.py --output target/metadata-boundaries (exit 0)",
+            "cargo test --locked --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact (exit 0)",
+            "cargo test --locked --all-features --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact (exit 0)",
+            "cargo package --locked --no-verify (exit 0)",
+            "CARGO_TARGET_DIR=\"$GITHUB_WORKSPACE/target\" cargo test --locked --manifest-path \"$manifest\" --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact (exit 0)",
+            "CARGO_TARGET_DIR=\"$GITHUB_WORKSPACE/target\" cargo test --locked --all-features --manifest-path \"$manifest\" --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact (exit 0)",
+            "cargo clippy --locked --all-features --test metadata_boundaries_conformance -- -D warnings (exit 0)",
+            "cargo fmt --all -- --check (exit 0)"
+          ],
+          "results": "Five SHA-256-pinned Apache SDKs (3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1), default and all-feature Rust profiles, 28 request/response body pairs in each lane across Metadata v0, v1, v3 and v8-v12. Java checked Rust's re-encodings; two deliberate v3 throttle corruptions were rejected. One offline fixture test passed in each checkout and extracted-crate profile.",
+          "artifacts": [
+            "docs/evidence/conformance/q-conf-metadatawire/boundaries-20261110.md",
+            "tests/fixtures/metadata_wire/boundaries-apache.txt",
+            "tests/fixtures/metadata_wire/boundaries-rust.txt",
+            "https://github.com/mingley/partitionline/actions/runs/42867167578"
+          ],
+          "limits": [
+            "Metadata v0 is a raw wire case; it does not establish public-client negotiation or Java builder support.",
+            "Versions 2, 4, 5, 6 and 7, broader error and nested shapes, version negotiation and live-broker behavior remain open; the card is not complete.",
+            "Packaging used --no-verify followed by targeted tests; it is not a full package or release gate."
           ]
         }
       ],

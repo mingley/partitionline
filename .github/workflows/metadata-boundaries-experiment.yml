@@ -1,0 +1,96 @@
+name: Metadata boundary Apache wire
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - qualification/metadata-boundaries-20261110
+    paths:
+      - 'src/protocol/**'
+      - 'src/error.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'clippy.toml'
+      - 'tests/conformance/java/generate_metadata_wire.py'
+      - 'tests/conformance/java/ConformanceMetadataBoundaries.java'
+      - 'tests/conformance/java/generate_metadata_boundaries.py'
+      - 'tests/metadata_boundaries_conformance.rs'
+      - 'tests/fixtures/metadata_wire/boundaries-apache.txt'
+      - 'tests/fixtures/metadata_wire/boundaries-rust.txt'
+      - '.github/workflows/metadata-boundaries-experiment.yml'
+  pull_request:
+    paths:
+      - 'src/protocol/**'
+      - 'src/error.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'clippy.toml'
+      - 'tests/conformance/java/generate_metadata_wire.py'
+      - 'tests/conformance/java/ConformanceMetadataBoundaries.java'
+      - 'tests/conformance/java/generate_metadata_boundaries.py'
+      - 'tests/metadata_boundaries_conformance.rs'
+      - 'tests/fixtures/metadata_wire/boundaries-apache.txt'
+      - 'tests/fixtures/metadata_wire/boundaries-rust.txt'
+      - '.github/workflows/metadata-boundaries-experiment.yml'
+permissions:
+  contents: read
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Record tools and source
+        run: |
+          rustc --version
+          cargo --version
+          java --version
+          git rev-parse HEAD
+          sha256sum tests/conformance/java/ConformanceMetadataBoundaries.java tests/conformance/java/generate_metadata_boundaries.py tests/metadata_boundaries_conformance.rs tests/fixtures/metadata_wire/boundaries-apache.txt tests/fixtures/metadata_wire/boundaries-rust.txt
+      - name: Compare bounded Apache bodies
+        run: timeout 900s python3 tests/conformance/java/generate_metadata_boundaries.py --output target/metadata-boundaries
+      - name: Compare retained corpus
+        run: |
+          cmp target/metadata-boundaries/3.9.1/apache.txt tests/fixtures/metadata_wire/boundaries-apache.txt
+          cmp target/metadata-boundaries/3.9.1/default-rust.txt tests/fixtures/metadata_wire/boundaries-rust.txt
+      - name: Offline corpus in the checkout
+        run: |
+          cargo test --locked --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact
+          cargo test --locked --all-features --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact
+      - name: Offline corpus in the packed crate
+        run: |
+          if test -n "$(git status --porcelain)"; then
+            git status --short
+            exit 1
+          fi
+          cargo package --locked --no-verify
+          crate_stem=$(python3 -c 'import json,subprocess; m=json.loads(subprocess.check_output(["cargo","metadata","--no-deps","--format-version","1"])); p=next(p for p in m["packages"] if p["name"]=="partitionline"); print(p["name"]+"-"+p["version"])')
+          package_dir="$RUNNER_TEMP/metadata-boundary-package"
+          mkdir -p "$package_dir"
+          tar -xzf "target/package/$crate_stem.crate" -C "$package_dir"
+          manifest="$package_dir/$crate_stem/Cargo.toml"
+          test -f "$package_dir/$crate_stem/tests/fixtures/metadata_wire/boundaries-apache.txt"
+          test -f "$package_dir/$crate_stem/tests/fixtures/metadata_wire/boundaries-rust.txt"
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --manifest-path "$manifest" --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --all-features --manifest-path "$manifest" --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact
+      - name: Strict lint
+        if: always()
+        run: cargo clippy --locked --all-features --test metadata_boundaries_conformance -- -D warnings
+      - name: Formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Retain fixtures and process receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metadata-boundaries-${{ github.sha }}
+          path: target/metadata-boundaries
+          if-no-files-found: warn
+          retention-days: 30

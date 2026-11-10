@@ -1,6 +1,6 @@
 # Next work
 
-Updated 9 November 2026. Use latest stable Rust. The
+Updated 10 November 2026. Use latest stable Rust. The
 [task registry](tasks.json) is the source of task status and dependencies;
 the [task guide](README.md) explains how to select and record work.
 
@@ -11,16 +11,18 @@ an established fastest-in-the-world result. Client 0.1.0 is published; the
 next client release must be at least 0.2.0. The experimental broker and schema
 companion are unpublished.
 
-The latest complete [main CI record](../evidence/releases/main-ci-199-20261109/README.md)
-is for `19979b3a22e56b37a1a03d60fe8f67b746a1f047`. Linux client libraries reported 2,317 passes and 11
-failures with default features and 2,318 passes and 10 failures with all
-features. Windows reported 2,316 passes and 12 failures; macOS reported 2,317
+The latest complete [main CI record](../evidence/releases/main-ci-92a-20261110/README.md)
+is for `92a365f2829c00438b6c58841dbb0990fca480d6`. Linux client libraries reported 2,314 passes and 14
+failures with default features and 2,313 passes and 15 failures with all
+features. Windows reported 2,303 passes and 25 failures; macOS reported 2,317
 passes and 11 failures. All three current Kafka compatibility jobs and both
-historical smoke jobs failed. The broker passed 814 default and 962 all-feature
-tests, with four ignored in each profile, plus strict checks. The finite
-resource-soak CI job passed; no sustained campaign has passed. An [earlier 669 snapshot](../evidence/releases/main-ci-669-20261109/README.md)
-had a broker failure and an OS-denied `/proc` access; later passes do not
-explain them.
+historical smoke jobs failed. The broker default library stopped after 495
+passes, one failure and four ignored; later broker checks did not run. The
+finite resource-soak CI job passed; no sustained campaign has passed. The
+[preceding snapshot](../evidence/releases/main-ci-199-20261109/README.md)
+passed broker checks, but does not explain the failure. An
+[earlier 669 snapshot](../evidence/releases/main-ci-669-20261109/README.md)
+recorded an OS-denied `/proc` access; later passes do not explain it.
 
 Separate [combined-head checks](../evidence/ci/combined-a7b6-20261109/README.md)
 at `a7b6edc1645e3a4789cf699a3b9e7656c55a3d10` passed focused Admin, producer
@@ -61,10 +63,10 @@ runs and their limits.
    ownership, ordering, deadlines and authentication across cancellation and
    reconnects. Keep mock, live-broker and independent peer results distinct.
    The [protocol gaps](../gaps.md) and [support matrix](../support.md) describe
-   the current API and version boundaries. A [Metadata v13 body fixture](../evidence/conformance/q-conf-metadatawire/README.md)
-   now runs offline and has been compared with three Apache SDKs. Other
-   versions, error variants, historical peers and live-broker behavior remain
-   open.
+   the current API and version boundaries. An offline [Metadata v13 fixture](../evidence/conformance/q-conf-metadatawire/README.md)
+   and [boundary fixture](../evidence/conformance/q-conf-metadatawire/boundaries-20261110.md)
+   cover selected bodies against Apache SDKs. Versions 2 and 4–7, wider error
+   cases, version negotiation and live-broker behavior remain open.
 
    The [Admin cursor guard](../evidence/client/admin-cursor-history-20261109/README.md)
    catches some non-adjacent repeats with fixed-size history. It can reject a
@@ -89,8 +91,10 @@ runs and their limits.
    [quota candidate](../evidence/broker/produce-quota-candidate-20261109/README.md)
    passed focused controls but failed its full all-feature suite; it remains
    unmerged. A [live Kafka timing probe and idle-close control](../evidence/broker/produce-quota-live-idle-20261109/README.md)
-   add scoped evidence. A related EOF refinement passed focused controls but
-   failed formatting and remains unapplied. The
+   add scoped evidence. A [client-ID probe](../evidence/broker/produce-client-quota-isolation-20261110/README.md)
+   observed quota sharing across two connections to Kafka 4.3.1. A related EOF
+   refinement passed focused controls but failed formatting and remains
+   unapplied. The
    [quota handoff plan](../evidence/broker/quota-handoff-20261109/README.md)
    describes the accounting, transport and authentication boundaries they
    need to satisfy.
@@ -106,7 +110,9 @@ runs and their limits.
    and [compact follow-up](../evidence/schema/json-compact-index-20261109/README.md)
    remain unapplied after threshold slowdowns. [Balanced-tree experiments](../evidence/schema/json-balanced-index-20261109/README.md)
    also slowed ordinary Registry objects. An [incremental index](../evidence/schema/json-incremental-index-20261109/README.md)
-   slowed a 96-key fixture and lacks a worst-case collision bound. Neither is
+   slowed a 96-key fixture and lacks a worst-case collision bound. A
+   [progressive AVL experiment](../evidence/schema/json-progressive-avl-20261110/README.md)
+   improved large objects but slowed ordinary fixtures on one runner. None is
    applied.
 
 5. **Performance.** Establish correctness before comparing throughput or
