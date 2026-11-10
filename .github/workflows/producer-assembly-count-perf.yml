@@ -9,7 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      CARGO_TARGET_DIR: ${{ runner.temp }}/assembly-perf-target
       CARGO_INCREMENTAL: 0
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +25,7 @@ jobs:
           echo "candidate bb5828797b43529de8a96f5e3736ec06b9776891"
       - name: Build paired release test binaries
         run: |
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/assembly-perf-target"
           git worktree add --detach "$RUNNER_TEMP/assembly-baseline" "e3de969110d1ade75967162e5232c4c23b044b95"
           (
             cd "$RUNNER_TEMP/assembly-baseline"
