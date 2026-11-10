@@ -119,9 +119,10 @@ and [work plan][next] retain those results and earlier evidence.
   and candidate. An [Admin response diagnostic][admin-growth] observed long
   map-growth polls in a synthetic debug fixture; it did not explain those
   earlier timing failures. Offline [Metadata v13][metadata-wire] and
-  [boundary fixtures][metadata-boundaries] cover selected bodies against
-  Apache SDKs; versions 2 and 4–7, wider error cases, negotiation and
-  live-broker behavior remain open. The [protocol gaps](gaps.md) describe the APIs.
+  [v0–v12 fixtures][metadata-all] cover selected bodies against Apache SDKs;
+  wider error and collection cases, negotiation and live-broker behavior remain
+  open. Version 0 is a raw wire case only. The [protocol gaps](gaps.md)
+  describe the APIs.
 - **Broker durability and limits.** Partition replication, native KRaft,
   authenticated network leadership, transaction marker propagation and a
   process-wide memory bound remain open. Kafka wire throttling is not
@@ -229,6 +230,7 @@ results and experiments.
 [metadata-wire]: https://github.com/mingley/partitionline/blob/2463421e6137185a506c71fdb0fe4acaee530cab/docs/evidence/conformance/q-conf-metadatawire/README.md
 
 [ci-199]: https://github.com/mingley/partitionline/blob/2463421e6137185a506c71fdb0fe4acaee530cab/docs/evidence/releases/main-ci-199-20261109/README.md
+[metadata-all]: https://github.com/mingley/partitionline/blob/4b1a4a85fbd0be878f3026019303078d6e8c4a84/docs/evidence/conformance/q-conf-metadatawire/all-versions-20261110.md
 [metadata-boundaries]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/conformance/q-conf-metadatawire/boundaries-20261110.md
 [quota-client-id]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/broker/produce-client-quota-isolation-20261110/README.md
 [json-avl]: https://github.com/mingley/partitionline/blob/cfe9a1ac5187aebad36269681275af97bf68ba60/docs/evidence/schema/json-progressive-avl-20261110/README.md
