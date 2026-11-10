@@ -99,8 +99,12 @@ the broad suite was skipped. The formatting-only successor
 [its focused run](https://github.com/mingley/partitionline/actions/runs/42869682907):
 six meter, five actor and eight public controls in each feature profile, the
 existing authenticated shared-quota control, formatting, strict Clippy and
-rustdoc. Its dependent broad broker suite was still running when this note
-was written.
+rustdoc. Its dependent broad default broker step stopped after 754 passed,
+three failed and four ignored across 28 reported test-result summaries; the
+all-feature step stopped after 844 passed, one failed and four ignored across
+28 summaries. Later targets did not run. Failure identities were not inspected
+and their causes are unknown. The earlier v3 pass does not explain these
+failures.
 
 The [candidate patch](candidate.patch) applies to
 `50b5de969a14f11f52df6da36bf2037d4f61de60`. Text application of its hunks
