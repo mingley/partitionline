@@ -17235,6 +17235,18 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    async fn assembly_count_missing_topic_and_low_hint_preserve_output() {
+        let (mut scratch, mut order, mut receivers) = assembly_count_fixture(2, true, true);
+        order.insert(1, Arc::from("missing-topic"));
+        let groups = assembly_count_run(&mut scratch, order, 0).await;
+        assert_eq!(groups.len(), 2);
+        assert_eq!(groups.first().map(|group| group.0.as_ref()), Some("fair-0"));
+        assert_eq!(groups.get(1).map(|group| group.0.as_ref()), Some("fair-1"));
+        assert_eq!(assembly_count_closed(&mut receivers), 0);
+        assert!(scratch.buckets.is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
     async fn assembly_count_large_completion_keeps_order_and_receipts() {
         let n = 8_193;
         let (mut scratch, order, mut receivers) = assembly_count_fixture(n, true, true);
