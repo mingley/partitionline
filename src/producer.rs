@@ -9672,12 +9672,15 @@ async fn reserve_grouped_topic_counts(
     order: &[Arc<str>],
     buckets: &mut ProduceBuckets,
     counts: &mut Vec<usize>,
-) {
+) -> usize {
+    let mut total_groups = 0usize;
     let mut walked = 0usize;
     for topic in order {
         let Some(groups) = buckets.get_mut(topic.as_ref()) else {
+            pause_walk(&mut walked).await;
             continue;
         };
+        total_groups = total_groups.saturating_add(groups.order.len());
         counts.clear();
         reserve_len(counts, groups.order.len());
         for (partition, _) in &groups.order {
@@ -9689,12 +9692,9 @@ async fn reserve_grouped_topic_counts(
         for (index, (partition, _)) in groups.order.iter().enumerate() {
             let _inserted = groups.slots.insert(*partition, index);
         }
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
-        }
+        pause_walk(&mut walked).await;
     }
+    total_groups
 }
 
 async fn pause_walk(walked: &mut usize) {
@@ -9799,7 +9799,7 @@ async fn group_pending(
     let mut spare_orders = std::mem::take(&mut scratch.spare_orders);
     let mut order = std::mem::take(&mut scratch.spare_topic_order);
     let mut counts = std::mem::take(&mut scratch.record_counts);
-    let mut total_groups = 0usize;
+    let mut total_groups;
     order.clear();
     {
         let buckets = &mut scratch.buckets;
@@ -9819,7 +9819,6 @@ async fn group_pending(
                 let mut part = spare_parts.pop().unwrap_or_default();
                 part.clear();
                 groups.order.push((partition, part));
-                total_groups = total_groups.saturating_add(1);
                 continue;
             }
             let topic = Arc::clone(&pending.rec.topic);
@@ -9839,9 +9838,8 @@ async fn group_pending(
                     slots,
                 },
             );
-            total_groups = total_groups.saturating_add(1);
         }
-        reserve_grouped_topic_counts(&order, buckets, &mut counts).await;
+        total_groups = reserve_grouped_topic_counts(&order, buckets, &mut counts).await;
         let mut walked = 0usize;
         for pending in batch.drain(..) {
             pause_walk(&mut walked).await;
@@ -9861,7 +9859,6 @@ async fn group_pending(
                 part.clear();
                 part.push(pending);
                 groups.order.push((partition, part));
-                total_groups = total_groups.saturating_add(1);
                 continue;
             }
             let topic = Arc::clone(&pending.rec.topic);
@@ -9905,9 +9902,9 @@ fn observe_assembly_lookup() {
 
 /// Build produce groups after a mixed batch has been counted.
 ///
-/// Build output in topic and partition order using the count collected during
-/// mixed-batch classification. One allocation and cancellation-time
-/// destruction remain synchronous.
+/// Build output in topic and partition order using the size observed during
+/// the existing reservation walk. Unexpected fallback groups may grow the
+/// output. One allocation and cancellation-time destruction remain synchronous.
 async fn assemble_mixed_groups(
     scratch: &mut ProduceGroupScratch,
     mut order: Vec<Arc<str>>,
@@ -17005,7 +17002,7 @@ mod tests {
         let mut counts = Vec::new();
         let started = std::time::Instant::now();
         tokio::select! {
-            () = reserve_grouped_topic_counts(&order, &mut buckets, &mut counts) => {}
+            _ = reserve_grouped_topic_counts(&order, &mut buckets, &mut counts) => {}
             () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
         }
         assert!(
