@@ -25,7 +25,7 @@ jobs:
           echo "candidate 561d3235471dddd6ac87d048f586b53c47dd9430"
       - name: Build paired release test binaries
         run: |
-          export CARGO_TARGET_DIR="$RUNNER_TEMP/assembly-perf-target"
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/assembly-baseline-target"
           git worktree add --detach "$RUNNER_TEMP/assembly-baseline" "1c308efc64eec454e3a9744a1b077819099c809d"
           git show "5cd53d3c84eb23671b1d74f2c488d95ba69208e5:src/producer.rs" > "$RUNNER_TEMP/assembly-baseline-origin.rs"
           git show "561d3235471dddd6ac87d048f586b53c47dd9430:src/producer.rs" > "$RUNNER_TEMP/assembly-candidate-origin.rs"
@@ -54,6 +54,7 @@ jobs:
           if len(paths)!=1: raise ValueError('expected one baseline test executable: '+repr(paths))
           shutil.copy2(paths[0],sys.argv[2])
           PY
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/assembly-candidate-target"
           cargo test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/assembly-candidate.json"
           python3 - "$RUNNER_TEMP/assembly-candidate.json" "$RUNNER_TEMP/assembly-candidate-test" <<'PY'
           import json,shutil,sys
@@ -62,6 +63,11 @@ jobs:
           if len(paths)!=1: raise ValueError('expected one candidate test executable: '+repr(paths))
           shutil.copy2(paths[0],sys.argv[2])
           PY
+          sha256sum "$RUNNER_TEMP/assembly-baseline-test" "$RUNNER_TEMP/assembly-candidate-test"
+          if cmp -s "$RUNNER_TEMP/assembly-baseline-test" "$RUNNER_TEMP/assembly-candidate-test"; then
+            echo "paired executables are identical; comparison refused"
+            exit 1
+          fi
           "$RUNNER_TEMP/assembly-baseline-test" --list | python3 -c 'import sys; s=sys.stdin.read(); assert "assembly_count_first_poll_limits_topic_lookups" not in s'
           "$RUNNER_TEMP/assembly-candidate-test" --list | python3 -c 'import sys; s=sys.stdin.read(); assert "assembly_count_first_poll_limits_topic_lookups" not in s'
       - name: Alternate paired measurements
