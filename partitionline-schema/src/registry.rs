@@ -2005,12 +2005,53 @@ impl<'a> JsonParser<'a> {
 
     fn parse_object(&mut self, depth: usize) -> Result<JsonValue, RegistryError> {
         let mut entries: Vec<(String, JsonValue)> = Vec::new();
-        let mut index = JsonKeyIndex::new();
         self.skip_ws();
         if self.peek() == Some(b'}') {
             self.pos = self.pos.saturating_add(1);
             return Ok(JsonValue::Object(entries));
         }
+        loop {
+            self.skip_ws();
+            if self.peek() != Some(b'"') {
+                return Err(RegistryError::malformed("json object key not a string"));
+            }
+            let key = self.parse_string()?;
+            self.skip_ws();
+            if self.peek() != Some(b':') {
+                return Err(RegistryError::malformed("json object missing colon"));
+            }
+            self.pos = self.pos.saturating_add(1);
+            let value = self.parse_value(depth.saturating_add(1))?;
+            if entries.iter().any(|(known, _)| known == &key) {
+                return Err(RegistryError::malformed("json duplicate key"));
+            }
+            entries.push((key, value));
+            self.skip_ws();
+            match self.peek() {
+                Some(b',') => {
+                    self.pos = self.pos.saturating_add(1);
+                    if entries.len() == JSON_LINEAR_TAIL {
+                        return self.parse_large_object(depth, entries);
+                    }
+                }
+                Some(b'}') => {
+                    self.pos = self.pos.saturating_add(1);
+                    return Ok(JsonValue::Object(entries));
+                }
+                _ => return Err(RegistryError::malformed("json bad object")),
+            }
+        }
+    }
+
+    // Isolate index state from the common small-object stack frame. The field
+    // parser and delimiter checks intentionally match parse_object.
+    #[inline(never)]
+    fn parse_large_object(
+        &mut self,
+        depth: usize,
+        mut entries: Vec<(String, JsonValue)>,
+    ) -> Result<JsonValue, RegistryError> {
+        let mut index = JsonKeyIndex::new();
         loop {
             self.skip_ws();
             if self.peek() != Some(b'"') {
@@ -2035,9 +2076,7 @@ impl<'a> JsonParser<'a> {
                 return Err(RegistryError::malformed("json duplicate key"));
             }
             entries.push((key, value));
-            if entries.len() > JSON_LINEAR_TAIL {
-                index.insert_next(&entries)?;
-            }
+            index.insert_next(&entries)?;
             self.skip_ws();
             match self.peek() {
                 Some(b',') => {
@@ -2359,6 +2398,29 @@ mod tests {
                     );
                 }
             }
+        }
+        for count in [31usize, 32, 33, 63, 64, 65] {
+            let mut prefix = String::from("{");
+            for i in 0..count {
+                if i != 0 {
+                    prefix.push(',');
+                }
+                write!(&mut prefix, r#""edge{i:05}":0"#).unwrap();
+            }
+            let trailing = format!("{prefix},}}");
+            assert_eq!(
+                JsonParser::new(&trailing).parse().unwrap_err(),
+                RegistryError::Malformed {
+                    what: "json object key not a string".into()
+                }
+            );
+            let missing_colon = format!(r#"{prefix},"bad" 1}}"#);
+            assert_eq!(
+                JsonParser::new(&missing_colon).parse().unwrap_err(),
+                RegistryError::Malformed {
+                    what: "json object missing colon".into()
+                }
+            );
         }
         for pattern in 0..3 {
             let mut order: Vec<usize> = (0..512).collect();
