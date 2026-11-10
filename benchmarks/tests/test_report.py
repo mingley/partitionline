@@ -1010,5 +1010,115 @@ class AlternateSchemaSafetyTests(unittest.TestCase):
                 valid, errors, _ = validator.validate(build_valid_fixture())
                 self.assertTrue(valid, errors)
 
+
+class ReportOutputSafetyTests(unittest.TestCase):
+    def test_string_record_id_bounds_remain_valid(self):
+        data = build_valid_fixture()
+        data["integrity"]["record_ids"].update(start_id="first-record", end_id="last-record")
+        valid, errors, _ = BenchmarkValidator().validate(data)
+        self.assertTrue(valid, errors)
+
+    def test_alternate_schema_success_identifies_its_scope(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            schema = Path(directory) / "alternate.json"
+            path.write_text(json.dumps(build_valid_fixture()), encoding="utf-8")
+            schema.write_text("{}", encoding="utf-8")
+            cmd = [sys.executable, str(SCRIPT_PATH), "--schema", str(schema), str(path)]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(str(schema), result.stdout)
+            self.assertIn("Canonical repository schema was not checked", result.stdout)
+            machine = subprocess.run(cmd[:-1] + ["--json", cmd[-1]], capture_output=True, text=True, timeout=20)
+            self.assertEqual(machine.returncode, 0, machine.stderr)
+            report = json.loads(machine.stdout)
+            self.assertFalse(report["schema"]["canonical_checked"])
+            self.assertEqual(report["schema"]["path"], str(schema))
+
+    def test_relocated_standalone_reporter_accepts_explicit_schema(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            script = directory / "reporter.py"
+            script.write_text(SCRIPT_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+            path = directory / "result.json"
+            schema = directory / "alternate.json"
+            path.write_text(json.dumps(build_valid_fixture()), encoding="utf-8")
+            schema.write_text("{}", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(script), "--schema", str(schema), str(path)],
+                capture_output=True, text=True, timeout=20,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Canonical repository schema was not checked", result.stdout)
+
+    def test_alternate_summary_handles_formatter_structures(self):
+        paths = (
+            ("scenario",), ("provenance",), ("provenance", "source"),
+            ("provenance", "binary"), ("provenance", "broker"),
+            ("provenance", "host"), ("provenance", "host", "cpu"),
+            ("outcomes",), ("measurements",), ("measurements", "throughput"),
+            ("measurements", "latency"), ("measurements", "client_resources"),
+            ("measurements", "client_resources", "rss"),
+            ("measurements", "client_resources", "allocations"),
+            ("measurements", "broker_resources"), ("integrity",),
+            ("integrity", "record_ids"), ("integrity", "high_watermark_audit"),
+            ("repetition_history",),
+        )
+        numeric_paths = (
+            ("measurements", "throughput", "records_per_second"),
+            ("measurements", "throughput", "megabytes_per_second"),
+            ("measurements", "latency", "p50"), ("measurements", "latency", "p90"),
+            ("measurements", "latency", "p95"), ("measurements", "latency", "p99"),
+            ("measurements", "latency", "p99_9"),
+            ("measurements", "client_resources", "cpu_utilization_pct"),
+            ("measurements", "client_resources", "rss", "peak_rss_bytes"),
+            ("measurements", "client_resources", "allocations", "allocation_count"),
+            ("measurements", "broker_resources", "cpu_utilization_pct"),
+            ("measurements", "broker_resources", "peak_rss_bytes"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            schema = Path(directory) / "alternate.json"
+            schema.write_text("{}", encoding="utf-8")
+            validator = BenchmarkValidator(schema_path=schema)
+            for parts in paths + numeric_paths:
+                for bad_value in (None, "invalid", [], {}):
+                    data = build_valid_fixture()
+                    target = data
+                    for part in parts[:-1]:
+                        target = target[part]
+                    target[parts[-1]] = bad_value
+                    with self.subTest(path=".".join(parts), value=type(bad_value).__name__):
+                        valid, errors, _ = validator.validate(data)
+                        report = benchmark_report.format_report_summary(
+                            data, errors, schema_path=schema, canonical_checked=False
+                        )
+                        self.assertIn("Canonical repository schema was not checked", report)
+                        self.assertIn("VALIDATION PASSED" if valid else "VALIDATION FAILED", report)
+
+    def test_unexpected_validation_exception_fails_closed(self):
+        from unittest.mock import patch
+        validator = BenchmarkValidator()
+        with patch.object(validator.schema_validator, "iter_errors", side_effect=RuntimeError("sentinel")):
+            valid, errors, _ = validator.validate(build_valid_fixture())
+        self.assertFalse(valid)
+        self.assertTrue(any("could not complete" in error for error in errors), errors)
+        self.assertFalse(any("sentinel" in error for error in errors), errors)
+
+    def test_unexpected_human_format_exception_fails_closed(self):
+        import contextlib
+        import io
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            path.write_text(json.dumps(build_valid_fixture()), encoding="utf-8")
+            output, error = io.StringIO(), io.StringIO()
+            with patch.object(sys, "argv", ["reporter", str(path)]), \
+                 patch.object(benchmark_report, "format_report_summary", side_effect=RuntimeError("sentinel")), \
+                 contextlib.redirect_stdout(output), contextlib.redirect_stderr(error):
+                status = benchmark_report.main()
+            self.assertEqual(status, 1)
+            self.assertIn("could not format", error.getvalue())
+            self.assertNotIn("sentinel", error.getvalue())
+
 if __name__ == "__main__":
     unittest.main()
