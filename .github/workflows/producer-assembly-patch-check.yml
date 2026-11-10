@@ -1,0 +1,27 @@
+name: Producer assembly evidence patch check
+on:
+  push:
+    branches: [qualification/producer-assembly-patch-check-20261110]
+permissions:
+  contents: read
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check retained patches against exact source
+        run: |
+          cp docs/evidence/client/producer-assembly-count-20261110/clean.patch "$RUNNER_TEMP/assembly-clean.patch"
+          cp docs/evidence/client/producer-assembly-count-20261110/instrumented.patch "$RUNNER_TEMP/assembly-instrumented.patch"
+          git checkout --detach "5cd53d3c84eb23671b1d74f2c488d95ba69208e5"
+          git apply --check "$RUNNER_TEMP/assembly-clean.patch"
+          git apply "$RUNNER_TEMP/assembly-clean.patch"
+          test "$(git hash-object src/producer.rs)" = "693c810c4b8c730c0bbaad210c7805a34c30a35a"
+          git checkout -- src/producer.rs
+          git apply --check "$RUNNER_TEMP/assembly-instrumented.patch"
+          git apply "$RUNNER_TEMP/assembly-instrumented.patch"
+          test "$(git hash-object src/producer.rs)" = "f86fa45d6303a6fcc0bfe9072dca9b3deac4e976"
+          echo "ASSEMBLY_PATCHES_OK"
