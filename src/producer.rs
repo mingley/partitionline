@@ -7679,11 +7679,19 @@ impl Worker {
 
     async fn drain_pending(&mut self, n: usize) -> Vec<Pending> {
         let batch = fill_spare(&mut self.spare_batch, &mut self.pending, n);
+        self.spare_batch = batch;
+        let guard = PendingDrainGuard {
+            pending: &mut self.pending,
+            staged: &mut self.spare_batch,
+            armed: true,
+        };
+        let original_deadline = self.earliest_deadline;
+        let mut removed_estimate = 0usize;
         let mut refresh_deadline = false;
         let mut walked = 0usize;
-        for pending in &batch {
-            self.pending_estimate = self.pending_estimate.saturating_sub(estimate(pending));
-            if self.earliest_deadline == Some(pending.deadline) {
+        for pending in guard.staged.iter() {
+            removed_estimate = removed_estimate.saturating_add(estimate(pending));
+            if original_deadline == Some(pending.deadline) {
                 refresh_deadline = true;
             }
             walked = walked.saturating_add(1);
@@ -7692,11 +7700,20 @@ impl Worker {
                 tokio::task::yield_now().await;
             }
         }
-        if refresh_deadline {
-            let (_, earliest) = fold_pending_estimates(&self.pending, None).await;
+        let earliest = if refresh_deadline {
+            Some(
+                fold_pending_estimates(guard.pending.as_slice(), None)
+                    .await
+                    .1,
+            )
+        } else {
+            None
+        };
+        self.pending_estimate = self.pending_estimate.saturating_sub(removed_estimate);
+        if let Some(earliest) = earliest {
             self.earliest_deadline = earliest;
         }
-        batch
+        guard.finish()
     }
 
     async fn recompute_pending_estimate(&mut self) {
@@ -9596,10 +9613,43 @@ async fn group_txn_offsets<'a>(
     topics
 }
 
+/// Restores an interrupted drain while its metadata still describes the old queue.
+struct PendingDrainGuard<'a> {
+    pending: &'a mut Vec<Pending>,
+    staged: &'a mut Vec<Pending>,
+    armed: bool,
+}
+
+impl PendingDrainGuard<'_> {
+    fn finish(mut self) -> Vec<Pending> {
+        self.armed = false;
+        std::mem::take(self.staged)
+    }
+}
+
+impl Drop for PendingDrainGuard<'_> {
+    fn drop(&mut self) {
+        if !self.armed || self.staged.is_empty() {
+            return;
+        }
+        let count = self.staged.len();
+        // The pending vector retained its original capacity when drained.
+        // Its exclusive borrow prevents changes while this guard is armed.
+        for pending in self.staged.drain(..) {
+            self.pending.push(pending);
+        }
+        self.pending.rotate_right(count);
+    }
+}
+
 fn fill_spare(spare: &mut Vec<Pending>, pending: &mut Vec<Pending>, n: usize) -> Vec<Pending> {
     let mut batch = std::mem::take(spare);
     batch.clear();
-    batch.extend(pending.drain(..n));
+    assert!(n <= pending.len(), "drain count exceeds pending length");
+    batch.reserve(n);
+    for record in pending.drain(..n) {
+        batch.push(record);
+    }
     batch
 }
 
@@ -12501,6 +12551,495 @@ mod tests {
             .await
             .unwrap()
             .unwrap();
+    }
+
+    // Private-state controls for the drain-to-grouping ownership handoff.
+    struct GroupingDrainOpenFixture {
+        worker: Worker,
+        shared: Arc<Shared>,
+        receivers: Vec<oneshot::Receiver<Result<RecordMetadata>>>,
+        retries: mpsc::Receiver<Pending>,
+        callbacks: Arc<AtomicUsize>,
+    }
+
+    struct GroupingDrainErrorCounter(Arc<AtomicUsize>);
+
+    impl crate::interceptor::ProducerInterceptor for GroupingDrainErrorCounter {
+        fn on_error(&self, _error: &Error) {
+            let _ = self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    async fn grouping_drain_fixture(
+        n: usize,
+    ) -> (
+        Worker,
+        Arc<Shared>,
+        Vec<oneshot::Receiver<Result<RecordMetadata>>>,
+    ) {
+        let GroupingDrainOpenFixture {
+            worker,
+            shared,
+            receivers,
+            ..
+        } = grouping_drain_open_fixture(n).await;
+        (worker, shared, receivers)
+    }
+
+    async fn grouping_drain_open_fixture(n: usize) -> GroupingDrainOpenFixture {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "drain-meta", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_meta_peer, _) = listener.accept().await.unwrap();
+        let conn = BrokerConn::connect(&addr, "drain-worker", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_worker_peer, _) = listener.accept().await.unwrap();
+        let callbacks = Arc::new(AtomicUsize::new(0));
+        let config = ProducerConfig::default()
+            .interceptor(GroupingDrainErrorCounter(Arc::clone(&callbacks)));
+        let mut shared = test_shared(config, meta);
+        let (retry_tx, retries) = mpsc::channel(n.max(1));
+        Arc::get_mut(&mut shared)
+            .expect("fixture Shared has one owner")
+            .retry_tx = retry_tx;
+        let (_data, data_rx) = mpsc::channel(1);
+        let (_ctrl, ctrl_rx) = mpsc::channel(1);
+        let id = Arc::new(());
+        let admission = Arc::new(WorkerAdmission::for_producer(Arc::clone(&shared.closed)));
+        let mut pending = Vec::with_capacity(n);
+        let mut receivers = Vec::with_capacity(n);
+        let deadline = Instant::now() + Duration::from_secs(60);
+        for _ in 0..n {
+            let (tx, rx) = oneshot::channel();
+            let mut record = queued("drain-fixture", Some(0));
+            record.rec.value = Some(Bytes::from_static(b"x"));
+            record.deadline = deadline;
+            record.tx = Some(tx);
+            pending.push(record);
+            receivers.push(rx);
+        }
+        let pending_estimate = pending.iter().map(estimate).sum();
+        shared
+            .buffered_bytes
+            .store(u64::try_from(n).unwrap_or(u64::MAX), Ordering::SeqCst);
+        shared.closed.store(true, Ordering::SeqCst);
+        let worker = Worker {
+            id,
+            admission,
+            node_id: 1,
+            throttle: shared.broker_throttle(1),
+            conn,
+            data: data_rx,
+            ctrl: ctrl_rx,
+            shared: Arc::clone(&shared),
+            write_buf: BytesMut::new(),
+            pending,
+            spare_batch: Vec::new(),
+            pending_estimate,
+            earliest_deadline: Some(deadline),
+            in_flight: VecDeque::new(),
+            fail: None,
+            compress_scratch: CompressScratch::default(),
+            group_scratch: ProduceGroupScratch::default(),
+            ack_index: AckIndex::default(),
+            ack_slots: Vec::new(),
+            spare_acks: Vec::new(),
+            ack_requested: HashMap::new(),
+            ack_seen: HashMap::new(),
+            ack_tracker: None,
+            _live: WorkerLease::register(&shared),
+        };
+        GroupingDrainOpenFixture {
+            worker,
+            shared,
+            receivers,
+            retries,
+            callbacks,
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_completion_control() {
+        let count = 8_193;
+        let (mut worker, shared, mut receivers) = grouping_drain_fixture(count).await;
+        let batch = worker.drain_pending(count).await;
+        assert_eq!(batch.len(), count);
+        assert!(worker.pending.is_empty());
+        assert!(receivers.iter_mut().all(|receiver| matches!(
+            receiver.try_recv(),
+            Err(oneshot::error::TryRecvError::Empty)
+        )));
+        fail_pendings(&shared, batch, Error::Closed);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_cancellation_retains_receipts() {
+        use std::task::Poll;
+
+        let count = 8_193;
+        let total = count + 3;
+        let (mut worker, shared, mut receivers) = grouping_drain_fixture(total).await;
+        for (index, pending) in worker.pending.iter_mut().enumerate() {
+            pending.rec.partition = Some(i32::try_from(index).unwrap());
+        }
+        worker.pending_estimate = worker.pending.iter().map(estimate).sum();
+        let old_estimate = worker.pending_estimate;
+        let old_deadline = worker.earliest_deadline;
+        let old_ptr = worker.pending.as_ptr();
+        let old_capacity = worker.pending.capacity();
+        let mut draining = Box::pin(worker.drain_pending(count));
+        let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
+        assert!(state.is_pending(), "drain did not reach its first yield");
+        drop(draining);
+        assert_eq!(worker.pending.len(), total);
+        assert_eq!(worker.pending.as_ptr(), old_ptr);
+        assert_eq!(worker.pending.capacity(), old_capacity);
+        assert_eq!(worker.pending_estimate, old_estimate);
+        assert_eq!(worker.earliest_deadline, old_deadline);
+        assert!(worker.spare_batch.is_empty());
+        for (index, pending) in worker.pending.iter().enumerate() {
+            assert_eq!(pending.rec.partition, Some(i32::try_from(index).unwrap()));
+        }
+        assert!(receivers.iter_mut().all(|receiver| matches!(
+            receiver.try_recv(),
+            Err(oneshot::error::TryRecvError::Empty)
+        )));
+
+        let batch = worker.drain_pending(count).await;
+        assert_eq!(batch.len(), count);
+        for (index, pending) in batch.iter().enumerate() {
+            assert_eq!(pending.rec.partition, Some(i32::try_from(index).unwrap()));
+        }
+        for (index, pending) in worker.pending.iter().enumerate() {
+            assert_eq!(
+                pending.rec.partition,
+                Some(i32::try_from(count + index).unwrap())
+            );
+        }
+        fail_pendings(&shared, batch, Error::Closed);
+        drop(worker);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(total).unwrap_or(u64::MAX)
+        );
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_cancellation_during_deadline_scan() {
+        use std::task::Poll;
+
+        let total = 8_194;
+        let (mut worker, shared, mut receivers) = grouping_drain_fixture(total).await;
+        for (index, pending) in worker.pending.iter_mut().enumerate() {
+            pending.rec.partition = Some(i32::try_from(index).unwrap());
+        }
+        worker.pending_estimate = worker.pending.iter().map(estimate).sum();
+        let old_estimate = worker.pending_estimate;
+        let old_deadline = worker.earliest_deadline;
+        let old_ptr = worker.pending.as_ptr();
+        let old_capacity = worker.pending.capacity();
+        let mut draining = Box::pin(worker.drain_pending(1));
+        let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
+        assert!(state.is_pending(), "deadline scan did not yield");
+        drop(draining);
+        assert_eq!(worker.pending.len(), total);
+        assert_eq!(worker.pending.as_ptr(), old_ptr);
+        assert_eq!(worker.pending.capacity(), old_capacity);
+        assert_eq!(worker.pending_estimate, old_estimate);
+        assert_eq!(worker.earliest_deadline, old_deadline);
+        for (index, pending) in worker.pending.iter().enumerate() {
+            assert_eq!(pending.rec.partition, Some(i32::try_from(index).unwrap()));
+        }
+        assert!(receivers.iter_mut().all(|receiver| matches!(
+            receiver.try_recv(),
+            Err(oneshot::error::TryRecvError::Empty)
+        )));
+        drop(worker);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(total).unwrap_or(u64::MAX)
+        );
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_worker_abort_restores_before_drop() {
+        use std::task::Poll;
+
+        let count = 8_193;
+        let (mut worker, shared, mut receivers) = grouping_drain_fixture(count).await;
+        let (started, observed) = oneshot::channel();
+        let task = tokio::spawn(async move {
+            let mut draining = Box::pin(worker.drain_pending(count));
+            let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "drain did not reach its first yield");
+            drop(started.send(()));
+            std::future::pending::<()>().await;
+            drop(draining);
+        });
+        observed.await.expect("drain task did not reach yield");
+        task.abort();
+        assert!(task.await.unwrap_err().is_cancelled());
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(count).unwrap_or(u64::MAX)
+        );
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_open_worker_requeues_restored_records() {
+        use std::task::Poll;
+
+        let count = 8_193;
+        let GroupingDrainOpenFixture {
+            mut worker,
+            shared,
+            mut receivers,
+            mut retries,
+            callbacks,
+        } = grouping_drain_open_fixture(count).await;
+        shared.closed.store(false, Ordering::SeqCst);
+        let permits = Arc::new(StickyRecordBudget::new(count));
+        for (index, pending) in worker.pending.iter_mut().enumerate() {
+            pending.rec.partition = Some(i32::try_from(index).unwrap());
+            pending.sticky_record = Some(permits.acquire().expect("record permit"));
+        }
+        worker.pending_estimate = worker.pending.iter().map(estimate).sum();
+        let (started, observed) = oneshot::channel();
+        let task = tokio::spawn(async move {
+            let mut draining = Box::pin(worker.drain_pending(count));
+            let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "drain did not reach its first yield");
+            drop(started.send(()));
+            std::future::pending::<()>().await;
+            drop(draining);
+        });
+        observed.await.expect("drain task did not reach yield");
+        task.abort();
+        assert!(task.await.unwrap_err().is_cancelled());
+        assert_eq!(
+            shared.buffered_bytes.load(Ordering::SeqCst),
+            u64::try_from(count).unwrap_or(u64::MAX)
+        );
+        assert_eq!(permits.used.load(Ordering::SeqCst), count);
+        assert_eq!(callbacks.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.retries_out.load(Ordering::SeqCst), count);
+        assert!(receivers.iter_mut().all(|receiver| matches!(
+            receiver.try_recv(),
+            Err(oneshot::error::TryRecvError::Empty)
+        )));
+
+        let mut recovered = Vec::with_capacity(count);
+        while let Ok(pending) = retries.try_recv() {
+            recovered.push(pending);
+        }
+        assert_eq!(recovered.len(), count);
+        for (index, pending) in recovered.iter().enumerate() {
+            assert_eq!(pending.rec.partition, Some(i32::try_from(index).unwrap()));
+            assert_eq!(pending.retry, 1);
+        }
+        // This private fixture has no retry actor; settle its synthetic queue.
+        shared.retries_out.store(0, Ordering::SeqCst);
+        fail_pendings(&shared, recovered, Error::Closed);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(permits.used.load(Ordering::SeqCst), 0);
+        assert_eq!(callbacks.load(Ordering::SeqCst), count);
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_open_worker_closed_retry_completes_records() {
+        use std::task::Poll;
+
+        let count = 8_193;
+        let GroupingDrainOpenFixture {
+            mut worker,
+            shared,
+            mut receivers,
+            retries,
+            callbacks,
+        } = grouping_drain_open_fixture(count).await;
+        shared.closed.store(false, Ordering::SeqCst);
+        drop(retries);
+        let permits = Arc::new(StickyRecordBudget::new(count));
+        for pending in &mut worker.pending {
+            pending.sticky_record = Some(permits.acquire().expect("record permit"));
+        }
+        let (started, observed) = oneshot::channel();
+        let task = tokio::spawn(async move {
+            let mut draining = Box::pin(worker.drain_pending(count));
+            let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "drain did not reach its first yield");
+            drop(started.send(()));
+            std::future::pending::<()>().await;
+            drop(draining);
+        });
+        observed.await.expect("drain task did not reach yield");
+        task.abort();
+        assert!(task.await.unwrap_err().is_cancelled());
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+        assert_eq!(permits.used.load(Ordering::SeqCst), 0);
+        assert_eq!(callbacks.load(Ordering::SeqCst), count);
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(count).unwrap_or(u64::MAX)
+        );
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_open_worker_full_retry_completes_records() {
+        use std::task::Poll;
+
+        let count = 8_193;
+        let GroupingDrainOpenFixture {
+            mut worker,
+            shared,
+            mut receivers,
+            mut retries,
+            callbacks,
+        } = grouping_drain_open_fixture(count).await;
+        shared.closed.store(false, Ordering::SeqCst);
+        for _ in 0..count {
+            assert!(shared.retry_tx.try_send(queued("sentinel", Some(0))).is_ok());
+        }
+        let permits = Arc::new(StickyRecordBudget::new(count));
+        for pending in &mut worker.pending {
+            pending.sticky_record = Some(permits.acquire().expect("record permit"));
+        }
+        let (started, observed) = oneshot::channel();
+        let task = tokio::spawn(async move {
+            let mut draining = Box::pin(worker.drain_pending(count));
+            let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "drain did not reach its first yield");
+            drop(started.send(()));
+            std::future::pending::<()>().await;
+            drop(draining);
+        });
+        observed.await.expect("drain task did not reach yield");
+        task.abort();
+        assert!(task.await.unwrap_err().is_cancelled());
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.retries_out.load(Ordering::SeqCst), 0);
+        assert_eq!(permits.used.load(Ordering::SeqCst), 0);
+        assert_eq!(callbacks.load(Ordering::SeqCst), count);
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(count).unwrap_or(u64::MAX)
+        );
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::QueueFull)))));
+        let mut retained = 0usize;
+        while let Ok(pending) = retries.try_recv() {
+            assert_eq!(pending.rec.topic.as_ref(), "sentinel");
+            retained = retained.saturating_add(1);
+        }
+        assert_eq!(retained, count);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_small_and_empty_preserve_order() {
+        let (mut worker, shared, mut receivers) = grouping_drain_fixture(4).await;
+        for (index, pending) in worker.pending.iter_mut().enumerate() {
+            pending.rec.partition = Some(i32::try_from(index).unwrap());
+        }
+        worker.pending_estimate = worker.pending.iter().map(estimate).sum();
+        let estimate_before = worker.pending_estimate;
+        let expected_first = estimate(&worker.pending[0]);
+        let old_deadline = worker.earliest_deadline;
+        let empty = worker.drain_pending(0).await;
+        assert!(empty.is_empty());
+        assert_eq!(worker.pending.len(), 4);
+        assert_eq!(worker.pending_estimate, estimate_before);
+        assert_eq!(worker.earliest_deadline, old_deadline);
+
+        let one = worker.drain_pending(1).await;
+        assert_eq!(one.len(), 1);
+        assert_eq!(one[0].rec.partition, Some(0));
+        assert_eq!(
+            worker.pending_estimate,
+            estimate_before.saturating_sub(expected_first)
+        );
+        assert_eq!(worker.earliest_deadline, old_deadline);
+        for (index, pending) in worker.pending.iter().enumerate() {
+            assert_eq!(
+                pending.rec.partition,
+                Some(i32::try_from(index + 1).unwrap())
+            );
+        }
+        fail_pendings(&shared, one, Error::Closed);
+        drop(worker);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_deadline_cases() {
+        for (first, second, third, expected) in
+            [(1_u64, 4_u64, 5_u64, 4_u64), (1, 1, 5, 1), (4, 1, 5, 1)]
+        {
+            let (mut worker, shared, mut receivers) = grouping_drain_fixture(3).await;
+            let start = Instant::now() + Duration::from_secs(60);
+            for (record, offset) in worker.pending.iter_mut().zip([first, second, third]) {
+                record.deadline = start + Duration::from_secs(offset);
+            }
+            worker.earliest_deadline =
+                Some(start + Duration::from_secs(first.min(second).min(third)));
+            let batch = worker.drain_pending(1).await;
+            assert_eq!(
+                worker.earliest_deadline,
+                Some(start + Duration::from_secs(expected))
+            );
+            fail_pendings(&shared, batch, Error::Closed);
+            drop(worker);
+            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+            assert!(receivers
+                .iter_mut()
+                .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+        }
+    }
+
+    #[test]
+    fn grouping_drain_invalid_count_keeps_pending() {
+        let mut pending = vec![queued("a", Some(1)), queued("b", Some(2))];
+        let mut spare = Vec::new();
+        let old_ptr = pending.as_ptr();
+        let old_capacity = pending.capacity();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            fill_spare(&mut spare, &mut pending, 3)
+        }));
+        assert!(result.is_err());
+        assert_eq!(pending.len(), 2);
+        assert_eq!(pending.as_ptr(), old_ptr);
+        assert_eq!(pending.capacity(), old_capacity);
+        assert_eq!(pending[0].rec.partition, Some(1));
+        assert_eq!(pending[1].rec.partition, Some(2));
     }
 
     #[tokio::test(flavor = "current_thread")]
