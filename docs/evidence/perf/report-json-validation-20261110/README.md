@@ -49,9 +49,25 @@ parsed dictionary and cannot detect duplicate keys discarded by another parser.
   string ID bounds, relocated explicit-schema use, alternate output scope,
   and injected validation and formatting exceptions.
 
-The tested source, test and contract-document Git blobs are respectively
-`e35b471a5ceb9075b0ba9a1e0e1f36e6f1d8d432`,
-`403ab5ec24bc6e1f6f9bbbdd7c00d9535f7ff520` and
-`bc21a4c7b9ce552a8099bef267e33e15a68f7cb9`.
-The matrix workflow added to the handoff runs the existing matrix tests as a
-separate check; its result must be recorded separately when complete.
+[Run 42882302976](https://github.com/mingley/partitionline/actions/runs/42882302976)
+at `ad2519876a32040c48d30a88a7751e9e6948d94e` passed the same 46 reporter
+tests and 27 existing matrix tests. The latter use synthetic fixtures; this
+does not establish a Kafka comparison or explain the earlier denied
+process-descriptor sample.
+
+The tested reporter and contract-document Git blobs are
+`e35b471a5ceb9075b0ba9a1e0e1f36e6f1d8d432` and
+`bc21a4c7b9ce552a8099bef267e33e15a68f7cb9`; those runs used test blob
+`403ab5ec24bc6e1f6f9bbbdd7c00d9535f7ff520`. A test-only successor
+`ce1c136cbdba9740307ea5a1dc51ea74937d5fa2` adds default and explicitly
+selected canonical-schema JSON labeling controls, with test blob
+`0ebb3e49fa55862cf3414b7b667db2fa7c9cc837`. Its combined run
+[42882655491](https://github.com/mingley/partitionline/actions/runs/42882655491)
+passed 46 reporter and 27 existing matrix tests on Python 3.13.18.
+
+The JSON output gains a `schema` object containing the selected path and
+whether the repository schema was selected. The located internal JSON caller
+checks the exit status and retains the output without requiring an exact set
+of keys; external consumers with a closed schema may need an update. The
+located matrix and runtime callers use the validator API or check exit status.
+This source scan does not cover every historical evidence file.
