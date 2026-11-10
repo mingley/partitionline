@@ -131,8 +131,10 @@ and [work plan][next] retain those results and earlier evidence.
   passed focused controls but failed its full all-feature suite; it is not
   applied. A [live Kafka quota probe and idle-close control][quota-live]
   add scoped evidence. A separate [client-ID probe][quota-client-id] observed
-  quota sharing across two connections to Kafka 4.3.1. The related EOF
-  refinement remains unapplied after a formatting failure. The [transport fix][transport-fix] backpressures valid pipelines when read-ahead
+  quota sharing across two connections to Kafka 4.3.1. A
+  [client-label prototype][quota-named] exercises the same wire scenario but
+  uses static token buckets and remains unqualified. The related EOF
+  refinement remains unapplied. The [transport fix][transport-fix] backpressures valid pipelines when read-ahead
   is full. A disconnect behind that buffer may be
   observed only after the active handler completes or reaches its deadline.
   Both full broker feature profiles and strict checks passed on its candidate.
@@ -150,13 +152,10 @@ and [work plan][next] retain those results and earlier evidence.
   file-backed test failed before Fetch and strict checks remain incomplete;
   it is not applied. A
   [producer comparison harness repair][sampler-exp] also remains isolated
-  pending integrated testing. A [JSON object index experiment][json-index]
-  improved large parses but introduced slowdowns at its tested thresholds. A
-  [compact follow-up][json-compact] retained the slowdown. The
-  [balanced-tree experiments][json-balanced] also slowed ordinary objects.
-  The [incremental index][json-incremental] slowed a 96-key fixture and lacks
-  a worst-case collision bound. A [progressive AVL index][json-avl] improved
-  large parses but slowed ordinary fixtures on one runner; none is applied.
+  pending integrated testing. [JSON index experiments][json-avl] improved
+  large parses but slowed some ordinary and threshold cases. A
+  [32/64-key comparison][json-avl-tail] did not remove those costs; the
+  candidates remain unapplied.
   A [producer socket trace][cold-trace] measured the cost of an artificial
   handshake delay in a mock; no socket-reuse optimization is applied. A
   [Produce request encoding experiment][produce-plan-exp] improved several
@@ -177,7 +176,7 @@ results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/releases/main-ci-92a-20261110/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/cfe9a1ac5187aebad36269681275af97bf68ba60/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -233,3 +232,6 @@ results and experiments.
 [metadata-boundaries]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/conformance/q-conf-metadatawire/boundaries-20261110.md
 [quota-client-id]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/broker/produce-client-quota-isolation-20261110/README.md
 [json-avl]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/schema/json-progressive-avl-20261110/README.md
+
+[quota-named]: https://github.com/mingley/partitionline/blob/cfe9a1ac5187aebad36269681275af97bf68ba60/docs/evidence/broker/produce-client-quota-candidate-20261110/README.md
+[json-avl-tail]: https://github.com/mingley/partitionline/blob/cfe9a1ac5187aebad36269681275af97bf68ba60/docs/evidence/schema/json-avl-tail-comparison-20261110/README.md
