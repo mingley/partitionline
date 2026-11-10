@@ -92,9 +92,10 @@ runs and their limits.
    passed focused controls but failed its full all-feature suite; it remains
    unmerged. A [live Kafka timing probe and idle-close control](../evidence/broker/produce-quota-live-idle-20261109/README.md)
    add scoped evidence. A [client-ID probe](../evidence/broker/produce-client-quota-isolation-20261110/README.md)
-   observed quota sharing across two connections to Kafka 4.3.1. A related EOF
-   refinement passed focused controls but failed formatting and remains
-   unapplied. The
+   observed quota sharing across two connections to Kafka 4.3.1. An isolated
+   [client-label prototype](../evidence/broker/produce-client-quota-candidate-20261110/README.md)
+   exercises the same wire scenario but uses static token buckets and remains
+   unqualified. A related EOF refinement remains unapplied. The
    [quota handoff plan](../evidence/broker/quota-handoff-20261109/README.md)
    describes the accounting, transport and authentication boundaries they
    need to satisfy.
@@ -106,14 +107,11 @@ runs and their limits.
    tested. The [HTTP response handling change](../evidence/schema/http-response-semantics-20261109/README.md)
    handles informational and bodyless responses and rejects unsupported transfer
    codings; mock controls and all three schema profiles passed. Qualify the
-   supported codecs, lifecycle and registry behavior before publication. The [JSON index](../evidence/schema/json-duplicate-index-20261109/README.md)
-   and [compact follow-up](../evidence/schema/json-compact-index-20261109/README.md)
-   remain unapplied after threshold slowdowns. [Balanced-tree experiments](../evidence/schema/json-balanced-index-20261109/README.md)
-   also slowed ordinary Registry objects. An [incremental index](../evidence/schema/json-incremental-index-20261109/README.md)
-   slowed a 96-key fixture and lacks a worst-case collision bound. A
-   [progressive AVL experiment](../evidence/schema/json-progressive-avl-20261110/README.md)
-   improved large objects but slowed ordinary fixtures on one runner. None is
-   applied.
+   supported codecs, lifecycle and registry behavior before publication.
+   [JSON index experiments](../evidence/schema/json-progressive-avl-20261110/README.md)
+   reduce large-object parse time but slow some ordinary and threshold cases.
+   A [32/64-key comparison](../evidence/schema/json-avl-tail-comparison-20261110/README.md)
+   did not remove those costs; the candidates remain unapplied.
 
 5. **Performance.** Establish correctness before comparing throughput or
    latency. The isolated [indexed Fetch experiment](../evidence/broker/fetch-indexed-vectored-20261109/README.md)

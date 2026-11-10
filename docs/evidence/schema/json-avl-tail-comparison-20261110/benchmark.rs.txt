@@ -1,0 +1,118 @@
+    fn json_tree_bench_parse(body: &[u8], versioned: bool) -> usize {
+        if versioned {
+            parse_versioned_schema(body).unwrap().schema.len()
+        } else {
+            parse_registered_schema(100, body).unwrap().schema.len()
+        }
+    }
+
+    #[test]
+    #[ignore = "isolated Registry JSON object parse benchmark"]
+    fn json_tree_qualification_bench() {
+        use std::fmt::Write as _;
+        use std::hint::black_box;
+        let typical = r#"{"schema":"{\"type\":\"record\",\"name\":\"User\"}","schemaType":"AVRO","references":[{"name":"Address","subject":"address-value","version":1}]}"#.to_owned();
+        let versioned = r#"{"subject":"orders","version":1,"id":100,"schema":"{\"type\":\"string\"}","schemaType":"AVRO","references":[]}"#.to_owned();
+        let mut cases = vec![("typical", typical, 100_000usize, false), ("versioned", versioned, 100_000, true)];
+        for (name, count, iterations, pattern) in [
+            ("k5", 4usize, 100_000usize, 0u8),
+            ("k16", 15, 20_000, 0),
+            ("k32", 31, 5_000, 0),
+            ("k33", 32, 5_000, 0),
+            ("k34", 33, 5_000, 0),
+            ("k64", 63, 3_000, 0),
+            ("k65", 64, 3_000, 0),
+            ("k96", 95, 1_500, 0),
+            ("k128", 127, 1_000, 0),
+            ("k129", 128, 1_000, 0),
+            ("k256", 255, 400, 0),
+            ("k512", 511, 100, 0),
+            ("k4097", 4096, 3, 0),
+            ("k8193", 8192, 1, 0),
+            ("k8193_desc", 8192, 1, 1),
+            ("k8193_shuffled", 8192, 1, 2),
+        ] {
+            let mut order: Vec<usize> = (0..count).collect();
+            if pattern == 1 {
+                order.reverse();
+            } else if pattern == 2 {
+                let mut state = 0x7a13_2d5b_u64;
+                for i in (1..order.len()).rev() {
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
+                    order.swap(i, (state as usize) % (i + 1));
+                }
+            }
+            let mut body = String::from(r#"{"schema":"{}""#);
+            for number in order {
+                write!(&mut body, r#","field-{number:05}":0"#).unwrap();
+            }
+            body.push('}');
+            cases.push((name, body, iterations, false));
+        }
+
+        let mut long_prefix = String::from(r#"{"schema":"{}""#);
+        let prefix = "a".repeat(256);
+        for number in 0..512 {
+            write!(&mut long_prefix, r#","{prefix}{number:05}":0"#).unwrap();
+        }
+        long_prefix.push('}');
+        cases.push(("k512_prefix256", long_prefix, 50, false));
+
+        for (name, body, iterations, versioned) in cases {
+            let expected = json_tree_bench_parse(body.as_bytes(), versioned);
+            let _warm = json_tree_bench_parse(black_box(body.as_bytes()), versioned);
+            let start = std::time::Instant::now();
+            for _ in 0..iterations {
+                assert_eq!(json_tree_bench_parse(black_box(body.as_bytes()), versioned), expected);
+                black_box(expected);
+            }
+            println!("PL_TREE_SAMPLE shape={name} iterations={iterations} ns={} body_bytes={}", start.elapsed().as_nanos(), body.len());
+            assert_eq!(json_tree_bench_parse(body.as_bytes(), versioned), expected);
+        }
+    }
+
+
+
+    #[test]
+    #[ignore = "isolated Registry JSON synchronous and resource observation"]
+    fn json_index_resource_observation() {
+        use std::fmt::Write as _;
+        use std::hint::black_box;
+        let payload = std::env::var("PL_JSON_PAYLOAD")
+            .unwrap_or_else(|_| "0".to_string())
+            .parse::<usize>()
+            .unwrap();
+        let keys = std::env::var("PL_JSON_KEYS")
+            .unwrap_or_else(|_| "0".to_string())
+            .parse::<usize>()
+            .unwrap();
+        let mut body;
+        let expected;
+        if payload > 0 {
+            body = String::with_capacity(payload + 13);
+            body.push_str(r#"{"schema":""#);
+            body.extend(std::iter::repeat_n('x', payload));
+            body.push_str(r#""}"#);
+            expected = payload;
+        } else {
+            body = String::from(r#"{"schema":"{}""#);
+            for i in 0..keys {
+                write!(&mut body, r#","field-{i:05}":0"#).unwrap();
+            }
+            body.push('}');
+            expected = 2;
+        }
+        assert!(body.len() <= 64 * 1024 * 1024);
+        let start = std::time::Instant::now();
+        let result = parse_registered_schema(7, black_box(body.as_bytes())).unwrap();
+        let elapsed = start.elapsed();
+        assert_eq!(result.schema.len(), expected);
+        println!(
+            "PL_JSON_RESOURCE body_bytes={} extra_keys={} payload={} elapsed_ns={}",
+            body.len(), keys, payload, elapsed.as_nanos()
+        );
+        black_box(result);
+    }
+

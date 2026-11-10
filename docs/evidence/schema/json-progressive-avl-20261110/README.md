@@ -89,7 +89,8 @@ keys sharing a 256-byte prefix. Ascending, descending and shuffled
 `k8193` shapes use 8,193 total keys.
 
 The [second formatted run](https://github.com/mingley/partitionline/actions/runs/42865846371)
-used the same production source and binaries on another shared x86 runner.
+used the same production source on another shared x86 runner. Its independently
+rebuilt executables had the same SHA-256 values as the first run.
 Typical and versioned responses were +3.96% and +4.21% paired medians; all
 pairs were +3.14% to +7.66% and +2.81% to +6.15%, respectively. The 64-key
 case was +11.02% (+6.98% to +14.53%). Its [raw samples](second-pairs.csv)

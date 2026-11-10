@@ -1,0 +1,6 @@
+{"version": 3, "client": "alpha", "attempt": 1, "offset": 0, "throttle_ms": 0, "rtt_ms": 1.235}
+{"version": 3, "client": "alpha", "attempt": 2, "offset": 1, "throttle_ms": 4700, "rtt_ms": 0.48}
+{"version": 3, "client": "bravo", "first_offset": 2, "second_offset": 3, "first_throttle_ms": 0, "second_throttle_ms": 4700, "first_rtt_ms": 0.478, "second_rtt_ms": 0.427, "alpha_previous_throttle_ms": 4700, "alpha_metadata_rtt_ms": 4701.304}
+{"version": 6, "client": "alpha", "attempt": 1, "offset": 4, "throttle_ms": 0, "rtt_ms": 0.663}
+{"version": 6, "client": "alpha", "attempt": 2, "offset": 5, "throttle_ms": 4700, "rtt_ms": 0.459}
+{"version": 6, "client": "bravo", "first_offset": 6, "second_offset": 7, "first_throttle_ms": 0, "second_throttle_ms": 4700, "first_rtt_ms": 0.488, "second_rtt_ms": 0.429, "alpha_previous_throttle_ms": 4700, "alpha_metadata_rtt_ms": 4701.337}
