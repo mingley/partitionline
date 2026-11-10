@@ -1,6 +1,6 @@
 # Status
 
-Updated 9 November 2026.
+Updated 10 November 2026.
 
 Partitionline is **not yet qualified for production use**. It has not
 established that it is the fastest Kafka client or server.
@@ -26,28 +26,27 @@ the current TLS and OIDC behavior.
 ## Validation
 
 The latest complete recorded snapshot is main commit
-`19979b3a22e56b37a1a03d60fe8f67b746a1f047`; the [CI record][ci] links the individual runs and
+`92a365f2829c00438b6c58841dbb0990fca480d6`; the [CI record][ci] links the individual runs and
 results. The current branch contains later changes.
 
-| Check at `19979b3` | Result |
+| Check at `92a365f` | Result |
 | --- | --- |
-| Client library, Linux default | 2,317 passed, 11 failed; later targets did not run. |
-| Client library, Linux all features | 2,318 passed, 10 failed; later targets did not run. |
-| Client library, Windows default | 2,316 passed, 12 failed; later runtime and package steps did not run. |
+| Client library, Linux default | 2,314 passed, 14 failed; later targets did not run. |
+| Client library, Linux all features | 2,313 passed, 15 failed; later targets did not run. |
+| Client library, Windows default | 2,303 passed, 25 failed; later runtime and package steps did not run. |
 | Client library, macOS arm64 default | 2,317 passed, 11 failed; later runtime and package steps did not run. |
 | Kafka compatibility | 4.1.2, 4.2.1 and 4.3.1 profiles failed; 3.9.1 and 4.1.0 smoke jobs failed. |
 | Resource-soak CI job | Passed its finite job; no 24-hour campaign completed. |
-| Broker default and all-feature targets | 814 and 962 passed respectively, with four ignored in each profile. |
-| Broker strict checks, inventory and fuzz supervision | Passed. |
+| Broker default library | 495 passed, one failed and four ignored; later targets did not run. |
+| Broker all-feature and strict checks | Not run after the default failure. Inventory and fuzz supervision passed separately. |
 | Client capability profiles | Both selected profiles passed; their archives were not independently inspected. |
 | Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
 | Instruction-count gate | No baseline for this Rust version; no regression comparison. |
 
-The [preceding complete snapshot][ci-fd4] also failed client and Kafka jobs
-and passed the broker. An [earlier snapshot][ci-669] stopped the broker default
-suite after 580 passes, one failure and four ignored, and its resource-soak
-setup failed on an OS-denied `/proc` access. Later passes do not explain
-those failures.
+The [preceding complete snapshot][ci-199] passed broker checks but also failed
+client and Kafka jobs; its broker pass does not explain the latest failure.
+An [earlier snapshot][ci-669] had a broker failure and an OS-denied
+`/proc` access. Later passes do not explain those failures.
 
 The [combined-head checks][combined] passed formatting, strict client checks,
 focused Admin, producer and broker transport tests in both feature profiles,
@@ -119,10 +118,10 @@ and [work plan][next] retain those results and earlier evidence.
   Focused checks passed, while broad Admin timing tests failed in both baseline
   and candidate. An [Admin response diagnostic][admin-growth] observed long
   map-growth polls in a synthetic debug fixture; it did not explain those
-  earlier timing failures. An offline [Metadata v13 fixture][metadata-wire]
-  was compared with three Apache SDKs; other versions, historical peers,
-  error variants and live-broker behavior remain open. The
-  [protocol gaps](gaps.md) describe the APIs.
+  earlier timing failures. Offline [Metadata v13][metadata-wire] and
+  [boundary fixtures][metadata-boundaries] cover selected bodies against
+  Apache SDKs; versions 2 and 4–7, wider error cases, negotiation and
+  live-broker behavior remain open. The [protocol gaps](gaps.md) describe the APIs.
 - **Broker durability and limits.** Partition replication, native KRaft,
   authenticated network leadership, transaction marker propagation and a
   process-wide memory bound remain open. Kafka wire throttling is not
@@ -131,8 +130,9 @@ and [work plan][next] retain those results and earlier evidence.
   uncompiled and had an unbounded resume deadline. A newer [quota candidate][quota-candidate]
   passed focused controls but failed its full all-feature suite; it is not
   applied. A [live Kafka quota probe and idle-close control][quota-live]
-  add scoped evidence; the related EOF refinement remains unapplied after a
-  formatting failure. The [transport fix][transport-fix] backpressures valid pipelines when read-ahead
+  add scoped evidence. A separate [client-ID probe][quota-client-id] observed
+  quota sharing across two connections to Kafka 4.3.1. The related EOF
+  refinement remains unapplied after a formatting failure. The [transport fix][transport-fix] backpressures valid pipelines when read-ahead
   is full. A disconnect behind that buffer may be
   observed only after the active handler completes or reaches its deadline.
   Both full broker feature profiles and strict checks passed on its candidate.
@@ -155,7 +155,8 @@ and [work plan][next] retain those results and earlier evidence.
   [compact follow-up][json-compact] retained the slowdown. The
   [balanced-tree experiments][json-balanced] also slowed ordinary objects.
   The [incremental index][json-incremental] slowed a 96-key fixture and lacks
-  a worst-case collision bound; none is applied.
+  a worst-case collision bound. A [progressive AVL index][json-avl] improved
+  large parses but slowed ordinary fixtures on one runner; none is applied.
   A [producer socket trace][cold-trace] measured the cost of an artificial
   handshake delay in a mock; no socket-reuse optimization is applied. A
   [Produce request encoding experiment][produce-plan-exp] improved several
@@ -174,9 +175,9 @@ The [work plan][next] and its linked evidence track the outstanding work.
 The [previous detailed status][history] preserves earlier qualification
 results and experiments.
 
-[ci]: https://github.com/mingley/partitionline/blob/2463421e6137185a506c71fdb0fe4acaee530cab/docs/evidence/releases/main-ci-199-20261109/README.md
+[ci]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/releases/main-ci-92a-20261110/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/2463421e6137185a506c71fdb0fe4acaee530cab/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -227,3 +228,8 @@ results and experiments.
 
 [ci-fd4]: https://github.com/mingley/partitionline/blob/88a6dc53222445aa611b4b782ed832aed433ed99/docs/evidence/releases/main-ci-fd4-20261109/README.md
 [metadata-wire]: https://github.com/mingley/partitionline/blob/2463421e6137185a506c71fdb0fe4acaee530cab/docs/evidence/conformance/q-conf-metadatawire/README.md
+
+[ci-199]: https://github.com/mingley/partitionline/blob/2463421e6137185a506c71fdb0fe4acaee530cab/docs/evidence/releases/main-ci-199-20261109/README.md
+[metadata-boundaries]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/conformance/q-conf-metadatawire/boundaries-20261110.md
+[quota-client-id]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/broker/produce-client-quota-isolation-20261110/README.md
+[json-avl]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/schema/json-progressive-avl-20261110/README.md
