@@ -147,7 +147,15 @@ public final class ConformanceMetadataBoundaries {
                 }
                 // Generated message writes can accept versions beyond their declared range.
                 var raw = encode(request, (short) 13);
-                System.out.println("metadata_v13_declared_max=12_raw_write_bytes=" + raw.length);
+                var response = new MetadataResponseData();
+                if (response.highestSupportedVersion() != 12) {
+                    throw new AssertionError("unexpected 3.9.1 Metadata response maximum");
+                }
+                if (!Arrays.equals(encode(response, (short) 12), encode(response, (short) 13))) {
+                    throw new AssertionError("3.9.1 raw response differs between v12 and v13");
+                }
+                System.out.println("metadata_v13_declared_max=12_raw_write_bytes=" + raw.length
+                    + "_response_same_as_v12=true");
             }
             default -> throw new IllegalArgumentException("unknown mode");
         }

@@ -154,6 +154,14 @@ fn verify_corpus(text: &str) -> Result<String, Box<dyn Error>> {
 }
 
 #[test]
+fn metadata_boundaries_committed_corpus() -> Result<(), Box<dyn Error>> {
+    let input = include_str!("fixtures/metadata_wire/boundaries-apache.txt");
+    let expected = include_str!("fixtures/metadata_wire/boundaries-rust.txt");
+    assert_eq!(verify_corpus(input)?, expected);
+    Ok(())
+}
+
+#[test]
 #[ignore = "requires generated pinned Apache SDK fixtures"]
 fn metadata_boundaries_apache_wire() -> Result<(), Box<dyn Error>> {
     let input = std::env::var("METADATA_BOUNDARY_INPUT")?;
