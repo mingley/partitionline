@@ -924,7 +924,7 @@ class MalformedReportCliTests(unittest.TestCase):
                 value = build_valid_fixture()
                 mutate(value)
                 path.write_text(json.dumps(value), encoding="utf-8")
-                with self.subTest(value=value):
+                with self.subTest(case=mutate.__code__.co_firstlineno):
                     result = self.run_report(path)
                     self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
                     self.assertIn("VALIDATION FAILED", result.stdout)
@@ -936,6 +936,79 @@ class MalformedReportCliTests(unittest.TestCase):
                     quiet = self.run_report(path, "--quiet")
                     self.assertEqual(quiet.returncode, 1, quiet.stderr)
                     self.assertEqual(quiet.stdout, "")
+
+
+class AlternateSchemaSafetyTests(unittest.TestCase):
+    def test_permissive_and_composite_schemas_reject_unsafe_shapes(self):
+        schemas = (
+            {},
+            {"anyOf": [{"properties": {"scenario": {"type": "object"}}}, {"type": "string"}]},
+            {"oneOf": [{"properties": {"scenario": {"type": "object"}}}, {"type": "number"}]},
+        )
+        paths = (
+            ("scenario",), ("scenario", "equal_semantics"),
+            ("provenance",), ("provenance", "config"),
+            ("provenance", "config", "effective_settings"), ("provenance", "broker"),
+            ("outcomes",), ("integrity",), ("integrity", "record_ids"),
+            ("integrity", "high_watermark_audit"), ("repetition_history",),
+            ("outcomes", "acknowledged"), ("integrity", "record_ids", "missing_ids_count"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "alternate.json"
+            for schema in schemas:
+                path.write_text(json.dumps(schema), encoding="utf-8")
+                validator = BenchmarkValidator(schema_path=path)
+                valid, errors, _ = validator.validate(build_valid_fixture())
+                self.assertTrue(valid, errors)
+                for parts in paths:
+                    data = build_valid_fixture()
+                    target = data
+                    for part in parts[:-1]:
+                        target = target[part]
+                    target[parts[-1]] = None
+                    with self.subTest(schema=list(schema), path=".".join(parts)):
+                        valid, errors, _ = validator.validate(data)
+                        self.assertFalse(valid)
+                        self.assertTrue(errors)
+
+    def test_missing_nested_fields_are_rejected_without_exception(self):
+        paths = (
+            ("scenario", "equal_semantics", "acks"),
+            ("provenance", "config", "effective_settings", "acks"),
+            ("provenance", "topology", "rtt_ms"),
+            ("measurements", "latency", "raw_histogram"),
+            ("integrity", "record_ids"),
+            ("integrity", "high_watermark_audit", "partitions"),
+            ("outcomes", "acknowledged"),
+            ("repetition_history", "attempts"),
+        )
+        validator = BenchmarkValidator()
+        for parts in paths:
+            data = build_valid_fixture()
+            target = data
+            for part in parts[:-1]:
+                target = target[part]
+            del target[parts[-1]]
+            with self.subTest(path=".".join(parts)):
+                valid, errors, _ = validator.validate(data)
+                self.assertFalse(valid)
+                self.assertTrue(errors)
+
+    def test_custom_schema_does_not_require_repository_schema_file(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "alternate.json"
+            path.write_text("{}", encoding="utf-8")
+            original = Path.read_text
+            canonical = REPO_ROOT / "benchmarks" / "result-schema.json"
+            def read_text(obj, *args, **kwargs):
+                if obj == canonical:
+                    raise AssertionError("canonical schema should not be needed")
+                return original(obj, *args, **kwargs)
+            with patch.object(Path, "read_text", read_text):
+                validator = BenchmarkValidator(schema_path=path)
+                valid, errors, _ = validator.validate(build_valid_fixture())
+                self.assertTrue(valid, errors)
 
 if __name__ == "__main__":
     unittest.main()
