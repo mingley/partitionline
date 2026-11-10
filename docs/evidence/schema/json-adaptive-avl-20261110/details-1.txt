@@ -1,0 +1,155 @@
+rustc 1.99.1 (58cf8f9c3 2026-10-13)
+commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67
+host: x86_64-unknown-linux-gnu
+release: 1.99.1
+LLVM version: 23.1.1
+rustc 1.99.1 (58cf8f9c3 2026-10-13)
+source=baseline stripped=2e54868346d05cafff0369358703a033cce0c501 instrumented=4e49fd6d81e461a3596c47c2ce1fec5bc7dc5ad2
+source=split32 stripped=1e1a1c17a358bb9eaffb426d068c48edc344d1e9 instrumented=9702ad9bae1e32312625a9cf33ca453a6e654f67
+source=split64 stripped=3f26f8d5cfa83b4b98aea944b7212028923b272e instrumented=bdcb3fac598f5fef403d3252867c64850b9d2989
+source=adaptive64 stripped=e2a14ee1483dfa4272796cc2b7f128674e3e50ca instrumented=c401dad9ed4572e7c1a9cffd81aeac2d83a5d14b
+cpu=0
+differential_cases=104
+binary=baseline 5ef794722071da9496410330421e61cb3b35b6025ab759653213f9714646484f  /tmp/schema-json-avl-2244/baseline-target/release/deps/partitionline_schema-cb3631dfa5b069d4
+binary=split32 f775c17bd3be043a5c21d1a5e9725ac660f27b375ab6ccd1ac5d1ece9852677e  /tmp/schema-json-avl-2244/split32-target/release/deps/partitionline_schema-cb3631dfa5b069d4
+binary=split64 25dfd1e59c92493d46173ebd6ea223f30848ff014a4f5ba6d5d1d4372dcd8a66  /tmp/schema-json-avl-2244/split64-target/release/deps/partitionline_schema-cb3631dfa5b069d4
+binary=adaptive64 0c9aff86b78cc0042d7c7d9b4f51c53435b481e9d91a449d0c7fadecdff95d72  /tmp/schema-json-avl-2244/adaptive64-target/release/deps/partitionline_schema-cb3631dfa5b069d4
+SUMMARY arm=split32 reference=baseline shape=k128 paired_median_pct=-13.9927 min_pct=-14.5098 max_pct=-6.8996
+SUMMARY arm=split64 reference=baseline shape=k128 paired_median_pct=-2.0054 min_pct=-3.2259 max_pct=8.2153
+SUMMARY arm=adaptive64 reference=baseline shape=k128 paired_median_pct=-5.6371 min_pct=-8.1067 max_pct=11.7916
+SUMMARY arm=adaptive64 reference=split64 shape=k128 paired_median_pct=-3.8407 min_pct=-6.5949 max_pct=15.5181
+SUMMARY arm=adaptive64 reference=split32 shape=k128 paired_median_pct=8.7176 min_pct=4.8429 max_pct=30.2410
+SUMMARY arm=split32 reference=baseline shape=k129 paired_median_pct=-10.0840 min_pct=-13.8544 max_pct=-6.4386
+SUMMARY arm=split64 reference=baseline shape=k129 paired_median_pct=0.5474 min_pct=-2.2490 max_pct=1.7169
+SUMMARY arm=adaptive64 reference=baseline shape=k129 paired_median_pct=-1.6142 min_pct=-5.5285 max_pct=34.8232
+SUMMARY arm=adaptive64 reference=split64 shape=k129 paired_median_pct=-2.2934 min_pct=-3.8329 max_pct=34.3458
+SUMMARY arm=adaptive64 reference=split32 shape=k129 paired_median_pct=9.2007 min_pct=3.8102 max_pct=50.1212
+SUMMARY arm=split32 reference=baseline shape=k16 paired_median_pct=6.0641 min_pct=2.8714 max_pct=13.8496
+SUMMARY arm=split64 reference=baseline shape=k16 paired_median_pct=4.5976 min_pct=0.7425 max_pct=7.7916
+SUMMARY arm=adaptive64 reference=baseline shape=k16 paired_median_pct=-0.8861 min_pct=-2.7012 max_pct=3.6250
+SUMMARY arm=adaptive64 reference=split64 shape=k16 paired_median_pct=-5.5156 min_pct=-7.3565 max_pct=-1.5380
+SUMMARY arm=adaptive64 reference=split32 shape=k16 paired_median_pct=-6.5347 min_pct=-12.2861 max_pct=-2.4659
+SUMMARY arm=split32 reference=baseline shape=k256 paired_median_pct=-40.4073 min_pct=-42.1015 max_pct=-38.0888
+SUMMARY arm=split64 reference=baseline shape=k256 paired_median_pct=-28.1086 min_pct=-29.5167 max_pct=-26.5257
+SUMMARY arm=adaptive64 reference=baseline shape=k256 paired_median_pct=-36.9524 min_pct=-39.0503 max_pct=-35.5528
+SUMMARY arm=adaptive64 reference=split64 shape=k256 paired_median_pct=-12.1660 min_pct=-14.2077 max_pct=-10.6991
+SUMMARY arm=adaptive64 reference=split32 shape=k256 paired_median_pct=5.8728 min_pct=3.2751 max_pct=10.3718
+SUMMARY arm=split32 reference=baseline shape=k32 paired_median_pct=7.7197 min_pct=-2.1973 max_pct=17.7474
+SUMMARY arm=split64 reference=baseline shape=k32 paired_median_pct=5.3242 min_pct=-2.4033 max_pct=7.9605
+SUMMARY arm=adaptive64 reference=baseline shape=k32 paired_median_pct=2.5482 min_pct=-6.5976 max_pct=16.5676
+SUMMARY arm=adaptive64 reference=split64 shape=k32 paired_median_pct=-3.5376 min_pct=-6.7642 max_pct=13.0426
+SUMMARY arm=adaptive64 reference=split32 shape=k32 paired_median_pct=-4.4908 min_pct=-15.7485 max_pct=12.4597
+SUMMARY arm=split32 reference=baseline shape=k33 paired_median_pct=7.7812 min_pct=1.4951 max_pct=15.8440
+SUMMARY arm=split64 reference=baseline shape=k33 paired_median_pct=6.4414 min_pct=3.2544 max_pct=10.5162
+SUMMARY arm=adaptive64 reference=baseline shape=k33 paired_median_pct=3.6969 min_pct=-1.2350 max_pct=7.9294
+SUMMARY arm=adaptive64 reference=split64 shape=k33 paired_median_pct=-2.7188 min_pct=-9.0708 max_pct=2.4342
+SUMMARY arm=adaptive64 reference=split32 shape=k33 paired_median_pct=-3.4021 min_pct=-10.1824 max_pct=1.7987
+SUMMARY arm=split32 reference=baseline shape=k34 paired_median_pct=8.0097 min_pct=4.2777 max_pct=23.8888
+SUMMARY arm=split64 reference=baseline shape=k34 paired_median_pct=6.5195 min_pct=3.2684 max_pct=8.1652
+SUMMARY arm=adaptive64 reference=baseline shape=k34 paired_median_pct=3.3440 min_pct=-3.9092 max_pct=9.0573
+SUMMARY arm=adaptive64 reference=split64 shape=k34 paired_median_pct=-3.9077 min_pct=-8.4257 max_pct=2.6192
+SUMMARY arm=adaptive64 reference=split32 shape=k34 paired_median_pct=-4.8314 min_pct=-14.7851 max_pct=0.9715
+SUMMARY arm=split32 reference=baseline shape=k4097 paired_median_pct=-94.4187 min_pct=-94.5160 max_pct=-93.8481
+SUMMARY arm=split64 reference=baseline shape=k4097 paired_median_pct=-93.1295 min_pct=-93.2618 max_pct=-92.2849
+SUMMARY arm=adaptive64 reference=baseline shape=k4097 paired_median_pct=-94.2040 min_pct=-94.3435 max_pct=-92.4710
+SUMMARY arm=adaptive64 reference=split64 shape=k4097 paired_median_pct=-15.7302 min_pct=-17.7352 max_pct=8.7565
+SUMMARY arm=adaptive64 reference=split32 shape=k4097 paired_median_pct=4.1683 min_pct=0.1068 max_pct=35.6412
+SUMMARY arm=split32 reference=baseline shape=k5 paired_median_pct=1.5331 min_pct=-1.9579 max_pct=10.5210
+SUMMARY arm=split64 reference=baseline shape=k5 paired_median_pct=1.5331 min_pct=-0.3241 max_pct=3.5997
+SUMMARY arm=adaptive64 reference=baseline shape=k5 paired_median_pct=-2.7773 min_pct=-4.2323 max_pct=5.6496
+SUMMARY arm=adaptive64 reference=split64 shape=k5 paired_median_pct=-4.1998 min_pct=-6.3201 max_pct=2.1980
+SUMMARY arm=adaptive64 reference=split32 shape=k5 paired_median_pct=-3.7784 min_pct=-6.5840 max_pct=0.5081
+SUMMARY arm=split32 reference=baseline shape=k512 paired_median_pct=-64.9987 min_pct=-65.2549 max_pct=-58.6681
+SUMMARY arm=split64 reference=baseline shape=k512 paired_median_pct=-56.6260 min_pct=-57.7761 max_pct=-52.9102
+SUMMARY arm=adaptive64 reference=baseline shape=k512 paired_median_pct=-63.6568 min_pct=-64.4788 max_pct=-59.2210
+SUMMARY arm=adaptive64 reference=split64 shape=k512 paired_median_pct=-15.9087 min_pct=-17.0568 max_pct=-13.4016
+SUMMARY arm=adaptive64 reference=split32 shape=k512 paired_median_pct=3.5866 min_pct=-1.3376 max_pct=9.3086
+SUMMARY arm=split32 reference=baseline shape=k512_prefix256 paired_median_pct=-58.4604 min_pct=-60.6474 max_pct=-52.6497
+SUMMARY arm=split64 reference=baseline shape=k512_prefix256 paired_median_pct=-48.0312 min_pct=-50.7764 max_pct=-45.8171
+SUMMARY arm=adaptive64 reference=baseline shape=k512_prefix256 paired_median_pct=-58.4752 min_pct=-60.4087 max_pct=-43.1711
+SUMMARY arm=adaptive64 reference=split64 shape=k512_prefix256 paired_median_pct=-20.2798 min_pct=-21.8283 max_pct=15.4506
+SUMMARY arm=adaptive64 reference=split32 shape=k512_prefix256 paired_median_pct=-0.5297 min_pct=-4.7799 max_pct=44.4095
+SUMMARY arm=split32 reference=baseline shape=k64 paired_median_pct=14.6343 min_pct=8.8609 max_pct=17.6132
+SUMMARY arm=split64 reference=baseline shape=k64 paired_median_pct=8.3169 min_pct=1.8197 max_pct=18.6033
+SUMMARY arm=adaptive64 reference=baseline shape=k64 paired_median_pct=9.1600 min_pct=3.0554 max_pct=14.5951
+SUMMARY arm=adaptive64 reference=split64 shape=k64 paired_median_pct=1.3647 min_pct=-6.1933 max_pct=6.7253
+SUMMARY arm=adaptive64 reference=split32 shape=k64 paired_median_pct=-4.3441 min_pct=-7.3444 max_pct=-0.3973
+SUMMARY arm=split32 reference=baseline shape=k65 paired_median_pct=10.1164 min_pct=8.3942 max_pct=19.5436
+SUMMARY arm=split64 reference=baseline shape=k65 paired_median_pct=4.8739 min_pct=0.0400 max_pct=19.4591
+SUMMARY arm=adaptive64 reference=baseline shape=k65 paired_median_pct=6.9539 min_pct=3.2279 max_pct=11.9455
+SUMMARY arm=adaptive64 reference=split64 shape=k65 paired_median_pct=0.8962 min_pct=-6.2897 max_pct=5.2126
+SUMMARY arm=adaptive64 reference=split32 shape=k65 paired_median_pct=-4.2802 min_pct=-9.5755 max_pct=-0.2252
+SUMMARY arm=split32 reference=baseline shape=k8193 paired_median_pct=-97.1224 min_pct=-97.2452 max_pct=-96.9576
+SUMMARY arm=split64 reference=baseline shape=k8193 paired_median_pct=-96.4530 min_pct=-96.6468 max_pct=-96.2395
+SUMMARY arm=adaptive64 reference=baseline shape=k8193 paired_median_pct=-96.9698 min_pct=-97.1390 max_pct=-95.7438
+SUMMARY arm=adaptive64 reference=split64 shape=k8193 paired_median_pct=-14.4641 min_pct=-15.7377 max_pct=14.5309
+SUMMARY arm=adaptive64 reference=split32 shape=k8193 paired_median_pct=5.3189 min_pct=1.8955 max_pct=48.4084
+SUMMARY arm=split32 reference=baseline shape=k8193_desc paired_median_pct=-97.2192 min_pct=-97.2629 max_pct=-96.8445
+SUMMARY arm=split64 reference=baseline shape=k8193_desc paired_median_pct=-96.5363 min_pct=-96.6103 max_pct=-96.1743
+SUMMARY arm=adaptive64 reference=baseline shape=k8193_desc paired_median_pct=-97.1777 min_pct=-97.2459 max_pct=-96.4764
+SUMMARY arm=adaptive64 reference=split64 shape=k8193_desc paired_median_pct=-18.1470 min_pct=-20.5158 max_pct=-3.7277
+SUMMARY arm=adaptive64 reference=split32 shape=k8193_desc paired_median_pct=0.7992 min_pct=-2.9053 max_pct=26.9397
+SUMMARY arm=split32 reference=baseline shape=k8193_shuffled paired_median_pct=-95.0595 min_pct=-95.1065 max_pct=-94.9909
+SUMMARY arm=split64 reference=baseline shape=k8193_shuffled paired_median_pct=-94.3698 min_pct=-94.4733 max_pct=-92.9103
+SUMMARY arm=adaptive64 reference=baseline shape=k8193_shuffled paired_median_pct=-94.9676 min_pct=-95.0472 max_pct=-94.5925
+SUMMARY arm=adaptive64 reference=split64 shape=k8193_shuffled paired_median_pct=-10.6854 min_pct=-30.0657 max_pct=-7.1593
+SUMMARY arm=adaptive64 reference=split32 shape=k8193_shuffled paired_median_pct=1.5514 min_pct=-0.6696 max_pct=9.7065
+SUMMARY arm=split32 reference=baseline shape=k96 paired_median_pct=-2.3545 min_pct=-3.1462 max_pct=7.7465
+SUMMARY arm=split64 reference=baseline shape=k96 paired_median_pct=4.0074 min_pct=2.2838 max_pct=14.8748
+SUMMARY arm=adaptive64 reference=baseline shape=k96 paired_median_pct=9.9680 min_pct=7.8120 max_pct=26.7929
+SUMMARY arm=adaptive64 reference=split64 shape=k96 paired_median_pct=5.3883 min_pct=-1.2334 max_pct=23.1116
+SUMMARY arm=adaptive64 reference=split32 shape=k96 paired_median_pct=12.4001 min_pct=0.2475 max_pct=30.3780
+SUMMARY arm=split32 reference=baseline shape=typical paired_median_pct=1.2330 min_pct=-1.4895 max_pct=7.7843
+SUMMARY arm=split64 reference=baseline shape=typical paired_median_pct=1.0519 min_pct=-2.1152 max_pct=3.8272
+SUMMARY arm=adaptive64 reference=baseline shape=typical paired_median_pct=-1.6592 min_pct=-3.5877 max_pct=2.7742
+SUMMARY arm=adaptive64 reference=split64 shape=typical paired_median_pct=-2.6963 min_pct=-4.2276 max_pct=1.3202
+SUMMARY arm=adaptive64 reference=split32 shape=typical paired_median_pct=-2.9299 min_pct=-4.6482 max_pct=-0.3508
+SUMMARY arm=split32 reference=baseline shape=versioned paired_median_pct=-0.2277 min_pct=-1.5956 max_pct=6.0373
+SUMMARY arm=split64 reference=baseline shape=versioned paired_median_pct=0.3525 min_pct=-1.6471 max_pct=3.0002
+SUMMARY arm=adaptive64 reference=baseline shape=versioned paired_median_pct=-1.4639 min_pct=-2.7477 max_pct=4.1301
+SUMMARY arm=adaptive64 reference=split64 shape=versioned paired_median_pct=-1.4571 min_pct=-3.1760 max_pct=3.0049
+SUMMARY arm=adaptive64 reference=split32 shape=versioned paired_median_pct=-1.3282 min_pct=-3.4154 max_pct=5.4517
+RESOURCE arm=baseline shape=many_keys trial=0 body_bytes=262159 extra_keys=16384 parse_ns=339079534 peak_rss_kib=21896
+RESOURCE arm=split32 shape=many_keys trial=0 body_bytes=262159 extra_keys=16384 parse_ns=6618652 peak_rss_kib=21896
+RESOURCE arm=split64 shape=many_keys trial=0 body_bytes=262159 extra_keys=16384 parse_ns=7601772 peak_rss_kib=21896
+RESOURCE arm=adaptive64 shape=many_keys trial=0 body_bytes=262159 extra_keys=16384 parse_ns=6548689 peak_rss_kib=21896
+RESOURCE arm=adaptive64 shape=many_keys trial=1 body_bytes=262159 extra_keys=16384 parse_ns=6574347 peak_rss_kib=21896
+RESOURCE arm=split64 shape=many_keys trial=1 body_bytes=262159 extra_keys=16384 parse_ns=7843120 peak_rss_kib=21896
+RESOURCE arm=split32 shape=many_keys trial=1 body_bytes=262159 extra_keys=16384 parse_ns=6344075 peak_rss_kib=21896
+RESOURCE arm=baseline shape=many_keys trial=1 body_bytes=262159 extra_keys=16384 parse_ns=336381300 peak_rss_kib=21896
+RESOURCE arm=split32 shape=many_keys trial=2 body_bytes=262159 extra_keys=16384 parse_ns=6468129 peak_rss_kib=21896
+RESOURCE arm=split64 shape=many_keys trial=2 body_bytes=262159 extra_keys=16384 parse_ns=7827927 peak_rss_kib=21896
+RESOURCE arm=adaptive64 shape=many_keys trial=2 body_bytes=262159 extra_keys=16384 parse_ns=6609248 peak_rss_kib=21896
+RESOURCE arm=baseline shape=many_keys trial=2 body_bytes=262159 extra_keys=16384 parse_ns=336520034 peak_rss_kib=21896
+RESOURCE arm=baseline shape=many_keys trial=3 body_bytes=262159 extra_keys=16384 parse_ns=337226205 peak_rss_kib=21896
+RESOURCE arm=adaptive64 shape=many_keys trial=3 body_bytes=262159 extra_keys=16384 parse_ns=6576898 peak_rss_kib=21896
+RESOURCE arm=split64 shape=many_keys trial=3 body_bytes=262159 extra_keys=16384 parse_ns=7503643 peak_rss_kib=21896
+RESOURCE arm=split32 shape=many_keys trial=3 body_bytes=262159 extra_keys=16384 parse_ns=6447787 peak_rss_kib=21896
+RESOURCE arm=split64 shape=many_keys trial=4 body_bytes=262159 extra_keys=16384 parse_ns=7494739 peak_rss_kib=21896
+RESOURCE arm=adaptive64 shape=many_keys trial=4 body_bytes=262159 extra_keys=16384 parse_ns=6646862 peak_rss_kib=21896
+RESOURCE arm=baseline shape=many_keys trial=4 body_bytes=262159 extra_keys=16384 parse_ns=336690111 peak_rss_kib=21896
+RESOURCE arm=split32 shape=many_keys trial=4 body_bytes=262159 extra_keys=16384 parse_ns=6939757 peak_rss_kib=21896
+RESOURCE arm=baseline shape=default_limit trial=0 body_bytes=1048576 extra_keys=0 parse_ns=2014005 peak_rss_kib=21896
+RESOURCE arm=split32 shape=default_limit trial=0 body_bytes=1048576 extra_keys=0 parse_ns=2003369 peak_rss_kib=21896
+RESOURCE arm=split64 shape=default_limit trial=0 body_bytes=1048576 extra_keys=0 parse_ns=1847598 peak_rss_kib=21896
+RESOURCE arm=adaptive64 shape=default_limit trial=0 body_bytes=1048576 extra_keys=0 parse_ns=1797544 peak_rss_kib=21896
+RESOURCE arm=adaptive64 shape=default_limit trial=1 body_bytes=1048576 extra_keys=0 parse_ns=1868078 peak_rss_kib=21896
+RESOURCE arm=split64 shape=default_limit trial=1 body_bytes=1048576 extra_keys=0 parse_ns=1849552 peak_rss_kib=21896
+RESOURCE arm=split32 shape=default_limit trial=1 body_bytes=1048576 extra_keys=0 parse_ns=1802242 peak_rss_kib=21896
+RESOURCE arm=baseline shape=default_limit trial=1 body_bytes=1048576 extra_keys=0 parse_ns=1830954 peak_rss_kib=21896
+RESOURCE arm=split32 shape=default_limit trial=2 body_bytes=1048576 extra_keys=0 parse_ns=1827399 peak_rss_kib=21896
+RESOURCE arm=split64 shape=default_limit trial=2 body_bytes=1048576 extra_keys=0 parse_ns=1808801 peak_rss_kib=21896
+RESOURCE arm=adaptive64 shape=default_limit trial=2 body_bytes=1048576 extra_keys=0 parse_ns=1878274 peak_rss_kib=21896
+RESOURCE arm=baseline shape=default_limit trial=2 body_bytes=1048576 extra_keys=0 parse_ns=1846376 peak_rss_kib=21896
+RESOURCE arm=baseline shape=max_limit trial=0 body_bytes=67108864 extra_keys=0 parse_ns=123024930 peak_rss_kib=200416
+RESOURCE arm=split32 shape=max_limit trial=0 body_bytes=67108864 extra_keys=0 parse_ns=118277784 peak_rss_kib=200504
+RESOURCE arm=split64 shape=max_limit trial=0 body_bytes=67108864 extra_keys=0 parse_ns=118195432 peak_rss_kib=200276
+RESOURCE arm=adaptive64 shape=max_limit trial=0 body_bytes=67108864 extra_keys=0 parse_ns=118918885 peak_rss_kib=200316
+RESOURCE arm=adaptive64 shape=max_limit trial=1 body_bytes=67108864 extra_keys=0 parse_ns=118246759 peak_rss_kib=200356
+RESOURCE arm=split64 shape=max_limit trial=1 body_bytes=67108864 extra_keys=0 parse_ns=121539980 peak_rss_kib=200412
+RESOURCE arm=split32 shape=max_limit trial=1 body_bytes=67108864 extra_keys=0 parse_ns=119633634 peak_rss_kib=200392
+RESOURCE arm=baseline shape=max_limit trial=1 body_bytes=67108864 extra_keys=0 parse_ns=121192655 peak_rss_kib=200328
+RESOURCE arm=split32 shape=max_limit trial=2 body_bytes=67108864 extra_keys=0 parse_ns=119820552 peak_rss_kib=200440
+RESOURCE arm=split64 shape=max_limit trial=2 body_bytes=67108864 extra_keys=0 parse_ns=120553282 peak_rss_kib=200392
+RESOURCE arm=adaptive64 shape=max_limit trial=2 body_bytes=67108864 extra_keys=0 parse_ns=119447030 peak_rss_kib=200256
+RESOURCE arm=baseline shape=max_limit trial=2 body_bytes=67108864 extra_keys=0 parse_ns=121156728 peak_rss_kib=200316

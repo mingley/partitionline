@@ -7,7 +7,7 @@ Published 0.1.0 is a separate source baseline.
 API changes follow the [0.x policy](api-stability.md). Cuts are described in
 [RELEASE.md](RELEASE.md). Adopter steps are in [ADOPTION.md](ADOPTION.md).
 Broader correctness, fault, and performance work stays in the
-[task queue](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/README.md).
+[task queue](https://github.com/mingley/partitionline/blob/main/docs/plan/README.md).
 
 The [2026-09-21 source audit](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/audits/2026-09-21.md) reproduced five consumer
 correctness cases at `cb7e97d`. Those cases are fixed in later source.

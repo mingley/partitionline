@@ -51,6 +51,11 @@ passed; escaped process groups, permission errors, kernel failures and abrupt
 runner termination can prevent cleanup from being proved. The uploaded
 artifacts were not independently inspected.
 
+The [main integration run](https://github.com/mingley/partitionline/actions/runs/42872181367)
+at `f70cbfd6598f8071b813ca7c965727432918e392` also passed the same
+peer, offline, targeted package, formatting and Clippy checks. Its scope is
+still limited to the finite bodies and controls described above.
+
 The SDK artifact hashes are in the
 [runner](../../../../tests/conformance/java/generate_metadata_boundaries.py).
 

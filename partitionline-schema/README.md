@@ -52,6 +52,11 @@ A continuously ready response reader yields to the executor after 1 MiB
 (64 KiB for chunked data) or 256 reads. This does not guarantee another task
 runs, and does not bound a single read or synchronous JSON parsing.
 
+Duplicate JSON object keys are rejected. Large objects use an index to avoid
+repeatedly scanning all previous keys, at the cost of extra memory. Parsing
+remains synchronous: the response body limit is not a time or process-memory
+limit.
+
 ## Cache limits and freshness
 
 Clones of one client share a cache for that URL and those credentials. A

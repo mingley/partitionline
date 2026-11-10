@@ -48,6 +48,9 @@ Earlier working notes and dated measurements are in the
 
 ### Protocol and runtime changes
 
+- The unpublished Schema Registry companion indexes older keys in large JSON
+  objects to avoid quadratic duplicate-key scans. Parsing remains synchronous
+  and the index uses additional memory.
 - Produce v13 uses Metadata topic IDs and maps replies through the identity
   snapshot sent with each request. Stale IDs refresh within the original
   delivery deadline; v3–v12 fallback remains. Transactions stay at Produce v11

@@ -11,18 +11,16 @@ an established fastest-in-the-world result. Client 0.1.0 is published; the
 next client release must be at least 0.2.0. The experimental broker and schema
 companion are unpublished.
 
-The latest complete [main CI record](../evidence/releases/main-ci-92a-20261110/README.md)
-is for `92a365f2829c00438b6c58841dbb0990fca480d6`. Linux client libraries reported 2,314 passes and 14
-failures with default features and 2,313 passes and 15 failures with all
-features. Windows reported 2,303 passes and 25 failures; macOS reported 2,317
-passes and 11 failures. All three current Kafka compatibility jobs and both
-historical smoke jobs failed. The broker default library stopped after 495
-passes, one failure and four ignored; later broker checks did not run. The
-finite resource-soak CI job passed; no sustained campaign has passed. The
-[preceding snapshot](../evidence/releases/main-ci-199-20261109/README.md)
-passed broker checks, but does not explain the failure. An
-[earlier 669 snapshot](../evidence/releases/main-ci-669-20261109/README.md)
-recorded an OS-denied `/proc` access; later passes do not explain it.
+The latest complete [main CI record](../evidence/releases/main-ci-ffad-20261110/README.md)
+is for `ffad9ef5d24f42cc5d8123288a8deffa8e4dc8c9`. Linux client libraries
+reported 2,312 passes and 16 failures with default features and 2,305 passes
+and 23 failures with all features. Windows reported 2,318 passes and 10
+failures; macOS reported 2,310 passes and 18 failures. All three current Kafka
+compatibility jobs and both historical smoke jobs failed. The broker
+behavioral profiles and strict checks passed. The finite resource-soak job
+passed; no sustained campaign has passed. An
+[earlier snapshot](../evidence/releases/main-ci-669-20261109/README.md)
+recorded an OS-denied process-descriptor sample; later passes do not explain it.
 
 Separate [combined-head checks](../evidence/ci/combined-a7b6-20261109/README.md)
 at `a7b6edc1645e3a4789cf699a3b9e7656c55a3d10` passed focused Admin, producer
@@ -57,6 +55,12 @@ runs and their limits.
    broad producer suites failed for both baseline and candidate; one additional
    all-feature candidate timing assertion also failed. A prior flush can consume
    an error, and successful close alone does not establish delivery.
+
+   A [cancellation review](../evidence/client/producer-assembly-drop-review-20261110/README.md)
+   identifies records held in several owners during mixed-batch assembly.
+   An isolated [count-reuse candidate](../evidence/client/producer-assembly-count-20261110/README.md)
+   removes a redundant walk, but both baseline and candidate broad client
+   profiles failed. The candidate remains unapplied and is not a delivery fix.
 
 2. **Client correctness and compatibility.** Work through the applicable
    failing client and Kafka profiles using the task registry. Preserve record
@@ -109,10 +113,11 @@ runs and their limits.
    handles informational and bodyless responses and rejects unsupported transfer
    codings; mock controls and all three schema profiles passed. Qualify the
    supported codecs, lifecycle and registry behavior before publication.
-   [JSON index experiments](../evidence/schema/json-progressive-avl-20261110/README.md)
-   reduce large-object parse time but slow some ordinary and threshold cases.
-   A [32/64-key comparison](../evidence/schema/json-avl-tail-comparison-20261110/README.md)
-   did not remove those costs; the candidates remain unapplied.
+   Large-object duplicate-key detection now uses an indexed prefix; the
+   [split-index evidence](../evidence/schema/json-avl-split-fastpath-20261110/README.md)
+   records tests, large-object improvements and medium-object slowdowns.
+   Parsing and allocation remain synchronous, and the body limit is not an RSS
+   or time bound. Earlier and adaptive variants remain experiments.
 
 5. **Performance.** Establish correctness before comparing throughput or
    latency. The isolated [indexed Fetch experiment](../evidence/broker/fetch-indexed-vectored-20261109/README.md)

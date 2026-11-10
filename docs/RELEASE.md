@@ -65,7 +65,7 @@ A real cut requires exact-commit green CI, package-consumer evidence, a final
 `X.Y.Z` version, and registry authentication. `DRY_RUN=1` rehearses actions;
 it does not publish. The script uses local publication when a registry token
 is available, or pushes the matching final tag for
-[release.yml](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/.github/workflows/release.yml). Set `PUBLISH_LOCAL=0` to use
+[release.yml](https://github.com/mingley/partitionline/blob/main/.github/workflows/release.yml). Set `PUBLISH_LOCAL=0` to use
 the workflow explicitly. The workflow supports crates.io Trusted Publishing
 and a `CARGO_REGISTRY_TOKEN` fallback.
 
