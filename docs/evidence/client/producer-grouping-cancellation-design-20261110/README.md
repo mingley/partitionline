@@ -1,7 +1,7 @@
 # Producer grouping cancellation: design boundary
 
-This is a source-based design, not a fix or a test result. It addresses
-ownership while a producer batch is being selected and grouped. It does not
+This is a source-based design and a private-state control, not a fix. It
+addresses ownership while a producer batch is being selected and grouped. It does not
 qualify delivery, retries, transactions, shutdown, or a live Kafka history.
 The reviewed source is
 [`8570b01`](https://github.com/mingley/partitionline/blob/8570b01da6693acbcaa66120c861c5fd689628c4/src/producer.rs),
@@ -15,8 +15,8 @@ records the existing synthetic dropped-receipt witness.
 moves records from the worker queue into a local batch, then can yield while
 updating the estimate and recomputing the earliest deadline. Dropping that
 future at such a yield drops its local batch before it reaches
-`group_pending`. This is a source observation; no new public producer
-history was run here.
+`group_pending`. The private-state control below observes this boundary; no
+public producer history was run here.
 
 [`group_pending`](https://github.com/mingley/partitionline/blob/8570b01da6693acbcaa66120c861c5fd689628c4/src/producer.rs#L9720)
 can then suspend with records in its local batch, one-topic groups, mixed
@@ -31,6 +31,44 @@ visits its pending queue and in-flight requests, but the reviewed grouping
 locals are not in either. Requeueing a recovered batch through the existing
 path can also meet a full or closed retry queue and enter terminal cleanup.
 It must not be described as proof that every receipt is delivered.
+
+## Private-state drain control
+
+[Run 42880394281](https://github.com/mingley/partitionline/actions/runs/42880394281)
+used Rust 1.99.1 on a hosted x86_64 runner and test source commit
+[`ef48ee5`](https://github.com/mingley/partitionline/commit/ef48ee571c0b6069635f02cd4e69e01c072ae169).
+Its producer source blob was `49e92a94c5ab3860a9401ca4d63e6734a6591657`.
+The production source before the test module matched the reviewed main
+source byte-for-byte, with SHA-256
+`e7e3555f4b0661488f682176b23b5af559aee4f563b628ff3323c66faafd71c3`.
+
+The [control](baseline-control.rs.txt) manually seeds 8,193 one-byte records,
+receipt senders and a matching byte charge into a worker, marks its shared
+state closed, polls `drain_pending` directly once until its first yield,
+and drops that future while retaining the worker. It uses no interceptor,
+sticky tags or record permits; the records were not admitted through the
+public producer. In both default and all-feature profiles, all 8,193 senders
+were observed closed, worker pending contained zero records, and the seeded
+8,193-byte charge remained at that observation. This does not prove a
+permanent leak or describe a real Kafka delivery history.
+
+The preservation assertion failed in each profile with exit 101. The
+[workflow](baseline-workflow.yml.txt) deliberately requires that exact failure
+marker and succeeds as a negative control; its green result does **not**
+mean that cancellation is fixed. The [selected output](baseline-results.txt)
+retains the result lines and assertions. A normal-completion control passed
+once per profile: it received all 8,193 records, observed their senders open,
+and manually completed them with `Error::Closed`, returning the seeded byte
+charge to zero. Formatting and strict all-feature test-target Clippy passed.
+The uploaded full logs were not independently inspected.
+
+The first [setup run](https://github.com/mingley/partitionline/actions/runs/42879873125)
+failed its baseline-source check because the shallow checkout omitted the
+baseline commit; formatting also failed, so neither control ran. The
+[second run](https://github.com/mingley/partitionline/actions/runs/42880344753)
+fixed formatting but still omitted the baseline from its shallow history;
+again neither control ran. Both runs passed strict test-target Clippy. The
+third run above fetched enough ancestry and ran the controls.
 
 ## Proposed owned state
 
