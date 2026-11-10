@@ -12787,7 +12787,7 @@ mod tests {
             let mut draining = Box::pin(worker.drain_pending(count));
             let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
             assert!(state.is_pending(), "drain did not reach its first yield");
-            drop(started.send(()));
+            assert!(started.send(()).is_ok(), "observer dropped");
             std::future::pending::<()>().await;
             drop(draining);
         });
@@ -12828,7 +12828,7 @@ mod tests {
             let mut draining = Box::pin(worker.drain_pending(count));
             let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
             assert!(state.is_pending(), "drain did not reach its first yield");
-            drop(started.send(()));
+            assert!(started.send(()).is_ok(), "observer dropped");
             std::future::pending::<()>().await;
             drop(draining);
         });
@@ -12890,7 +12890,7 @@ mod tests {
             let mut draining = Box::pin(worker.drain_pending(count));
             let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
             assert!(state.is_pending(), "drain did not reach its first yield");
-            drop(started.send(()));
+            assert!(started.send(()).is_ok(), "observer dropped");
             std::future::pending::<()>().await;
             drop(draining);
         });
@@ -12935,7 +12935,7 @@ mod tests {
             let mut draining = Box::pin(worker.drain_pending(count));
             let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
             assert!(state.is_pending(), "drain did not reach its first yield");
-            drop(started.send(()));
+            assert!(started.send(()).is_ok(), "observer dropped");
             std::future::pending::<()>().await;
             drop(draining);
         });
@@ -12991,6 +12991,7 @@ mod tests {
                 (worker, shared, receivers, retries, callbacks, permits)
             });
         drop(runtime);
+        assert!(tokio::runtime::Handle::try_current().is_err());
         drop(retries);
         drop(worker);
         assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);

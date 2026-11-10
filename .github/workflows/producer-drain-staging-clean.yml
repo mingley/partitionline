@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 3
+          fetch-depth: 4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -30,12 +30,14 @@ jobs:
           set -u
           failed=0
           for profile in default all-features; do
+            set +e
             if test "$profile" = default; then
               cargo test --locked --lib producer::tests:: -- --test-threads=1 > "$RUNNER_TEMP/producer-$profile.log" 2>&1
             else
               cargo test --locked --all-features --lib producer::tests:: -- --test-threads=1 > "$RUNNER_TEMP/producer-$profile.log" 2>&1
             fi
             code=$?
+            set -e
             echo "candidate_producer=$profile exit=$code"
             grep -E '^test result:' "$RUNNER_TEMP/producer-$profile.log" || true
             if test "$code" -ne 0; then failed=1; fi
@@ -58,7 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 3
+          fetch-depth: 4
       - uses: dtolnay/rust-toolchain@stable
       - name: Create baseline with candidate controls
         run: |
@@ -116,12 +118,14 @@ jobs:
           test "$source_blob" = 426dbdb5c5e27fdf655930a76682c5c18fb07e89 || exit 1
           failed=0
           for profile in default all-features; do
+            set +e
             if test "$profile" = default; then
               cargo test --locked --lib producer::tests:: -- --test-threads=1 > "$RUNNER_TEMP/base-producer-$profile.log" 2>&1
             else
               cargo test --locked --all-features --lib producer::tests:: -- --test-threads=1 > "$RUNNER_TEMP/base-producer-$profile.log" 2>&1
             fi
             code=$?
+            set -e
             echo "baseline_producer=$profile exit=$code"
             grep -E '^test result:' "$RUNNER_TEMP/base-producer-$profile.log" || true
             if test "$code" -ne 0; then failed=1; fi
