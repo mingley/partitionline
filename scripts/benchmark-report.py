@@ -81,6 +81,58 @@ def reject_duplicate_keys(pairs: List[Tuple[str, Any]]) -> Dict[str, Any]:
     return result
 
 
+
+def semantic_shape_errors(data: Dict[str, Any]) -> List[str]:
+    """Check the shapes needed by semantic checks, even with an alternate schema."""
+    objects = (
+        ("scenario",), ("scenario", "equal_semantics"),
+        ("provenance",), ("provenance", "config"),
+        ("provenance", "config", "effective_settings"), ("provenance", "broker"),
+        ("outcomes",), ("integrity",), ("integrity", "record_ids"),
+        ("integrity", "high_watermark_audit"), ("repetition_history",),
+    )
+    counts = (
+        *(("outcomes", key) for key in
+          ("offered", "accepted", "acknowledged", "consumed", "rejected", "timed_out", "unknown")),
+        *(("integrity", "record_ids", key) for key in
+          ("start_id", "end_id", "expected_count", "verified_count",
+           "missing_ids_count", "duplicate_ids_count")),
+        ("integrity", "high_watermark_audit", "total_offset_delta"),
+        ("repetition_history", "total_attempts"), ("repetition_history", "failed_attempts"),
+    )
+    errors = []
+    missing = object()
+
+    def lookup(path: Tuple[str, ...]) -> Any:
+        value: Any = data
+        for key in path:
+            if not isinstance(value, dict) or key not in value:
+                return missing
+            value = value[key]
+        return value
+
+    for path in objects:
+        value = lookup(path)
+        if value is not missing and not isinstance(value, dict):
+            errors.append(f"Invalid {'.'.join(path)}: must be an object")
+    for path in counts:
+        value = lookup(path)
+        if value is not missing and type(value) is not int:
+            errors.append(f"Invalid {'.'.join(path)}: must be an integer")
+    return errors
+
+
+def has_type_error(errors: List[Any]) -> bool:
+    """Find type errors nested under composite JSON Schema failures."""
+    pending = list(errors)
+    while pending:
+        error = pending.pop()
+        if error.validator == "type":
+            return True
+        pending.extend(error.context)
+    return False
+
+
 class BenchmarkValidator:
     """Fail-closed validator for benchmark result documents."""
 
@@ -135,7 +187,12 @@ class BenchmarkValidator:
             for error in schema_errors
         )
         # Semantic arithmetic and object access require correctly typed fields.
-        if any(error.validator == "type" for error in schema_errors):
+        # Composite schema failures can hide type errors in their contexts.
+        if has_type_error(schema_errors):
+            return False, errors, summary
+        shape_errors = semantic_shape_errors(data)
+        if shape_errors:
+            errors.extend(shape_errors)
             return False, errors, summary
 
         # 1. Required Top-Level Sections
@@ -895,7 +952,7 @@ def main() -> int:
         "--schema",
         type=Path,
         default=None,
-        help="Path to benchmarks/result-schema.json (defaults to repo schema if available)",
+        help="Alternate schema replaces the repository schema; canonical conformance requires the canonical schema",
     )
     parser.add_argument(
         "--require-clean",
