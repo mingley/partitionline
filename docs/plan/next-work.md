@@ -11,15 +11,16 @@ an established fastest-in-the-world result. Client 0.1.0 is published; the
 next client release must be at least 0.2.0. The experimental broker and schema
 companion are unpublished.
 
-The latest complete [main CI record](../evidence/releases/main-ci-ffad-20261110/README.md)
-is for `ffad9ef5d24f42cc5d8123288a8deffa8e4dc8c9`. Linux client libraries
-reported 2,312 passes and 16 failures with default features and 2,305 passes
-and 23 failures with all features. Windows reported 2,318 passes and 10
-failures; macOS reported 2,310 passes and 18 failures. All three current Kafka
-compatibility jobs and both historical smoke jobs failed. The broker
-behavioral profiles and strict checks passed. The finite resource-soak job
-passed; no sustained campaign has passed. An
-[earlier snapshot](../evidence/releases/main-ci-669-20261109/README.md)
+The latest complete [main CI record](../evidence/releases/main-ci-7e6-20261110/README.md)
+is for `7e6dff932db4128596ad45811f03c8c9d4afb4b7`. Linux client libraries
+reported 2,313 passes and 15 failures with default features and 2,314 passes
+and 14 failures with all features. Windows reported 2,308 passes and 20
+failures; macOS reported 2,313 passes and 15 failures. All three current
+Kafka compatibility jobs and both historical smoke jobs failed. The broker
+default library passed, but a later default-feature target failed; its
+all-feature and strict checks did not run. Package, docs and Schema jobs
+passed. The finite resource-soak job passed; no sustained campaign has
+passed. An [earlier snapshot](../evidence/releases/main-ci-669-20261109/README.md)
 recorded an OS-denied process-descriptor sample; later passes do not explain it.
 
 Separate [combined-head checks](../evidence/ci/combined-a7b6-20261109/README.md)
