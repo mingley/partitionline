@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 3
+          fetch-depth: 4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -67,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 3
+          fetch-depth: 4
       - uses: dtolnay/rust-toolchain@stable
       - name: Create baseline with candidate controls
         run: |
@@ -108,7 +108,9 @@ jobs:
             grep -F 'producer::tests::grouping_drain_cancellation_retains_receipts' "$RUNNER_TEMP/baseline-$profile.log"
             grep -F 'producer::tests::grouping_drain_cancellation_during_deadline_scan' "$RUNNER_TEMP/baseline-$profile.log"
             grep -F 'producer::tests::grouping_drain_worker_abort_restores_before_drop' "$RUNNER_TEMP/baseline-$profile.log"
-            grep -F 'test result: FAILED. 4 passed; 3 failed; 1 ignored' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -F 'producer::tests::grouping_drain_open_worker_requeues_restored_records' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -F 'producer::tests::grouping_drain_open_worker_closed_retry_completes_records' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -F 'test result: FAILED. 4 passed; 5 failed; 1 ignored' "$RUNNER_TEMP/baseline-$profile.log"
           done
       - name: Retain baseline logs
         if: always()
