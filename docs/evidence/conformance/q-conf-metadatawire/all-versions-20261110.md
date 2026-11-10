@@ -21,7 +21,10 @@ both default and all-feature Rust profiles, with Rust 1.99.1 and Temurin
 and checked Rust's re-encodings. A deliberate v3 throttle change was rejected
 in each direction on the 3.9.1 default lane. Formatting and strict
 test-target Clippy passed. This generation run did not run the offline or
-packaged-crate checks.
+packaged-crate checks. Its Python summary listed only the previous eight
+versions even though the Java and Rust comparisons covered all 13; the
+runner now checks each corpus's version/case labels against its declared
+version list and rejects a corrupted-label control.
 
 The [Apache pairs](../../../../tests/fixtures/metadata_wire/all-v0-v12-apache.txt)
 and [Rust pairs](../../../../tests/fixtures/metadata_wire/all-v0-v12-rust.txt)

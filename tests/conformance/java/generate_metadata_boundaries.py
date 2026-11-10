@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[3]
 BASE = ROOT / "tests/conformance/java/generate_metadata_wire.py"
 JAVA = ROOT / "tests/conformance/java/ConformanceMetadataBoundaries.java"
 RUST = ROOT / "tests/metadata_boundaries_conformance.rs"
-VERSIONS = (0, 1, 3, 8, 9, 10, 11, 12)
+VERSIONS = tuple(range(13))
 PAIRS = 43
 
 # The helper is shipped under tests/. Avoid creating ignored bytecode that
@@ -32,6 +32,26 @@ common.PINS = {
     "4.3.1": "52501b7b47510c66f898871adaf6d2968ab7246561d44ced43643a8a587f0b36",
 }
 common.END = time.monotonic() + 840
+
+
+def validate_case_rows(body):
+    expected = []
+    for version in VERSIONS:
+        cells = ["empty", "name"]
+        if version >= 1:
+            cells.append("all")
+        if version >= 9:
+            cells.append("tagged")
+        if version >= 12:
+            cells.append("id")
+        expected.extend(f"{version}:{cell}".encode("ascii") for cell in cells)
+    rows = body.splitlines()
+    if len(expected) != PAIRS or len(rows) != len(expected):
+        raise ValueError("Metadata case count does not match declared versions")
+    for row, identity in zip(rows, expected):
+        fields = row.split(b" ")
+        if len(fields) != 3 or fields[0] != identity or not fields[1] or not fields[2]:
+            raise ValueError("Metadata case order does not match declared versions")
 
 
 def corrupt_throttle(source, destination):
@@ -82,6 +102,7 @@ def main():
             if fixture.stat().st_size > 32768:
                 raise ValueError("fixture budget exceeded")
             body = fixture.read_bytes()
+            validate_case_rows(body)
             if apache_ref is None:
                 apache_ref = body
             elif body != apache_ref:
@@ -108,6 +129,7 @@ def main():
                     java + ["verify", str(reverse)], directory / (profile + "-java.log"),
                     marker="independently_parsed_pairs=43")
                 body = reverse.read_bytes()
+                validate_case_rows(body)
                 if rust_ref is None:
                     rust_ref = body
                 elif body != rust_ref:
@@ -131,6 +153,17 @@ def main():
             results.append(result)
         if inputs != {str(p.relative_to(ROOT)): common.digest(p) for p in (BASE, JAVA, RUST, Path(__file__).resolve())}:
             raise ValueError("source changed during run")
+        if apache_ref is None:
+            raise ValueError("missing Apache corpus")
+        bad_label = apache_ref.replace(b"0:empty ", b"99:empty ", 1)
+        if bad_label == apache_ref:
+            raise ValueError("missing case-order corruption target")
+        try:
+            validate_case_rows(bad_label)
+        except ValueError:
+            print("case_order_negative=rejected", flush=True)
+        else:
+            raise ValueError("case-order corruption was accepted")
         for label, body in (("APACHE", apache_ref), ("RUST", rust_ref)):
             if body is None or len(body) > 32768 or len(body.splitlines()) != PAIRS or not body.endswith(b"\n"):
                 raise ValueError("corpus shape")
