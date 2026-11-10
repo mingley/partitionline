@@ -7701,7 +7701,11 @@ impl Worker {
             }
         }
         let earliest = if refresh_deadline {
-            Some(fold_pending_estimates(guard.pending.as_slice(), None).await.1)
+            Some(
+                fold_pending_estimates(guard.pending.as_slice(), None)
+                    .await
+                    .1,
+            )
         } else {
             None
         };
@@ -12783,7 +12787,7 @@ mod tests {
             let mut draining = Box::pin(worker.drain_pending(count));
             let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
             assert!(state.is_pending(), "drain did not reach its first yield");
-            let _ = started.send(());
+            drop(started.send(()));
             std::future::pending::<()>().await;
             drop(draining);
         });
@@ -12824,7 +12828,7 @@ mod tests {
             let mut draining = Box::pin(worker.drain_pending(count));
             let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
             assert!(state.is_pending(), "drain did not reach its first yield");
-            let _ = started.send(());
+            drop(started.send(()));
             std::future::pending::<()>().await;
             drop(draining);
         });
@@ -12886,7 +12890,7 @@ mod tests {
             let mut draining = Box::pin(worker.drain_pending(count));
             let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
             assert!(state.is_pending(), "drain did not reach its first yield");
-            let _ = started.send(());
+            drop(started.send(()));
             std::future::pending::<()>().await;
             drop(draining);
         });
@@ -12925,7 +12929,10 @@ mod tests {
         let one = worker.drain_pending(1).await;
         assert_eq!(one.len(), 1);
         assert_eq!(one[0].rec.partition, Some(0));
-        assert_eq!(worker.pending_estimate, estimate_before.saturating_sub(expected_first));
+        assert_eq!(
+            worker.pending_estimate,
+            estimate_before.saturating_sub(expected_first)
+        );
         assert_eq!(worker.earliest_deadline, old_deadline);
         for (index, pending) in worker.pending.iter().enumerate() {
             assert_eq!(
@@ -12943,11 +12950,9 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn grouping_drain_deadline_cases() {
-        for (first, second, third, expected) in [
-            (1_u64, 4_u64, 5_u64, 4_u64),
-            (1, 1, 5, 1),
-            (4, 1, 5, 1),
-        ] {
+        for (first, second, third, expected) in
+            [(1_u64, 4_u64, 5_u64, 4_u64), (1, 1, 5, 1), (4, 1, 5, 1)]
+        {
             let (mut worker, shared, mut receivers) = grouping_drain_fixture(3).await;
             let start = Instant::now() + Duration::from_secs(60);
             for (record, offset) in worker.pending.iter_mut().zip([first, second, third]) {
