@@ -1,0 +1,30 @@
+name: Producer assembly fairness controls
+on:
+  push:
+    branches: [qualification/producer-assembly-fairness-20261110]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Default deterministic controls
+        run: cargo test --locked --lib assembly_fairness -- --nocapture
+      - name: All-feature deterministic controls
+        if: always()
+        run: cargo test --locked --all-features --lib assembly_fairness -- --nocapture
+      - name: Cancellation diagnostic
+        if: always()
+        continue-on-error: true
+        run: cargo test --locked --lib producer::tests::assembly_fairness_cancellation_should_not_lose_receipts -- --ignored --exact --nocapture
+      - name: Format
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        if: always()
+        run: cargo clippy --locked --all-features --lib --tests -- -D warnings

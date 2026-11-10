@@ -17074,6 +17074,150 @@ mod tests {
             .is_some_and(|(name, _, _)| Arc::ptr_eq(name, &topic)));
     }
 
+    // Isolated request-assembly controls. These are not a delivery guarantee.
+    fn assembly_fairness_fixture(
+        count: usize,
+        records: bool,
+        receipts: bool,
+    ) -> (
+        ProduceGroupScratch,
+        Vec<Arc<str>>,
+        Vec<oneshot::Receiver<Result<RecordMetadata>>>,
+    ) {
+        let mut scratch = ProduceGroupScratch::default();
+        let mut order = Vec::with_capacity(count);
+        let mut receivers = Vec::new();
+        for index in 0..count {
+            let topic: Arc<str> = Arc::from(format!("fair-{index}"));
+            order.push(Arc::clone(&topic));
+            let (parts, slots) = if records {
+                let mut pending = queued("placeholder", Some(0));
+                pending.rec.topic = Arc::clone(&topic);
+                if receipts {
+                    let (tx, rx) = oneshot::channel();
+                    pending.tx = Some(tx);
+                    receivers.push(rx);
+                }
+                (vec![(0, vec![pending])], HashMap::from([(0, 0)]))
+            } else {
+                (Vec::new(), HashMap::new())
+            };
+            let previous = scratch.buckets.insert(
+                topic,
+                PendingParts {
+                    order: parts,
+                    slots,
+                },
+            );
+            assert!(previous.is_none());
+        }
+        (scratch, order, receivers)
+    }
+
+    fn assembly_fairness_closed(
+        receivers: &mut [oneshot::Receiver<Result<RecordMetadata>>],
+    ) -> usize {
+        receivers
+            .iter_mut()
+            .map(|receiver| {
+                matches!(
+                    receiver.try_recv(),
+                    Err(oneshot::error::TryRecvError::Closed)
+                )
+            })
+            .filter(|closed| *closed)
+            .count()
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assembly_fairness_first_poll_retains_records() {
+        use std::task::Poll;
+        let n = 8_193;
+        let (mut scratch, order, mut receivers) = assembly_fairness_fixture(n, true, true);
+        let mut task = Box::pin(assemble_mixed_groups(&mut scratch, order));
+        let first = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
+        assert!(first.is_pending(), "large pre-count must yield");
+        drop(first);
+        drop(task);
+        let closed = assembly_fairness_closed(&mut receivers);
+        println!("ASSEMBLY_FIRST retained={} closed={closed}", scratch.buckets.len());
+        assert_eq!(scratch.buckets.len(), n);
+        assert_eq!(closed, 0);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assembly_fairness_empty_topics_yield_during_drain() {
+        use std::task::Poll;
+        let n = 8_193;
+        let (mut scratch, order, _) = assembly_fairness_fixture(n, false, false);
+        let mut task = Box::pin(assemble_mixed_groups(&mut scratch, order));
+        let first = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
+        assert!(first.is_pending(), "large pre-count must yield");
+        let second = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
+        assert!(second.is_pending(), "empty-topic drain must also yield");
+        drop(first);
+        drop(second);
+        drop(task);
+        println!("ASSEMBLY_EMPTY retained={}", scratch.buckets.len());
+        assert_eq!(scratch.buckets.len(), 1);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assembly_fairness_completion_preserves_order_and_receipts() {
+        let n = 8_193;
+        let (mut scratch, order, mut receivers) = assembly_fairness_fixture(n, true, true);
+        let groups = assemble_mixed_groups(&mut scratch, order).await;
+        assert_eq!(groups.len(), n);
+        assert!(scratch.buckets.is_empty());
+        for (index, (topic, partition, records)) in groups.iter().enumerate() {
+            assert_eq!(topic.as_ref(), format!("fair-{index}"));
+            assert_eq!(*partition, 0);
+            assert_eq!(records.len(), 1);
+        }
+        assert_eq!(assembly_fairness_closed(&mut receivers), 0);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore = "isolated cancellation ownership diagnostic"]
+    async fn assembly_fairness_cancellation_should_not_lose_receipts() {
+        use std::task::Poll;
+        let n = 16_385;
+        let (mut scratch, order, mut receivers) = assembly_fairness_fixture(n, true, true);
+        let mut task = Box::pin(assemble_mixed_groups(&mut scratch, order));
+        for _ in 0..3 {
+            let state = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "expected three distinct assembly yields");
+        }
+        drop(task);
+        let closed = assembly_fairness_closed(&mut receivers);
+        println!("ASSEMBLY_CANCEL retained={} closed={closed}", scratch.buckets.len());
+        assert_eq!(closed, 0, "transferred records must retain their receipts");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore = "scoped first-poll and destructor benchmark"]
+    async fn assembly_fairness_benchmark() {
+        use std::task::Poll;
+        for size in [1usize, 4, 64, 200_000] {
+            let reps = if size >= 200_000 { 3 } else { 64 };
+            let mut polls = Vec::new();
+            let mut drops = Vec::new();
+            for _ in 0..reps {
+                let (mut scratch, order, _) = assembly_fairness_fixture(size, true, false);
+                let mut task = Box::pin(assemble_mixed_groups(&mut scratch, order));
+                let start = std::time::Instant::now();
+                let state = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
+                polls.push(start.elapsed().as_nanos());
+                let start = std::time::Instant::now();
+                drop(state);
+                drop(task);
+                drops.push(start.elapsed().as_nanos());
+                drop(scratch);
+            }
+            println!("ASSEMBLY_BENCH size={size} poll_ns={polls:?} drop_ns={drops:?}");
+        }
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn assembling_many_produce_topics_does_not_hold_the_caller() {
         // 200_000 topics: draining each group held the caller 119ms.
