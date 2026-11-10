@@ -1081,7 +1081,9 @@ impl From<Error> for QuotaRouterError {
 /// charge after a caller drops the reply. The capped token-bucket delay differs
 /// from Kafka's sampled quota.
 /// Accounting and response-control failures can occur after an append has
-/// committed; callers must treat the delivery outcome as ambiguous.
+/// committed; callers must treat the delivery outcome as ambiguous. A corrupt
+/// response-control slot or missing internal charge length fails all buckets
+/// closed. An individual bucket's numeric failure remains isolated.
 ///
 /// Use this type through the provided transport, which honors its absolute mute
 /// deadline. A custom transport must use dispatch_controlled and enforce the
@@ -1279,31 +1281,33 @@ fn charge_produce(
     now: impl FnOnce() -> Instant,
 ) -> Option<QuotaMark> {
     let meters = meters.as_mut()?;
-    let Some(meter) = meters.meter(selection) else {
+    let Some(bytes) = bytes else {
         meters.fail_all();
         return Some(QuotaMark::Failed);
     };
-    let Some(bytes) = bytes else {
-        meter.fail();
-        return Some(QuotaMark::Failed);
+    let mark = match meters.meter(selection) {
+        Some(meter) => meter.charge(bytes, now()),
+        None => {
+            meters.fail_all();
+            return Some(QuotaMark::Failed);
+        }
     };
-    let mark = meter.charge(bytes, now());
     if let (QuotaMark::Ready { millis, .. }, Some(produced)) = (mark, produced) {
         match (&mut produced.response, produced.throttle_at) {
             (None, None) => {}
             (Some(response), Some(at)) => {
                 let Some(end) = at.checked_add(4) else {
-                    meter.fail();
+                    meters.fail_all();
                     return Some(QuotaMark::Failed);
                 };
                 let Some(slot) = response.get_mut(at..end) else {
-                    meter.fail();
+                    meters.fail_all();
                     return Some(QuotaMark::Failed);
                 };
                 slot.copy_from_slice(&millis.to_be_bytes());
             }
             _ => {
-                meter.fail();
+                meters.fail_all();
                 return Some(QuotaMark::Failed);
             }
         }
@@ -5076,6 +5080,58 @@ mod quota_accounting_tests {
             }) => Ok(millis),
             _ => Err("missing quota decision".into()),
         }
+    }
+
+    #[test]
+    fn internal_control_corruption_fails_every_client_bucket_closed() {
+        let now = Instant::now();
+        let quota = ProduceQuota::new(100, 100, 10_000).unwrap();
+        let configured = ClientProduceQuotas::new(
+            quota,
+            vec![("alpha".into(), quota), ("bravo".into(), quota)],
+        )
+        .unwrap();
+        let mut meters = Some(QuotaMeters::new(QuotaPolicy::Clients(configured), now));
+        let mut invalid = produce::Produced {
+            response: Some(vec![0; 4]),
+            throttle_at: Some(usize::MAX),
+        };
+        assert!(matches!(
+            charge_produce(&mut meters, Some(0), Some(1), Some(&mut invalid), || now),
+            Some(QuotaMark::Failed)
+        ));
+        assert!(matches!(
+            charge_produce(&mut meters, Some(1), Some(1), None, || now),
+            Some(QuotaMark::Failed)
+        ));
+        assert!(matches!(
+            charge_produce(&mut meters, None, Some(1), None, || now),
+            Some(QuotaMark::Failed)
+        ));
+    }
+
+    #[test]
+    fn missing_charge_length_fails_every_client_bucket_closed() {
+        let now = Instant::now();
+        let quota = ProduceQuota::new(100, 100, 10_000).unwrap();
+        let configured = ClientProduceQuotas::new(
+            quota,
+            vec![("alpha".into(), quota), ("bravo".into(), quota)],
+        )
+        .unwrap();
+        let mut meters = Some(QuotaMeters::new(QuotaPolicy::Clients(configured), now));
+        assert!(matches!(
+            charge_produce(&mut meters, Some(0), None, None, || now),
+            Some(QuotaMark::Failed)
+        ));
+        assert!(matches!(
+            charge_produce(&mut meters, Some(1), Some(1), None, || now),
+            Some(QuotaMark::Failed)
+        ));
+        assert!(matches!(
+            charge_produce(&mut meters, None, Some(1), None, || now),
+            Some(QuotaMark::Failed)
+        ));
     }
 
     #[test]
