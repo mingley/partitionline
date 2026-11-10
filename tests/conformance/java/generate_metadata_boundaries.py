@@ -14,7 +14,7 @@ BASE = ROOT / "tests/conformance/java/generate_metadata_wire.py"
 JAVA = ROOT / "tests/conformance/java/ConformanceMetadataBoundaries.java"
 RUST = ROOT / "tests/metadata_boundaries_conformance.rs"
 VERSIONS = (0, 1, 3, 8, 9, 10, 11, 12)
-PAIRS = 28
+PAIRS = 43
 
 # The helper is shipped under tests/. Avoid creating ignored bytecode that
 # Cargo's package include rules would otherwise consider an uncommitted file.
@@ -78,7 +78,7 @@ def main():
             fixture = directory / "apache.txt"
             result = {"release": release, "jar_sha256": common.digest(jar)}
             result["generate"] = common.run(java + ["generate", str(fixture)], directory / "generate.log",
-                                             marker="generated_pairs=28")
+                                             marker="generated_pairs=43")
             if fixture.stat().st_size > 32768:
                 raise ValueError("fixture budget exceeded")
             body = fixture.read_bytes()
@@ -106,7 +106,7 @@ def main():
                                              env=env, timeout=270, marker="1 passed")
                 result[profile + "-java"] = common.run(
                     java + ["verify", str(reverse)], directory / (profile + "-java.log"),
-                    marker="independently_parsed_pairs=28")
+                    marker="independently_parsed_pairs=43")
                 body = reverse.read_bytes()
                 if rust_ref is None:
                     rust_ref = body
