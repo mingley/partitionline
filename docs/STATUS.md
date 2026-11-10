@@ -133,8 +133,9 @@ and [work plan][next] retain those results and earlier evidence.
   applied. A [live Kafka quota probe and idle-close control][quota-live]
   add scoped evidence. A separate [client-ID probe][quota-client-id] observed
   quota sharing across two connections to Kafka 4.3.1. A
-  [client-label prototype][quota-named] exercises the same wire scenario but
-  uses static token buckets and remains unqualified. The related EOF
+  [client-label prototype][quota-named] exercises the same wire scenario using
+  static token buckets. It passed focused checks but failed both broader
+  broker profiles and remains unapplied. The related EOF
   refinement remains unapplied. The [transport fix][transport-fix] backpressures valid pipelines when read-ahead
   is full. A disconnect behind that buffer may be
   observed only after the active handler completes or reaches its deadline.
@@ -235,5 +236,5 @@ results and experiments.
 [quota-client-id]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/broker/produce-client-quota-isolation-20261110/README.md
 [json-avl]: https://github.com/mingley/partitionline/blob/cfe9a1ac5187aebad36269681275af97bf68ba60/docs/evidence/schema/json-progressive-avl-20261110/README.md
 
-[quota-named]: https://github.com/mingley/partitionline/blob/cfe9a1ac5187aebad36269681275af97bf68ba60/docs/evidence/broker/produce-client-quota-candidate-20261110/README.md
+[quota-named]: https://github.com/mingley/partitionline/blob/dab49628133bb7056f761bcb2ab8c1e12ba9250e/docs/evidence/broker/produce-client-quota-candidate-20261110/README.md
 [json-avl-tail]: https://github.com/mingley/partitionline/blob/cfe9a1ac5187aebad36269681275af97bf68ba60/docs/evidence/schema/json-avl-tail-comparison-20261110/README.md
