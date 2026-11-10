@@ -34,7 +34,15 @@ TLS/SASL compatibility, or a timing bound.
 The wire run used commit
 [`0f3205e`](https://github.com/mingley/partitionline/commit/0f3205e590e9076d59890a42194b6d84189b0473).
 Its production metadata and bandwidth blobs were identical to candidate
-`b4c78673ddbdcf28ac46fcb1c35e628592ec1a64`.
+`b4c78673ddbdcf28ac46fcb1c35e628592ec1a64`. A
+[later run](https://github.com/mingley/partitionline/actions/runs/42869711275) repeated the
+same scenarios using commit
+[`4419b1f`](https://github.com/mingley/partitionline/commit/4419b1f9c99056f4a636c8d044c4cedad6cf364d),
+whose two production blobs match the later
+`e993aabcaef316380e7c13ff31c0a81ab9b5be64` candidate. Fresh Bravo again had
+zero throttle and its second connection reported 4,700 ms for v3 and 4,697 ms
+for v6. Alpha's following Metadata responses took 4,701.601 ms and 4,699.527 ms.
+The [later raw samples](candidate-wire-v5-samples.jsonl) retain all six entries.
 
 ## In-process selector cost
 
@@ -70,8 +78,10 @@ dependent broad broker suite was skipped. An earlier candidate
 [run](https://github.com/mingley/partitionline/actions/runs/42865079914) had the same
 formatting failure. The
 [formatted revision](https://github.com/mingley/partitionline/actions/runs/42868226917)
-passed the same focused controls, formatting, Clippy and rustdoc; its broader
-broker job was still queued when this note was written.
+passed the same focused controls, formatting, Clippy and rustdoc. Its broader
+broker job passed 836 default and 986 all-feature tests, with four ignored in
+each profile. That run predates the failure-domain change and does not explain
+the earlier unrelated broad-suite failure.
 
 Two additional controls inject a corrupt response-control offset or a missing
 internal charge length. On the prior candidate they each observed a different
@@ -85,8 +95,16 @@ numeric meter failure isolated. Its
 five actor and eight public controls in each feature profile, the existing
 authenticated shared-quota control, Clippy and rustdoc; formatting failed and
 the broad suite was skipped. The formatting-only successor
-`e993aabcaef316380e7c13ff31c0a81ab9b5be64` was still under test when this
-note was written.
+`e993aabcaef316380e7c13ff31c0a81ab9b5be64` passed
+[its focused run](https://github.com/mingley/partitionline/actions/runs/42869682907):
+six meter, five actor and eight public controls in each feature profile, the
+existing authenticated shared-quota control, formatting, strict Clippy and
+rustdoc. Its dependent broad default broker step stopped after 754 passed,
+three failed and four ignored across 28 reported test-result summaries; the
+all-feature step stopped after 844 passed, one failed and four ignored across
+28 summaries. Later targets did not run. Failure identities were not inspected
+and their causes are unknown. The earlier v3 pass does not explain these
+failures.
 
 The [candidate patch](candidate.patch) applies to
 `50b5de969a14f11f52df6da36bf2037d4f61de60`. Text application of its hunks

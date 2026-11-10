@@ -63,10 +63,11 @@ runs and their limits.
    ownership, ordering, deadlines and authentication across cancellation and
    reconnects. Keep mock, live-broker and independent peer results distinct.
    The [protocol gaps](../gaps.md) and [support matrix](../support.md) describe
-   the current API and version boundaries. An offline [Metadata v13 fixture](../evidence/conformance/q-conf-metadatawire/README.md)
-   and [boundary fixture](../evidence/conformance/q-conf-metadatawire/boundaries-20261110.md)
-   cover selected bodies against Apache SDKs. Versions 2 and 4–7, wider error
-   cases, version negotiation and live-broker behavior remain open.
+   the current API and version boundaries. Offline fixtures cover selected
+   Metadata [v13](../evidence/conformance/q-conf-metadatawire/README.md) and
+   [v0–v12](../evidence/conformance/q-conf-metadatawire/all-versions-20261110.md)
+   bodies against Apache SDKs. Version 0 is a raw wire case only. Wider error
+   and collection cases, version negotiation and live-broker behavior remain open.
 
    The [Admin cursor guard](../evidence/client/admin-cursor-history-20261109/README.md)
    catches some non-adjacent repeats with fixed-size history. It can reject a
