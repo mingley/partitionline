@@ -596,6 +596,15 @@ class BenchmarkReportValidationTests(unittest.TestCase):
             doc = json.loads(res_json.stdout)
             self.assertTrue(doc["valid"])
             self.assertEqual(doc["error_count"], 0)
+            self.assertTrue(doc["schema"]["canonical_checked"])
+            self.assertEqual(Path(doc["schema"]["path"]).resolve(), self.schema_path.resolve())
+
+            explicit_canonical = subprocess.run(
+                [sys.executable, str(script_path), "--schema", str(self.schema_path), "--json", valid_file],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(explicit_canonical.returncode, 0, explicit_canonical.stderr)
+            self.assertTrue(json.loads(explicit_canonical.stdout)["schema"]["canonical_checked"])
 
             # Invalid execution: break acks
             invalid_fixture = copy.deepcopy(fixture)
