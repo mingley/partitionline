@@ -4,7 +4,7 @@
 use partitionline_broker::{
     catalog::{Catalog, TopicId},
     fetch,
-    metadata::{self, ProduceQuota, QuotaRouter},
+    metadata::{self, ClientProduceQuotas, ProduceQuota, QuotaRouter},
     produce,
     transport::{self, ExchangeControl, Handler, Peer, Transport},
 };
@@ -64,6 +64,19 @@ async fn open(root: &Path, millis: u32) -> Result<QuotaRouter> {
     .await?
     .0)
 }
+fn with_client_id(request: &[u8], name: &str) -> Result<Vec<u8>> {
+    let prefix = request.get(..8).ok_or("short request prefix")?;
+    let old_len = i16::from_be_bytes(request.get(8..10).ok_or("short client length")?.try_into()?);
+    let old_len = if old_len == -1 { 0 } else { usize::try_from(old_len)? };
+    let tail = request.get(10 + old_len..).ok_or("short client ID")?;
+    let mut result = Vec::with_capacity(prefix.len() + 2 + name.len() + tail.len());
+    result.extend_from_slice(prefix);
+    result.extend_from_slice(&i16::try_from(name.len())?.to_be_bytes());
+    result.extend_from_slice(name.as_bytes());
+    result.extend_from_slice(tail);
+    Ok(result)
+}
+
 async fn send(socket: &mut TcpStream, bytes: &[u8]) -> Result {
     socket
         .write_all(&i32::try_from(bytes.len())?.to_be_bytes())
@@ -275,6 +288,95 @@ async fn receive_after_mute(socket: &mut TcpStream, deadline: Instant) -> Result
     let mut body = vec![0; usize::try_from(size)?];
     socket.read_exact(&mut body).await?;
     Ok(body)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn unconfigured_and_malformed_clients_charge_the_shared_fallback() -> Result {
+    let root = scratch()?;
+    let fixture = fixture("produce-v3-acks1", "request").await?;
+    let unknown = with_client_id(&fixture, "unknown")?;
+    let empty = with_client_id(&fixture, "")?;
+    let mut null = with_client_id(&fixture, "")?;
+    null[8..10].copy_from_slice(&(-1i16).to_be_bytes());
+    let alpha = with_client_id(&fixture, "alpha")?;
+    let slow = ProduceQuota::new(3, u64::try_from(unknown.len())?, 60_000)?;
+    let fast = ProduceQuota::new(1_000_000, 1_000_000, 60_000)?;
+    let policies = ClientProduceQuotas::new(slow, vec![("alpha".to_owned(), fast)])?;
+    let (router, _) = QuotaRouter::open_with_client_quotas(
+        root.join("catalog"), common(), produce::Config::new(root.join("parts")),
+        fetch::Limits::default(), policies,
+    ).await?;
+
+    // A started Produce with a malformed UTF-8 client ID fails parsing but
+    // still consumes fallback quota, just like other started work.
+    let malformed = vec![0, 0, 0, 3, 0, 0, 0, 7, 0, 1, 0xff];
+    assert!(router.dispatch_controlled(malformed).await.is_err());
+    let mut reported = Vec::new();
+    for request in [unknown, null, empty, alpha] {
+        let (outcome, _) = router.dispatch_controlled(request).await?.into_parts();
+        let response = outcome.response.ok_or("missing Produce response")?;
+        let start = response.len().checked_sub(4).ok_or("short response")?;
+        reported.push(i32::from_be_bytes(response[start..].try_into()?));
+    }
+    assert!(reported[0] > 0, "malformed work was not charged to fallback");
+    assert!(reported[1] > reported[0] + 1_000, "null ID did not share fallback");
+    assert!(reported[2] > reported[1] + 1_000, "empty ID did not share fallback");
+    assert_eq!(reported[3], 0, "named alpha inherited fallback debt");
+    router.shutdown().await?;
+    fs::remove_dir_all(root)?;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn client_quota_separates_connections_and_sequences_acks_zero() -> Result {
+    let root = scratch()?;
+    let slow = ProduceQuota::new(1, 1, 4_000)?;
+    let fast = ProduceQuota::new(1_000_000, 1_000_000, 4_000)?;
+    let policies = ClientProduceQuotas::new(fast, vec![
+        ("alpha".to_owned(), slow),
+        ("bravo".to_owned(), fast),
+    ])?;
+    let router = Arc::new(QuotaRouter::open_with_client_quotas(
+        root.join("catalog"), common(), produce::Config::new(root.join("parts")),
+        fetch::Limits::default(), policies,
+    ).await?.0);
+    let Observations { handler, mut started, mut deadlines } = observing(&router, false);
+    let mut transport = Transport::bind(
+        ([127, 0, 0, 1], 0).into(), transport::Config::default(), handler,
+    ).await?;
+    let mut first = TcpStream::connect(transport.local_addr()).await?;
+    let mut second = TcpStream::connect(transport.local_addr()).await?;
+    let a = with_client_id(&fixture("produce-v3-acks0", "request").await?, "alpha")?;
+    let b = with_client_id(&fixture("produce-v9-acks1", "request").await?, "bravo")?;
+
+    send(&mut first, &a).await?;
+    started_request(&mut started, 0).await?;
+    let deadline = produce_deadline(&mut deadlines).await?;
+    send(&mut first, &metadata_request()).await?;
+    send(&mut second, &b).await?;
+    let b_started = started_request(&mut started, 0).await?;
+    assert!(b_started < deadline, "unrelated label waited for alpha's mute");
+    let b_deadline = tokio::time::timeout(Duration::from_secs(2), deadlines.recv())
+        .await?.ok_or("deadline observation closed")?;
+    assert!(b_deadline.is_none(), "bravo inherited alpha's debt");
+    let response = tokio::time::timeout(Duration::from_secs(2), receive(&mut second)).await??;
+    let mut expected = fixture("produce-v9-acks1", "response").await?;
+    // Alpha's already completed acks=0 append advances the sole partition.
+    assert_eq!(&expected[19..27], &0i64.to_be_bytes());
+    expected[19..27].copy_from_slice(&1i64.to_be_bytes());
+    assert_eq!(response, expected, "bravo response, offset and zero throttle");
+    assert!(Instant::now() < deadline);
+    assert!(started.try_recv().is_err(), "alpha's metadata reached the handler during mute");
+    let reply = tokio::time::timeout(
+        Duration::from_secs(6), receive_after_mute(&mut first, deadline),
+    ).await??;
+    assert_eq!(&reply[..4], &77i32.to_be_bytes());
+    assert!(started_request(&mut started, 3).await? >= deadline);
+
+    transport.shutdown().await?;
+    router.shutdown().await?;
+    fs::remove_dir_all(root)?;
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
