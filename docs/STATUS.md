@@ -42,12 +42,14 @@ links the individual runs and results. The current branch contains later changes
 | Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
 | Instruction-count gate | No baseline for this Rust version; no regression comparison. |
 
-On the later [8570b01 CI run][main-857-ci], the Schema job passed, while the
-Linux and Windows client libraries, current Kafka jobs and broker default
-library failed. The docs and package jobs also failed because of mutable
-repository links introduced in that commit. A [targeted repair][docs-package]
-passed the extracted-crate documentation check; full release gates remain open.
-The CI run was still in progress when this status was recorded.
+On the later [8570b01 client CI run][main-857-ci], the Schema job passed,
+while the Linux and Windows client libraries and current Kafka jobs failed.
+The docs and package jobs failed because of mutable links; the run was then
+cancelled before its macOS job completed. The separate [broker run][broker-857-ci]
+failed its default library. A [targeted documentation repair][docs-package]
+passed the extracted-crate check. On [665fbd6 CI][main-665-ci], the repaired
+package, docs and Schema jobs passed, but Kafka compatibility jobs failed and
+other jobs were still running at this record. Full release gates remain open.
 
 The [preceding complete snapshot][ci-92a] failed its broker default library;
 the later pass does not explain that failure. An [earlier snapshot][ci-669]
@@ -161,8 +163,9 @@ and [work plan][next] retain those results and earlier evidence.
   implementations with independent record verification remain incomplete.
   Scoped results, including the [Admin index comparison][admin-index], are
   not a client or server ranking. The [report validator][bench-validator]
-  rejects several inconsistent settings and record histories; it cannot
-  verify raw artifacts or prove the declared settings were used. A
+  rejects several inconsistent settings and record histories. Its [JSON
+  update][json-report] rejects duplicate keys and labels alternate schemas;
+  it cannot verify raw artifacts or prove the declared settings were used. A
   [vectored Fetch experiment][fetch-exp]
   showed lower median time in several in-process workloads. Its Windows
   file-backed test failed before Fetch and strict checks remain incomplete;
@@ -192,7 +195,7 @@ results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/docs/evidence/releases/main-ci-ffad-20261110/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/fc839cf08e6bdcadf1e4f022b570d4cb53637176/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/8913f1a00a3b770bba7eb64eff836274e35c23b4/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -261,3 +264,7 @@ results and experiments.
 [main-857-ci]: https://github.com/mingley/partitionline/actions/runs/42878680393
 [docs-package]: https://github.com/mingley/partitionline/blob/fc839cf08e6bdcadf1e4f022b570d4cb53637176/docs/evidence/releases/docs-package-repair-20261110/README.md
 [grouping-design]: https://github.com/mingley/partitionline/blob/fc839cf08e6bdcadf1e4f022b570d4cb53637176/docs/evidence/client/producer-grouping-cancellation-design-20261110/README.md
+
+[broker-857-ci]: https://github.com/mingley/partitionline/actions/runs/42878680382
+[main-665-ci]: https://github.com/mingley/partitionline/actions/runs/42881952564
+[json-report]: https://github.com/mingley/partitionline/blob/8913f1a00a3b770bba7eb64eff836274e35c23b4/docs/evidence/perf/report-json-validation-20261110/README.md
