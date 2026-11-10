@@ -32,10 +32,12 @@ inspected.
 The [initial run](https://github.com/mingley/partitionline/actions/runs/42864907776)
 failed before the Rust comparison because a control incorrectly expected the
 3.9.1 generated DTO to reject a raw v13 write. That SDK declares Metadata v12
-as its maximum, but its raw request writer accepted v13. Declared API range
-and generated writer behavior are separate facts; the permissive write does
-not qualify v13 or make 3.9.1 a v13 response oracle. Formatting and
-test-target Clippy passed on that initial attempt.
+as its maximum, but its raw request writer accepted v13. In the later
+controlled run, the default request produced four bytes and a raw v13 response
+was byte-identical to that SDK's v12 response. Declared API range and generated
+writer behavior are separate facts; the permissive write does not qualify v13
+or make 3.9.1 a v13 response oracle. Formatting and test-target Clippy passed
+on that initial attempt.
 
 The [offline candidate run](https://github.com/mingley/partitionline/actions/runs/42866367751)
 at `1cfd8ba6f666fbf9e36c5053e15f5a9e8bf26e1b` passed the Apache matrix,
@@ -44,9 +46,21 @@ test-target Clippy. Clean packaging failed before creating the crate: importing
 the shared Python helper created an ignored `__pycache__` file under the
 package's included test paths. A Git status check did not list that ignored
 file, but Cargo detected it as uncommitted. The runner now disables bytecode
-writes before importing the helper; this change and the packaged-crate tests
-require a separate run.
+writes before importing the helper.
 
-Versions 2, 4, 5, 6 and 7, other nested shapes, more error codes,
-transactional behavior and live broker interactions remain open. See the
+The [clean-package run](https://github.com/mingley/partitionline/actions/runs/42867167578)
+at `a6e2af9876e635f62d963667c1764c935b79de2f` passed the full five-peer,
+two-profile matrix, both corruption controls, the retained-corpus comparison,
+formatting and strict test-target Clippy on x86 Linux with Rust 1.99.1 and
+Temurin 21.0.13. The offline test passed once in each default and all-feature
+profile in the checkout and the extracted crate. Packaging used a clean tree
+and `cargo package --locked --no-verify`, followed by those two targeted
+extracted-crate tests; this is not a full package or release gate. The runner
+uses bounded child-process cleanup; escaped process groups, permission errors,
+kernel failures and abrupt runner termination can prevent cleanup being proved.
+
+The five Maven SDK artifacts and their SHA-256 pins are recorded in the
+[boundary runner](../../../../tests/conformance/java/generate_metadata_boundaries.py).
+Versions 2, 4, 5, 6 and 7, other nested shapes, more error codes, version
+negotiation and live broker interactions remain open. See the
 [separate v13 record](README.md) for that version.
