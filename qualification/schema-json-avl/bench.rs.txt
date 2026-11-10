@@ -74,3 +74,45 @@
     }
 
 
+
+    #[test]
+    #[ignore = "isolated Registry JSON synchronous and resource observation"]
+    fn json_index_resource_observation() {
+        use std::fmt::Write as _;
+        use std::hint::black_box;
+        let payload = std::env::var("PL_JSON_PAYLOAD")
+            .unwrap_or_else(|_| "0".to_string())
+            .parse::<usize>()
+            .unwrap();
+        let keys = std::env::var("PL_JSON_KEYS")
+            .unwrap_or_else(|_| "0".to_string())
+            .parse::<usize>()
+            .unwrap();
+        let mut body;
+        let expected;
+        if payload > 0 {
+            body = String::with_capacity(payload + 13);
+            body.push_str(r#"{"schema":""#);
+            body.extend(std::iter::repeat_n('x', payload));
+            body.push_str(r#""}"#);
+            expected = payload;
+        } else {
+            body = String::from(r#"{"schema":"{}""#);
+            for i in 0..keys {
+                write!(&mut body, r#","field-{i:05}":0"#).unwrap();
+            }
+            body.push('}');
+            expected = 2;
+        }
+        assert!(body.len() <= 64 * 1024 * 1024);
+        let start = std::time::Instant::now();
+        let result = parse_registered_schema(7, black_box(body.as_bytes())).unwrap();
+        let elapsed = start.elapsed();
+        assert_eq!(result.schema.len(), expected);
+        println!(
+            "PL_JSON_RESOURCE body_bytes={} extra_keys={} payload={} elapsed_ns={}",
+            body.len(), keys, payload, elapsed.as_nanos()
+        );
+        black_box(result);
+    }
+

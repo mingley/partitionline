@@ -2305,6 +2305,14 @@ mod tests {
             let (_, seen) = check_tree(&entries, &index.nodes, index.root, None, None);
             assert_eq!(seen, entries.len());
             assert!(!index.contains(&entries, "not-a-field"));
+            if pattern == 0 {
+                println!(
+                    "PL_JSON_INDEX nodes={} capacity={} node_bytes={}",
+                    index.nodes.len(),
+                    index.nodes.capacity(),
+                    std::mem::size_of::<JsonKeyNode>()
+                );
+            }
         }
     }
 

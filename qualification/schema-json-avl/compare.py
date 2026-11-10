@@ -10,6 +10,7 @@ import statistics
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "partitionline-schema"
@@ -84,6 +85,48 @@ def measure(executable):
         raise ValueError("incomplete shapes: " + repr(set(result) ^ SHAPES))
     return result
 
+def observe_resource(executable, arm, shape, trial, payload, keys):
+    env = os.environ.copy()
+    env["PL_JSON_PAYLOAD"] = str(payload)
+    env["PL_JSON_KEYS"] = str(keys)
+    path = WORK / ("resource-" + arm + "-" + shape + "-" + str(trial) + ".log")
+    with path.open("wb") as output:
+        child = subprocess.Popen(
+            [executable, "json_index_resource_observation", "--ignored", "--nocapture", "--test-threads=1"],
+            cwd=ROOT, env=env, stdout=output, stderr=subprocess.STDOUT,
+        )
+        deadline = time.monotonic() + 30
+        try:
+            while True:
+                pid, status, usage = os.wait4(child.pid, os.WNOHANG)
+                if pid:
+                    child.returncode = os.waitstatus_to_exitcode(status)
+                    break
+                if time.monotonic() >= deadline:
+                    child.kill()
+                    _, status, _usage = os.wait4(child.pid, 0)
+                    child.returncode = os.waitstatus_to_exitcode(status)
+                    raise TimeoutError("resource observation timed out: " + arm + " " + shape)
+                time.sleep(0.01)
+        except BaseException:
+            if child.returncode is None:
+                child.kill()
+                _, status, _usage = os.wait4(child.pid, 0)
+                child.returncode = os.waitstatus_to_exitcode(status)
+            raise
+    output = path.read_text()
+    found = re.findall(r"PL_JSON_RESOURCE body_bytes=(\d+) extra_keys=(\d+) payload=(\d+) elapsed_ns=(\d+)", output)
+    if child.returncode != 0 or len(found) != 1 or "1 passed" not in output:
+        print(output[-8192:], file=sys.stderr)
+        raise RuntimeError("invalid resource observation")
+    body_bytes, observed_keys, observed_payload, elapsed_ns = map(int, found[0])
+    if observed_keys != keys or observed_payload != payload:
+        raise ValueError("resource workload mismatch")
+    if payload and body_bytes != payload + 13:
+        raise ValueError("resource payload body mismatch")
+    print("RESOURCE arm={} shape={} trial={} body_bytes={} extra_keys={} parse_ns={} peak_rss_kib={}".format(
+        arm, shape, trial, body_bytes, observed_keys, elapsed_ns, usage.ru_maxrss), flush=True)
+
 def main():
     if WORK.exists():
         raise ValueError("comparison directory already exists")
@@ -119,6 +162,16 @@ def main():
                   for p in range(12)]
         print("SUMMARY shape={} paired_median_pct={:.4f} min_pct={:.4f} max_pct={:.4f}".format(
             shape, statistics.median(ratios), min(ratios), max(ratios)), flush=True)
+
+    for shape, payload, keys, trials in [
+        ("many_keys", 0, 16384, 5),
+        ("default_limit", 1024 * 1024 - 13, 0, 3),
+        ("max_limit", 64 * 1024 * 1024 - 13, 0, 3),
+    ]:
+        for trial in range(trials):
+            order = ["baseline", "candidate"] if trial % 2 == 0 else ["candidate", "baseline"]
+            for arm in order:
+                observe_resource(arms[arm], arm, shape, trial, payload, keys)
 
 if __name__ == "__main__":
     main()
