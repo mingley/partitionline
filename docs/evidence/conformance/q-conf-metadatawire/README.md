@@ -9,10 +9,10 @@ partition levels. Every response uses top-level error 31, one broker, one
 topic and one partition. The Rust decoder checks the represented fields and
 consumes the complete body. Rust then re-encodes the known fields, and the
 Apache SDK parses and checks them. Unknown tags are intentionally discarded
-by the Rust codec. A zero top-level error, historical peers, other versions,
-more nested shapes and live-broker behavior remain open. A separate
-[boundary comparison](boundaries-20261110.md) covers selected v0–v12 bodies
-against five SDKs; v0 is a raw wire case only.
+by the Rust codec. A zero top-level error, more nested shapes and live-broker
+behavior remain open. Separate [boundary](boundaries-20261110.md) and
+[all-version](all-versions-20261110.md) comparisons cover selected v0–v12
+bodies against five SDKs; v0 is a raw wire case only.
 
 ## Previous runs
 

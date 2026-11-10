@@ -15,8 +15,8 @@ on:
       - 'tests/conformance/java/ConformanceMetadataBoundaries.java'
       - 'tests/conformance/java/generate_metadata_boundaries.py'
       - 'tests/metadata_boundaries_conformance.rs'
-      - 'tests/fixtures/metadata_wire/boundaries-apache.txt'
-      - 'tests/fixtures/metadata_wire/boundaries-rust.txt'
+      - 'tests/fixtures/metadata_wire/all-v0-v12-apache.txt'
+      - 'tests/fixtures/metadata_wire/all-v0-v12-rust.txt'
       - '.github/workflows/metadata-boundaries-experiment.yml'
   pull_request:
     paths:
@@ -29,8 +29,8 @@ on:
       - 'tests/conformance/java/ConformanceMetadataBoundaries.java'
       - 'tests/conformance/java/generate_metadata_boundaries.py'
       - 'tests/metadata_boundaries_conformance.rs'
-      - 'tests/fixtures/metadata_wire/boundaries-apache.txt'
-      - 'tests/fixtures/metadata_wire/boundaries-rust.txt'
+      - 'tests/fixtures/metadata_wire/all-v0-v12-apache.txt'
+      - 'tests/fixtures/metadata_wire/all-v0-v12-rust.txt'
       - '.github/workflows/metadata-boundaries-experiment.yml'
 permissions:
   contents: read
@@ -53,13 +53,13 @@ jobs:
           cargo --version
           java --version
           git rev-parse HEAD
-          sha256sum tests/conformance/java/ConformanceMetadataBoundaries.java tests/conformance/java/generate_metadata_boundaries.py tests/metadata_boundaries_conformance.rs tests/fixtures/metadata_wire/boundaries-apache.txt tests/fixtures/metadata_wire/boundaries-rust.txt
+          sha256sum tests/conformance/java/ConformanceMetadataBoundaries.java tests/conformance/java/generate_metadata_boundaries.py tests/metadata_boundaries_conformance.rs tests/fixtures/metadata_wire/all-v0-v12-apache.txt tests/fixtures/metadata_wire/all-v0-v12-rust.txt
       - name: Compare bounded Apache bodies
         run: timeout 900s python3 tests/conformance/java/generate_metadata_boundaries.py --output target/metadata-boundaries
       - name: Compare retained corpus
         run: |
-          cmp target/metadata-boundaries/3.9.1/apache.txt tests/fixtures/metadata_wire/boundaries-apache.txt
-          cmp target/metadata-boundaries/3.9.1/default-rust.txt tests/fixtures/metadata_wire/boundaries-rust.txt
+          cmp target/metadata-boundaries/3.9.1/apache.txt tests/fixtures/metadata_wire/all-v0-v12-apache.txt
+          cmp target/metadata-boundaries/3.9.1/default-rust.txt tests/fixtures/metadata_wire/all-v0-v12-rust.txt
       - name: Offline corpus in the checkout
         run: |
           cargo test --locked --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact
@@ -76,8 +76,8 @@ jobs:
           mkdir -p "$package_dir"
           tar -xzf "target/package/$crate_stem.crate" -C "$package_dir"
           manifest="$package_dir/$crate_stem/Cargo.toml"
-          test -f "$package_dir/$crate_stem/tests/fixtures/metadata_wire/boundaries-apache.txt"
-          test -f "$package_dir/$crate_stem/tests/fixtures/metadata_wire/boundaries-rust.txt"
+          test -f "$package_dir/$crate_stem/tests/fixtures/metadata_wire/all-v0-v12-apache.txt"
+          test -f "$package_dir/$crate_stem/tests/fixtures/metadata_wire/all-v0-v12-rust.txt"
           CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --manifest-path "$manifest" --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact
           CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --all-features --manifest-path "$manifest" --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact
       - name: Strict lint

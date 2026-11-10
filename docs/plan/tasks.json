@@ -52099,6 +52099,31 @@
             "Versions 2, 4, 5, 6 and 7, broader error and nested shapes, version negotiation and live-broker behavior remain open; the card is not complete.",
             "Packaging used --no-verify followed by targeted tests; it is not a full package or release gate."
           ]
+        },
+        {
+          "source_sha": "935177c2cdccc5be39f1d349bc6daa195dd222ad",
+          "commands": [
+            "timeout 900s python3 tests/conformance/java/generate_metadata_boundaries.py --output target/metadata-boundaries (exit 0)",
+            "cargo test --locked --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact (exit 0)",
+            "cargo test --locked --all-features --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact (exit 0)",
+            "cargo package --locked --no-verify (exit 0)",
+            "CARGO_TARGET_DIR=\"$GITHUB_WORKSPACE/target\" cargo test --locked --manifest-path \"$manifest\" --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact (exit 0)",
+            "CARGO_TARGET_DIR=\"$GITHUB_WORKSPACE/target\" cargo test --locked --all-features --manifest-path \"$manifest\" --test metadata_boundaries_conformance metadata_boundaries_committed_corpus -- --exact (exit 0)",
+            "cargo clippy --locked --all-features --test metadata_boundaries_conformance -- -D warnings (exit 0)",
+            "cargo fmt --all -- --check (exit 0)"
+          ],
+          "results": "Five SHA-256-pinned Apache SDKs (3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1), default and all-feature Rust profiles, 43 request/response pairs in each lane across Metadata v0-v12. Java checked Rust re-encodings; two v3 throttle corruption controls and an incorrect version/case label were rejected. The retained corpus matched, and one offline test passed in each checkout and extracted-crate profile.",
+          "artifacts": [
+            "docs/evidence/conformance/q-conf-metadatawire/all-versions-20261110.md",
+            "tests/fixtures/metadata_wire/all-v0-v12-apache.txt",
+            "tests/fixtures/metadata_wire/all-v0-v12-rust.txt",
+            "https://github.com/mingley/partitionline/actions/runs/42869639976"
+          ],
+          "limits": [
+            "Metadata v0 is a raw wire case; it does not establish public-client negotiation or Java builder support.",
+            "Finite selected bodies do not qualify wider error and collection shapes, version negotiation, unsupported peers or live-broker behavior. The card remains open.",
+            "Packaging used --no-verify followed by targeted tests; it is not a full package or release gate."
+          ]
         }
       ],
       "write_set": [

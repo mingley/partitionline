@@ -14,7 +14,7 @@ use partitionline::protocol::api::{
 };
 use std::error::Error;
 
-const VERSIONS: [i16; 8] = [0, 1, 3, 8, 9, 10, 11, 12];
+const VERSIONS: [i16; 13] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 fn cases(version: i16) -> Vec<&'static str> {
     let mut cells = vec!["empty", "name"];
@@ -155,8 +155,8 @@ fn verify_corpus(text: &str) -> Result<String, Box<dyn Error>> {
 
 #[test]
 fn metadata_boundaries_committed_corpus() -> Result<(), Box<dyn Error>> {
-    let input = include_str!("fixtures/metadata_wire/boundaries-apache.txt");
-    let expected = include_str!("fixtures/metadata_wire/boundaries-rust.txt");
+    let input = include_str!("fixtures/metadata_wire/all-v0-v12-apache.txt");
+    let expected = include_str!("fixtures/metadata_wire/all-v0-v12-rust.txt");
     assert_eq!(verify_corpus(input)?, expected);
     Ok(())
 }
