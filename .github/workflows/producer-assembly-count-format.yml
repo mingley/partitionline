@@ -1,0 +1,19 @@
+name: Producer assembly format correction
+on:
+  push:
+    branches: [qualification/producer-assembly-format-20261110]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Print formatting diff
+        run: |
+          cargo fmt --all
+          git diff -- src/producer.rs
