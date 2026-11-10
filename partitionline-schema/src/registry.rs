@@ -2483,6 +2483,88 @@ mod tests {
             .is_ok());
     }
 
+    #[test]
+    fn json_key_index_nesting_and_fast_path_transition() {
+        use std::fmt::Write as _;
+
+        fn nested_objects(count: usize) -> String {
+            let mut body = String::from("null");
+            for _ in 0..count {
+                let mut outer = String::from("{");
+                for i in 0..JSON_LINEAR_TAIL {
+                    if i != 0 {
+                        outer.push(',');
+                    }
+                    write!(&mut outer, r#""f{i:05}":0"#).unwrap();
+                }
+                write!(&mut outer, r#","next":{body}}}"#).unwrap();
+                body = outer;
+            }
+            body
+        }
+
+        assert!(JsonParser::new(&nested_objects(MAX_JSON_DEPTH))
+            .parse()
+            .is_ok());
+        assert_eq!(
+            JsonParser::new(&nested_objects(MAX_JSON_DEPTH + 1))
+                .parse()
+                .unwrap_err(),
+            RegistryError::Malformed {
+                what: "json nesting too deep".into()
+            }
+        );
+
+        let mut prefix = String::from("{");
+        for i in 0..JSON_LINEAR_TAIL {
+            if i != 0 {
+                prefix.push(',');
+            }
+            write!(&mut prefix, r#""f{i:05}":0"#).unwrap();
+        }
+        for position in [0, JSON_LINEAR_TAIL - 1] {
+            let mut immediate = prefix.clone();
+            write!(&mut immediate, r#","f{position:05}":0}}"#).unwrap();
+            assert_eq!(
+                JsonParser::new(&immediate).parse().unwrap_err(),
+                RegistryError::Malformed {
+                    what: "json duplicate key".into()
+                }
+            );
+
+            let mut after_one = prefix.clone();
+            write!(&mut after_one, r#","fresh":1,"f{position:05}":0}}"#).unwrap();
+            assert_eq!(
+                JsonParser::new(&after_one).parse().unwrap_err(),
+                RegistryError::Malformed {
+                    what: "json duplicate key".into()
+                }
+            );
+        }
+
+        let malformed_value = format!(r#"{prefix},"f00000":tru}}"#);
+        assert_eq!(
+            JsonParser::new(&malformed_value).parse().unwrap_err(),
+            RegistryError::Malformed {
+                what: "json bad literal".into()
+            }
+        );
+        let missing_colon = format!(r#"{prefix},"fresh" 1}}"#);
+        assert_eq!(
+            JsonParser::new(&missing_colon).parse().unwrap_err(),
+            RegistryError::Malformed {
+                what: "json object missing colon".into()
+            }
+        );
+        let missing_comma = format!(r#"{prefix},"fresh":1 "next":0}}"#);
+        assert_eq!(
+            JsonParser::new(&missing_comma).parse().unwrap_err(),
+            RegistryError::Malformed {
+                what: "json bad object".into()
+            }
+        );
+    }
+
     #[tokio::test]
     async fn json_key_index_large_public_response_and_duplicate() {
         use std::fmt::Write as _;
