@@ -9631,7 +9631,9 @@ impl Drop for PendingDrainGuard<'_> {
         let count = self.staged.len();
         // The pending vector retained its original capacity when drained.
         // Its exclusive borrow prevents changes while this guard is armed.
-        self.pending.append(self.staged);
+        for pending in self.staged.drain(..) {
+            self.pending.push(pending);
+        }
         self.pending.rotate_right(count);
     }
 }
@@ -9639,7 +9641,11 @@ impl Drop for PendingDrainGuard<'_> {
 fn fill_spare(spare: &mut Vec<Pending>, pending: &mut Vec<Pending>, n: usize) -> Vec<Pending> {
     let mut batch = std::mem::take(spare);
     batch.clear();
-    batch.extend(pending.drain(..n));
+    assert!(n <= pending.len(), "drain count exceeds pending length");
+    batch.reserve(n);
+    for record in pending.drain(..n) {
+        batch.push(record);
+    }
     batch
 }
 
@@ -12677,7 +12683,10 @@ mod tests {
         fail_pendings(&shared, batch, Error::Closed);
         drop(worker);
         assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
-        assert_eq!(shared.m_errors.load(Ordering::SeqCst), u64::try_from(total).unwrap_or(u64::MAX));
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(total).unwrap_or(u64::MAX)
+        );
         assert!(receivers
             .iter_mut()
             .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
@@ -12715,7 +12724,10 @@ mod tests {
         )));
         drop(worker);
         assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
-        assert_eq!(shared.m_errors.load(Ordering::SeqCst), u64::try_from(total).unwrap_or(u64::MAX));
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(total).unwrap_or(u64::MAX)
+        );
         assert!(receivers
             .iter_mut()
             .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
@@ -12740,7 +12752,10 @@ mod tests {
         task.abort();
         assert!(task.await.unwrap_err().is_cancelled());
         assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
-        assert_eq!(shared.m_errors.load(Ordering::SeqCst), u64::try_from(count).unwrap_or(u64::MAX));
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(count).unwrap_or(u64::MAX)
+        );
         assert!(receivers
             .iter_mut()
             .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
@@ -12779,6 +12794,51 @@ mod tests {
         assert!(receivers
             .iter_mut()
             .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_drain_deadline_cases() {
+        for (first, second, third, expected) in [
+            (1_u64, 4_u64, 5_u64, 4_u64),
+            (1, 1, 5, 1),
+            (4, 1, 5, 1),
+        ] {
+            let (mut worker, shared, mut receivers) = grouping_drain_fixture(3).await;
+            let start = Instant::now() + Duration::from_secs(60);
+            for (record, offset) in worker.pending.iter_mut().zip([first, second, third]) {
+                record.deadline = start + Duration::from_secs(offset);
+            }
+            worker.earliest_deadline =
+                Some(start + Duration::from_secs(first.min(second).min(third)));
+            let batch = worker.drain_pending(1).await;
+            assert_eq!(
+                worker.earliest_deadline,
+                Some(start + Duration::from_secs(expected))
+            );
+            fail_pendings(&shared, batch, Error::Closed);
+            drop(worker);
+            assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+            assert!(receivers
+                .iter_mut()
+                .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+        }
+    }
+
+    #[test]
+    fn grouping_drain_invalid_count_keeps_pending() {
+        let mut pending = vec![queued("a", Some(1)), queued("b", Some(2))];
+        let mut spare = Vec::new();
+        let old_ptr = pending.as_ptr();
+        let old_capacity = pending.capacity();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            fill_spare(&mut spare, &mut pending, 3)
+        }));
+        assert!(result.is_err());
+        assert_eq!(pending.len(), 2);
+        assert_eq!(pending.as_ptr(), old_ptr);
+        assert_eq!(pending.capacity(), old_capacity);
+        assert_eq!(pending[0].rec.partition, Some(1));
+        assert_eq!(pending[1].rec.partition, Some(2));
     }
 
     #[tokio::test(flavor = "current_thread")]
