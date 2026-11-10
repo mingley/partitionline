@@ -63,6 +63,10 @@ jobs:
           source = Path("partitionline-schema")
           dest = Path(os.environ["RUNNER_TEMP"]) / "schema-json-avl32"
           shutil.copytree(source, dest)
+          fixtures = dest.parent / "tests" / "fixtures"
+          fixtures.mkdir(parents=True, exist_ok=True)
+          for name in ("generic_schema_header", "json_schema_selected_codec", "avro_selected_codec"):
+              shutil.copytree(Path("tests/fixtures") / name, fixtures / name)
           path = dest / "src" / "registry.rs"
           text = path.read_text()
           before = "const JSON_LINEAR_TAIL: usize = 64;"
