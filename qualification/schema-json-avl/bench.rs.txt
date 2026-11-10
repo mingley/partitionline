@@ -52,6 +52,14 @@
             cases.push((name, body, iterations, false));
         }
 
+        let mut long_prefix = String::from(r#"{"schema":"{}""#);
+        let prefix = "a".repeat(256);
+        for number in 0..512 {
+            write!(&mut long_prefix, r#","{prefix}{number:05}":0"#).unwrap();
+        }
+        long_prefix.push('}');
+        cases.push(("k512_prefix256", long_prefix, 50, false));
+
         for (name, body, iterations, versioned) in cases {
             let expected = json_tree_bench_parse(body.as_bytes(), versioned);
             let _warm = json_tree_bench_parse(black_box(body.as_bytes()), versioned);

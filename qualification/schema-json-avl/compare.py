@@ -22,7 +22,7 @@ PATTERN = re.compile(r"PL_TREE_SAMPLE shape=(\S+) iterations=(\d+) ns=(\d+) body
 SHAPES = {
     "typical", "versioned", "k5", "k16", "k32", "k33", "k34", "k64", "k65",
     "k96", "k128", "k129", "k256", "k512", "k4097", "k8193",
-    "k8193_desc", "k8193_shuffled",
+    "k8193_desc", "k8193_shuffled", "k512_prefix256",
 }
 
 def checked(command, **kwargs):

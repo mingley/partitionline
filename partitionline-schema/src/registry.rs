@@ -2350,6 +2350,46 @@ mod tests {
                 }
             }
         }
+        for pattern in 0..3 {
+            let mut order: Vec<usize> = (0..512).collect();
+            if pattern == 1 {
+                order.reverse();
+            } else if pattern == 2 {
+                let mut state = 0x772a_31df_u64;
+                for i in (1..order.len()).rev() {
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
+                    order.swap(i, (state as usize) % (i + 1));
+                }
+            }
+            let mut body = String::from("{");
+            for (position, value) in order.iter().enumerate() {
+                if position != 0 {
+                    body.push(',');
+                }
+                write!(&mut body, r#""k{value:05}":0"#).unwrap();
+            }
+            let prefix = body;
+            let mut valid = prefix.clone();
+            valid.push('}');
+            let JsonValue::Object(entries) = JsonParser::new(&valid).parse().unwrap() else {
+                panic!("expected object");
+            };
+            for (position, (key, _)) in entries.iter().enumerate() {
+                assert_eq!(key, &format!("k{:05}", order[position]));
+            }
+            for position in [0, 256, 511] {
+                let mut duplicate = prefix.clone();
+                write!(&mut duplicate, r#","k{:05}":0}}"#, order[position]).unwrap();
+                assert_eq!(
+                    JsonParser::new(&duplicate).parse().unwrap_err(),
+                    RegistryError::Malformed {
+                        what: "json duplicate key".into()
+                    }
+                );
+            }
+        }
         let err = JsonParser::new(r#"{"a":1,"\u0061":2}"#)
             .parse()
             .unwrap_err();
