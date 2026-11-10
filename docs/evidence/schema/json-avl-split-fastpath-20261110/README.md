@@ -55,10 +55,10 @@ failed formatting on both thresholds; the later run corrected it. The tested
 64-tail source blob is `74d8721405e32cc6939ad22378893b11a82ce625`; the
 32-tail source was `d97fa84d47a85b116ed3b10763aa73d45f18aab7`.
 
-An independent baseline-versus-candidate differential corpus covering these
-boundaries is running in a separate adaptive-promotion experiment. The
-checks above are finite regression controls, not a completed differential
-or platform-stack qualification.
+A separately executed 104-case baseline-versus-candidate differential corpus
+also matched; see the [adaptive comparison](../json-adaptive-avl-20261110/README.md).
+These are finite authored controls, not an independent JSON implementation,
+a live Registry test or a platform-stack qualification.
 
 The [64-tail patch](split64.patch) was text-checked against baseline source
 blob `2e54868346d05cafff0369358703a033cce0c501`. The tests use local
