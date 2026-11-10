@@ -1,0 +1,57 @@
+name: Producer assembly paired measurements
+on:
+  push:
+    branches: [qualification/producer-assembly-count-perf2-20261110]
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record environment
+        run: |
+          uname -m
+          rustc -Vv
+          cargo -V
+          git rev-parse HEAD
+          echo "baseline c12210310cc46921caab2cc336618472ce4b00f2"
+          echo "candidate 2ed232500456a48d063ca81e09ad638225fa43be"
+      - name: Build paired release test binaries
+        run: |
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/assembly-perf-target"
+          git worktree add --detach "$RUNNER_TEMP/assembly-baseline" "c12210310cc46921caab2cc336618472ce4b00f2"
+          (
+            cd "$RUNNER_TEMP/assembly-baseline"
+            cargo test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/assembly-baseline.json"
+          )
+          python3 - "$RUNNER_TEMP/assembly-baseline.json" "$RUNNER_TEMP/assembly-baseline-test" <<'PY'
+          import json,shutil,sys
+          data=[json.loads(line) for line in open(sys.argv[1]) if line.startswith('{')]
+          paths=[x['executable'] for x in data if x.get('reason')=='compiler-artifact' and x['target']['name']=='partitionline' and x['profile']['test'] and x.get('executable')]
+          if len(paths)!=1: raise ValueError('expected one baseline test executable: '+repr(paths))
+          shutil.copy2(paths[0],sys.argv[2])
+          PY
+          cargo test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/assembly-candidate.json"
+          python3 - "$RUNNER_TEMP/assembly-candidate.json" "$RUNNER_TEMP/assembly-candidate-test" <<'PY'
+          import json,shutil,sys
+          data=[json.loads(line) for line in open(sys.argv[1]) if line.startswith('{')]
+          paths=[x['executable'] for x in data if x.get('reason')=='compiler-artifact' and x['target']['name']=='partitionline' and x['profile']['test'] and x.get('executable')]
+          if len(paths)!=1: raise ValueError('expected one candidate test executable: '+repr(paths))
+          shutil.copy2(paths[0],sys.argv[2])
+          PY
+          "$RUNNER_TEMP/assembly-baseline-test" --list | python3 -c 'import sys; s=sys.stdin.read(); assert "assembly_count_first_poll_limits_topic_lookups" not in s'
+          "$RUNNER_TEMP/assembly-candidate-test" --list | python3 -c 'import sys; s=sys.stdin.read(); assert "assembly_count_first_poll_limits_topic_lookups" not in s'
+      - name: Alternate paired measurements
+        run: |
+          for arm in baseline candidate candidate baseline baseline candidate candidate baseline; do
+            printf 'ASSEMBLY_ARM %s\n' "$arm"
+            timeout 240s "$RUNNER_TEMP/assembly-${arm}-test" producer::tests::assembly_count_benchmark --exact --ignored --nocapture --test-threads=1
+            timeout 240s "$RUNNER_TEMP/assembly-${arm}-test" producer::tests::assembly_count_grouping_benchmark --exact --ignored --nocapture --test-threads=1
+          done
