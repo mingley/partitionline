@@ -75,7 +75,7 @@ broker job was still queued when this note was written.
 
 Two additional controls inject a corrupt response-control offset or a missing
 internal charge length. On the prior candidate they each observed a different
-named bucket still accepting work and failed in
+named meter still return a ready quota mark and failed in
 [run 42868573395](https://github.com/mingley/partitionline/actions/runs/42868573395).
 These are injected internal states; they do not show such corruption occurs
 naturally. Revision `c59ec2e65e8689800b13ee3da3b27dfa498b8fad` fails every
