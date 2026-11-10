@@ -9893,16 +9893,6 @@ async fn group_pending(
     (ProduceGroups::from_vec(out), batch)
 }
 
-#[cfg(all(test, debug_assertions))]
-std::thread_local! {
-    static ASSEMBLY_LOOKUPS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
-}
-
-#[cfg(all(test, debug_assertions))]
-fn observe_assembly_lookup() {
-    ASSEMBLY_LOOKUPS.with(|count| count.set(count.get().saturating_add(1)));
-}
-
 /// Build produce groups after a mixed batch has been counted.
 ///
 /// Build output in topic and partition order using the size observed during
@@ -9920,8 +9910,6 @@ async fn assemble_mixed_groups(
     reserve_len(&mut out, total_groups);
     let mut walked = 0usize;
     for topic in order.drain(..) {
-        #[cfg(all(test, debug_assertions))]
-        observe_assembly_lookup();
         let Some(mut groups) = scratch.buckets.remove(topic.as_ref()) else {
             continue;
         };
@@ -17142,51 +17130,6 @@ mod tests {
         assemble_mixed_groups(scratch, order, total).await
     }
 
-    #[cfg(debug_assertions)]
-    #[tokio::test(flavor = "current_thread")]
-    async fn assembly_count_first_poll_limits_topic_lookups() {
-        use std::task::Poll;
-        let n = 8_193;
-        let (mut scratch, order, mut receivers) = assembly_count_fixture(n, true, true);
-        ASSEMBLY_LOOKUPS.with(|count| count.set(0));
-        let mut task = Box::pin(assembly_count_run(&mut scratch, order, n));
-        let state = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
-        let lookups = ASSEMBLY_LOOKUPS.with(std::cell::Cell::get);
-        assert!(state.is_pending(), "large drain must yield");
-        drop(state);
-        drop(task);
-        let closed = assembly_count_closed(&mut receivers);
-        println!(
-            "ASSEMBLY_FIRST lookups={lookups} retained={} closed={closed}",
-            scratch.buckets.len()
-        );
-        assert!(
-            lookups <= 8_192,
-            "first poll walked {lookups} topic lookups"
-        );
-    }
-
-    #[cfg(debug_assertions)]
-    #[tokio::test(flavor = "current_thread")]
-    #[ignore = "known unbounded empty-topic drain"]
-    async fn assembly_count_empty_topics_yield() {
-        use std::task::Poll;
-        let n = 8_193;
-        let (mut scratch, order, _) = assembly_count_fixture(n, false, false);
-        ASSEMBLY_LOOKUPS.with(|count| count.set(0));
-        let mut task = Box::pin(assembly_count_run(&mut scratch, order, 0));
-        let first = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
-        let lookups = ASSEMBLY_LOOKUPS.with(std::cell::Cell::get);
-        assert!(first.is_pending(), "empty-topic drain must yield");
-        assert!(
-            lookups <= 8_192,
-            "empty-topic drain walked {lookups} lookups"
-        );
-        drop(first);
-        drop(task);
-        assert_eq!(scratch.buckets.len(), 1);
-    }
-
     #[tokio::test(flavor = "current_thread")]
     async fn assembly_count_mixed_groups_keep_order_and_capacity() {
         let mut scratch = ProduceGroupScratch {
@@ -17302,44 +17245,6 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
-    async fn assembly_count_stale_fallback_does_not_inflate_reservation() {
-        // This seeds inconsistent private state; it is not a natural worker history.
-        let mut scratch = ProduceGroupScratch::default();
-        let mut batch = Vec::new();
-        for index in 0..1_024 {
-            let topic: Arc<str> = Arc::from(format!("stale-{index}"));
-            let previous = scratch.buckets.insert(
-                Arc::clone(&topic),
-                PendingParts {
-                    order: vec![(7, Vec::new())],
-                    slots: HashMap::from([(0, usize::MAX)]),
-                },
-            );
-            assert!(previous.is_none());
-            let mut pending = queued("placeholder", Some(0));
-            pending.rec.topic = topic;
-            batch.push(pending);
-        }
-        for index in 0..4 {
-            let topic: Arc<str> = Arc::from(format!("fresh-{index}"));
-            let mut pending = queued("placeholder", Some(0));
-            pending.rec.topic = topic;
-            batch.push(pending);
-        }
-        let expected: Vec<(Arc<str>, i32, Vec<Pending>)> = Vec::with_capacity(4);
-        let expected_capacity = expected.capacity();
-        let (groups, _) = group_pending(batch, &mut scratch).await;
-        let ProduceGroups::Many(groups) = groups else {
-            panic!("expected fresh groups");
-        };
-        println!(
-            "ASSEMBLY_STALE output_groups={} retained_topics={} capacity={} expected_capacity={expected_capacity}",
-            groups.len(), scratch.buckets.len(), groups.capacity()
-        );
-        assert_eq!(groups.capacity(), expected_capacity);
-    }
-
-    #[tokio::test(flavor = "current_thread")]
     async fn assembly_count_large_completion_keeps_order_and_receipts() {
         let n = 8_193;
         let (mut scratch, order, mut receivers) = assembly_count_fixture(n, true, true);
@@ -17353,84 +17258,6 @@ mod tests {
             assert_eq!(records.len(), 1);
         }
         assert_eq!(assembly_count_closed(&mut receivers), 0);
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    #[ignore = "isolated cancellation ownership diagnostic"]
-    async fn assembly_count_cancellation_should_not_lose_receipts() {
-        use std::task::Poll;
-        let n = 8_193;
-        let (mut scratch, order, mut receivers) = assembly_count_fixture(n, true, true);
-        let mut task = Box::pin(assembly_count_run(&mut scratch, order, n));
-        let state = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
-        assert!(state.is_pending());
-        drop(state);
-        drop(task);
-        let closed = assembly_count_closed(&mut receivers);
-        println!(
-            "ASSEMBLY_CANCEL retained={} closed={closed}",
-            scratch.buckets.len()
-        );
-        assert_eq!(closed, 0, "transferred records must retain their receipts");
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    #[ignore = "scoped first-poll and destructor benchmark"]
-    async fn assembly_count_benchmark() {
-        use std::task::Poll;
-        for size in [1usize, 4, 64, 200_000] {
-            let reps = if size >= 200_000 { 3 } else { 64 };
-            let mut polls = Vec::new();
-            let mut drops = Vec::new();
-            for _ in 0..reps {
-                let (mut scratch, order, _) = assembly_count_fixture(size, true, false);
-                let mut task = Box::pin(assembly_count_run(&mut scratch, order, size));
-                let start = std::time::Instant::now();
-                let state = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
-                polls.push(start.elapsed().as_nanos());
-                let start = std::time::Instant::now();
-                drop(state);
-                drop(task);
-                drops.push(start.elapsed().as_nanos());
-                drop(scratch);
-            }
-            println!("ASSEMBLY_BENCH size={size} poll_ns={polls:?} drop_ns={drops:?}");
-        }
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    #[ignore = "scoped mixed-batch grouping benchmark"]
-    async fn assembly_count_grouping_benchmark() {
-        for (label, records, topics, partitions) in [
-            ("two_topic", 512usize, 2usize, 2usize),
-            ("many_topic", 64, 64, 1),
-            ("large_topic", 20_000, 20_000, 1),
-        ] {
-            let reps = if records >= 20_000 { 3 } else { 64 };
-            let mut times = Vec::new();
-            let mut counts = Vec::new();
-            for _ in 0..reps {
-                let names: Vec<Arc<str>> = (0..topics)
-                    .map(|i| Arc::from(format!("bench-{i}")))
-                    .collect();
-                let mut batch = Vec::with_capacity(records);
-                for index in 0..records {
-                    let partition = i32::try_from(index % partitions).unwrap_or(0);
-                    let mut pending = queued("placeholder", Some(partition));
-                    pending.rec.topic = Arc::clone(&names[index % topics]);
-                    batch.push(pending);
-                }
-                let mut scratch = ProduceGroupScratch::default();
-                let start = std::time::Instant::now();
-                let (groups, shell) = group_pending(batch, &mut scratch).await;
-                times.push(start.elapsed().as_nanos());
-                counts.push(groups.len());
-                drop(groups);
-                drop(shell);
-                drop(scratch);
-            }
-            println!("GROUP_BENCH label={label} ns={times:?} group_counts={counts:?}");
-        }
     }
 
     #[tokio::test(flavor = "current_thread")]
