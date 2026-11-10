@@ -22,9 +22,18 @@ jobs:
         if: always()
         continue-on-error: true
         run: cargo test --locked --lib producer::tests::assembly_count_cancellation_should_not_lose_receipts -- --ignored --exact --nocapture
+      - name: Existing empty-topic fairness diagnostic
+        if: always()
+        continue-on-error: true
+        run: cargo test --locked --lib producer::tests::assembly_count_empty_topics_yield -- --ignored --exact --nocapture
       - name: Format
         if: always()
         run: cargo fmt --all -- --check
       - name: Clippy
         if: always()
         run: cargo clippy --locked --all-features --lib --tests -- -D warnings
+      - name: Show formatting correction
+        if: failure()
+        run: |
+          cargo fmt --all
+          git diff -- src/producer.rs
