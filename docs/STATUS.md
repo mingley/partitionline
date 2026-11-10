@@ -267,4 +267,4 @@ results and experiments.
 
 [ci-ffad]: https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/docs/evidence/releases/main-ci-ffad-20261110/README.md
 
-[drain-staging]: https://github.com/mingley/partitionline/blob/d645a9c458adff74665571f05a694906b1e92f90/docs/evidence/client/producer-drain-staging-20261110/README.md
+[drain-staging]: https://github.com/mingley/partitionline/blob/86e6802050e42a82f0d158bc06fbb6a8a1348cf2/docs/evidence/client/producer-drain-staging-20261110/README.md
