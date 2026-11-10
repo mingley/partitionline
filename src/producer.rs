@@ -17074,6 +17074,255 @@ mod tests {
             .is_some_and(|(name, _, _)| Arc::ptr_eq(name, &topic)));
     }
 
+    // Isolated request-assembly controls. These do not establish delivery.
+    type AssemblyCountFixture = (
+        ProduceGroupScratch,
+        Vec<Arc<str>>,
+        Vec<oneshot::Receiver<Result<RecordMetadata>>>,
+    );
+
+    fn assembly_count_fixture(count: usize, records: bool, receipts: bool) -> AssemblyCountFixture {
+        let mut scratch = ProduceGroupScratch::default();
+        let mut order = Vec::with_capacity(count);
+        let mut receivers = Vec::new();
+        for index in 0..count {
+            let topic: Arc<str> = Arc::from(format!("fair-{index}"));
+            order.push(Arc::clone(&topic));
+            let (parts, slots) = if records {
+                let mut pending = queued("placeholder", Some(0));
+                pending.rec.topic = Arc::clone(&topic);
+                if receipts {
+                    let (tx, rx) = oneshot::channel();
+                    pending.tx = Some(tx);
+                    receivers.push(rx);
+                }
+                (vec![(0, vec![pending])], HashMap::from([(0, 0)]))
+            } else {
+                (Vec::new(), HashMap::new())
+            };
+            let previous = scratch.buckets.insert(
+                topic,
+                PendingParts {
+                    order: parts,
+                    slots,
+                },
+            );
+            assert!(previous.is_none());
+        }
+        (scratch, order, receivers)
+    }
+
+    fn assembly_count_closed(receivers: &mut [oneshot::Receiver<Result<RecordMetadata>>]) -> usize {
+        receivers
+            .iter_mut()
+            .map(|receiver| {
+                matches!(
+                    receiver.try_recv(),
+                    Err(oneshot::error::TryRecvError::Closed)
+                )
+            })
+            .filter(|closed| *closed)
+            .count()
+    }
+
+    #[inline]
+    async fn assembly_count_run(
+        scratch: &mut ProduceGroupScratch,
+        order: Vec<Arc<str>>,
+        _total: usize,
+    ) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
+        assemble_mixed_groups(scratch, order).await
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assembly_count_mixed_groups_keep_order_and_capacity() {
+        let mut scratch = ProduceGroupScratch {
+            spare_groups: Vec::with_capacity(16),
+            ..ProduceGroupScratch::default()
+        };
+        let expected_capacity = scratch.spare_groups.capacity();
+        let mut batch = Vec::new();
+        for (topic, partition, value) in [
+            ("a", 2, "a0"),
+            ("b", 0, "b0"),
+            ("a", 1, "a1"),
+            ("b", 0, "b1"),
+            ("a", 2, "a2"),
+            ("c", 5, "c0"),
+        ] {
+            let mut pending = queued(topic, Some(partition));
+            pending.rec.value = Some(Bytes::copy_from_slice(value.as_bytes()));
+            batch.push(pending);
+        }
+        let (groups, _) = group_pending(batch, &mut scratch).await;
+        let ProduceGroups::Many(groups) = groups else {
+            panic!("expected mixed groups");
+        };
+        assert_eq!(groups.capacity(), expected_capacity);
+        assert_eq!(groups.len(), 4);
+        let actual = groups
+            .iter()
+            .map(|(topic, partition, records)| {
+                (
+                    topic.to_string(),
+                    *partition,
+                    records
+                        .iter()
+                        .map(|p| p.rec.value.clone())
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect::<Vec<_>>();
+        let bytes = |s: &'static str| Some(Bytes::from_static(s.as_bytes()));
+        assert_eq!(
+            actual,
+            vec![
+                ("a".into(), 2, vec![bytes("a0"), bytes("a2")]),
+                ("a".into(), 1, vec![bytes("a1")]),
+                ("b".into(), 0, vec![bytes("b0"), bytes("b1")]),
+                ("c".into(), 5, vec![bytes("c0")]),
+            ]
+        );
+        assert!(scratch.buckets.is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assembly_count_empty_tail_preserves_receipt_on_drop() {
+        use std::task::Poll;
+        let n = 8_193;
+        let (mut scratch, order, _) = assembly_count_fixture(n, false, false);
+        let mut pending = queued("placeholder", Some(0));
+        pending.rec.topic = Arc::clone(&order[0]);
+        let (tx, mut rx) = oneshot::channel();
+        pending.tx = Some(tx);
+        let bucket = scratch.buckets.get_mut(order[0].as_ref()).expect("topic");
+        bucket.order.push((0, vec![pending]));
+        let _ = bucket.slots.insert(0, 0);
+        let mut task = Box::pin(assembly_count_run(&mut scratch, order, 1));
+        let state = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
+        drop(task);
+        let groups = match state {
+            Poll::Ready(groups) => Some(groups),
+            Poll::Pending => None,
+        };
+        assert!(matches!(
+            rx.try_recv(),
+            Err(oneshot::error::TryRecvError::Empty)
+        ));
+        if let Some(groups) = groups {
+            assert_eq!(groups.len(), 1);
+            assert!(scratch.buckets.is_empty());
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assembly_count_missing_tail_preserves_receipt_on_drop() {
+        use std::task::Poll;
+        let (mut scratch, mut order, mut receivers) = assembly_count_fixture(1, true, true);
+        for index in 0..8_192 {
+            order.push(Arc::from(format!("missing-{index}")));
+        }
+        let mut task = Box::pin(assembly_count_run(&mut scratch, order, 1));
+        let state = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
+        drop(task);
+        let groups = match state {
+            Poll::Ready(groups) => Some(groups),
+            Poll::Pending => None,
+        };
+        assert_eq!(assembly_count_closed(&mut receivers), 0);
+        if let Some(groups) = groups {
+            assert_eq!(groups.len(), 1);
+            assert!(scratch.buckets.is_empty());
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assembly_count_missing_topic_and_low_hint_preserve_output() {
+        let (mut scratch, mut order, mut receivers) = assembly_count_fixture(2, true, true);
+        order.insert(1, Arc::from("missing-topic"));
+        let groups = assembly_count_run(&mut scratch, order, 0).await;
+        assert_eq!(groups.len(), 2);
+        assert_eq!(groups.first().map(|group| group.0.as_ref()), Some("fair-0"));
+        assert_eq!(groups.get(1).map(|group| group.0.as_ref()), Some("fair-1"));
+        assert_eq!(assembly_count_closed(&mut receivers), 0);
+        assert!(scratch.buckets.is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn assembly_count_large_completion_keeps_order_and_receipts() {
+        let n = 8_193;
+        let (mut scratch, order, mut receivers) = assembly_count_fixture(n, true, true);
+        let groups = assembly_count_run(&mut scratch, order, n).await;
+        assert_eq!(groups.len(), n);
+        assert!(groups.capacity() >= n);
+        assert!(scratch.buckets.is_empty());
+        for (index, (topic, partition, records)) in groups.iter().enumerate() {
+            assert_eq!(topic.as_ref(), format!("fair-{index}"));
+            assert_eq!(*partition, 0);
+            assert_eq!(records.len(), 1);
+        }
+        assert_eq!(assembly_count_closed(&mut receivers), 0);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore = "scoped first-poll and destructor benchmark"]
+    async fn assembly_count_benchmark() {
+        use std::task::Poll;
+        for size in [1usize, 4, 64, 200_000] {
+            let reps = if size >= 200_000 { 3 } else { 64 };
+            let mut polls = Vec::new();
+            let mut drops = Vec::new();
+            for _ in 0..reps {
+                let (mut scratch, order, _) = assembly_count_fixture(size, true, false);
+                let mut task = Box::pin(assembly_count_run(&mut scratch, order, size));
+                let start = std::time::Instant::now();
+                let state = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
+                polls.push(start.elapsed().as_nanos());
+                let start = std::time::Instant::now();
+                drop(state);
+                drop(task);
+                drops.push(start.elapsed().as_nanos());
+                drop(scratch);
+            }
+            println!("ASSEMBLY_BENCH size={size} poll_ns={polls:?} drop_ns={drops:?}");
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore = "scoped mixed-batch grouping benchmark"]
+    async fn assembly_count_grouping_benchmark() {
+        for (label, records, topics, partitions) in [
+            ("two_topic", 512usize, 2usize, 2usize),
+            ("many_topic", 64, 64, 1),
+            ("large_topic", 20_000, 20_000, 1),
+        ] {
+            let reps = if records >= 20_000 { 3 } else { 64 };
+            let mut times = Vec::new();
+            let mut counts = Vec::new();
+            for _ in 0..reps {
+                let names: Vec<Arc<str>> = (0..topics)
+                    .map(|i| Arc::from(format!("bench-{i}")))
+                    .collect();
+                let mut batch = Vec::with_capacity(records);
+                for index in 0..records {
+                    let partition = i32::try_from(index % partitions).unwrap_or(0);
+                    let mut pending = queued("placeholder", Some(partition));
+                    pending.rec.topic = Arc::clone(&names[index % topics]);
+                    batch.push(pending);
+                }
+                let mut scratch = ProduceGroupScratch::default();
+                let start = std::time::Instant::now();
+                let (groups, shell) = group_pending(batch, &mut scratch).await;
+                times.push(start.elapsed().as_nanos());
+                counts.push(groups.len());
+                drop(groups);
+                drop(shell);
+                drop(scratch);
+            }
+            println!("GROUP_BENCH label={label} ns={times:?} group_counts={counts:?}");
+        }
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn assembling_many_produce_topics_does_not_hold_the_caller() {
         // 200_000 topics: draining each group held the caller 119ms.
