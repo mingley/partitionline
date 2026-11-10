@@ -5089,7 +5089,8 @@ mod quota_accounting_tests {
         let configured = ClientProduceQuotas::new(
             quota,
             vec![("alpha".into(), quota), ("bravo".into(), quota)],
-        ).unwrap();
+        )
+        .unwrap();
         let mut meters = Some(QuotaMeters::new(QuotaPolicy::Clients(configured), now));
         let mut invalid = produce::Produced {
             response: Some(vec![0; 4]),
@@ -5116,7 +5117,8 @@ mod quota_accounting_tests {
         let configured = ClientProduceQuotas::new(
             quota,
             vec![("alpha".into(), quota), ("bravo".into(), quota)],
-        ).unwrap();
+        )
+        .unwrap();
         let mut meters = Some(QuotaMeters::new(QuotaPolicy::Clients(configured), now));
         assert!(matches!(
             charge_produce(&mut meters, Some(0), None, None, || now),
