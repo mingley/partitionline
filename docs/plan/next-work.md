@@ -128,9 +128,11 @@ runs and their limits.
    and [producer sampling-harness repair](../evidence/perf/kafka-ack-sampling-20261109/README.md)
    remain unapplied and need their recorded qualification gaps resolved. The
    [report validator](../evidence/perf/benchmark-report-validation-20261109/README.md)
-   now rejects several inconsistent record and settings fields, but cannot
-   verify the raw artifacts or establish a comparison. None of these results
-   establishes a Kafka client or server ranking.
+   rejects several inconsistent record and settings fields. The [JSON report
+   update](../evidence/perf/report-json-validation-20261110/README.md) rejects
+   duplicate keys and labels alternate schemas, but cannot authenticate raw
+   artifacts or establish a comparison. None of these results establishes a
+   Kafka client or server ranking.
 
 ## Validation and release
 

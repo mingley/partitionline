@@ -96,6 +96,9 @@ Earlier working notes and dated measurements are in the
 
 ### Fixes and maintenance
 
+- The benchmark reporter rejects duplicate JSON object keys and handles
+  malformed reports without an unhandled traceback. Its `--json` output adds
+  a `schema` object; consumers that reject unknown fields must allow it.
 - Close producer admission before retiring a worker. Cached handles and held
   channel permits cannot accept records after its final drain.
 - Keep workers and retry records counted until callbacks and payload cleanup

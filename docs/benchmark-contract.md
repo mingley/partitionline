@@ -115,8 +115,11 @@ Offsets alone do not prove receipt or payload integrity: an independent reader
 must check the expected IDs and payloads for both phases. Transaction control
 records and other writers can also change offsets.
 
-The report validator checks the values recorded in a result. Use
-`--require-clean` to reject retained failed attempts as well as integrity
+The report validator checks the values recorded in a result. A `--schema`
+argument replaces the repository schema; an alternate schema cannot establish
+canonical schema conformance unless it enforces the full contract. Alternate
+schemas receive a concise report that states the canonical schema was not
+checked. Use `--require-clean` to reject retained failed attempts as well as integrity
 failures. Validation does not inspect the raw artifacts or prove that the
 declared settings were used. A valid result file does not pass a cell or lift
 Suite HOLD.

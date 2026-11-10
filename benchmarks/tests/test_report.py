@@ -596,6 +596,15 @@ class BenchmarkReportValidationTests(unittest.TestCase):
             doc = json.loads(res_json.stdout)
             self.assertTrue(doc["valid"])
             self.assertEqual(doc["error_count"], 0)
+            self.assertTrue(doc["schema"]["canonical_checked"])
+            self.assertEqual(Path(doc["schema"]["path"]).resolve(), self.schema_path.resolve())
+
+            explicit_canonical = subprocess.run(
+                [sys.executable, str(script_path), "--schema", str(self.schema_path), "--json", valid_file],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(explicit_canonical.returncode, 0, explicit_canonical.stderr)
+            self.assertTrue(json.loads(explicit_canonical.stdout)["schema"]["canonical_checked"])
 
             # Invalid execution: break acks
             invalid_fixture = copy.deepcopy(fixture)
@@ -860,6 +869,267 @@ class BenchmarkIntegrityRegressionTests(unittest.TestCase):
                     row.update(start_offset=10, end_offset=5, offset_delta=0)
                 self.assertFalse(self.validator.validate(data)[0])
 
+
+
+class MalformedReportCliTests(unittest.TestCase):
+    def run_report(self, path, *args):
+        return subprocess.run(
+            [sys.executable, str(SCRIPT_PATH), *args, str(path)],
+            capture_output=True, text=True, timeout=20,
+        )
+
+    def test_duplicate_keys_are_rejected_at_any_depth(self):
+        source = json.dumps(build_valid_fixture())
+        top = source.replace(
+            '"schema_version": "1.0.0"',
+            '"schema_version": "1.0.0", "schema_version": "1.0.0"',
+            1,
+        )
+        nested = source.replace(
+            '"acks": -1',
+            r'"acks": 1, "\u0061cks": -1',
+            1,
+        )
+        self.assertNotEqual(top, source)
+        self.assertNotEqual(nested, source)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            for encoded in (top, nested):
+                path.write_text(encoded, encoding="utf-8")
+                for flags in ((), ("--json",), ("--quiet",)):
+                    with self.subTest(duplicate=encoded is top, flags=flags):
+                        result = self.run_report(path, *flags)
+                        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                        self.assertIn("duplicate JSON key", result.stderr)
+                        self.assertNotIn("Traceback", result.stderr)
+
+    def test_duplicate_keys_in_custom_schema_are_rejected(self):
+        fixture = json.dumps(build_valid_fixture())
+        original = (REPO_ROOT / "benchmarks" / "result-schema.json").read_text()
+        duplicate = original.replace(
+            '"type": "object",', '"type": "array", "type": "object",', 1
+        )
+        self.assertNotEqual(duplicate, original)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            schema = Path(directory) / "schema.json"
+            path.write_text(fixture, encoding="utf-8")
+            schema.write_text(duplicate, encoding="utf-8")
+            result = self.run_report(path, "--schema", str(schema))
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("duplicate JSON key", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+
+    def test_malformed_nested_values_return_validation_errors_without_traceback(self):
+        mutations = (
+            lambda value: value.update(scenario=None),
+            lambda value: value["provenance"].update(broker=[]),
+            lambda value: value["measurements"].update(latency="wrong type"),
+            lambda value: value["outcomes"].update(offered="wrong type"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            for mutate in mutations:
+                value = build_valid_fixture()
+                mutate(value)
+                path.write_text(json.dumps(value), encoding="utf-8")
+                with self.subTest(case=mutate.__code__.co_firstlineno):
+                    result = self.run_report(path)
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn("VALIDATION FAILED", result.stdout)
+                    self.assertIn("Schema ", result.stdout)
+                    self.assertNotIn("Traceback", result.stderr)
+                    result_json = self.run_report(path, "--json")
+                    self.assertEqual(result_json.returncode, 1, result_json.stderr)
+                    self.assertFalse(json.loads(result_json.stdout)["valid"])
+                    quiet = self.run_report(path, "--quiet")
+                    self.assertEqual(quiet.returncode, 1, quiet.stderr)
+                    self.assertEqual(quiet.stdout, "")
+
+
+class AlternateSchemaSafetyTests(unittest.TestCase):
+    def test_permissive_and_composite_schemas_reject_unsafe_shapes(self):
+        schemas = (
+            {},
+            {"anyOf": [{"properties": {"scenario": {"type": "object"}}}, {"type": "string"}]},
+            {"oneOf": [{"properties": {"scenario": {"type": "object"}}}, {"type": "number"}]},
+        )
+        paths = (
+            ("scenario",), ("scenario", "equal_semantics"),
+            ("provenance",), ("provenance", "config"),
+            ("provenance", "config", "effective_settings"), ("provenance", "broker"),
+            ("outcomes",), ("integrity",), ("integrity", "record_ids"),
+            ("integrity", "high_watermark_audit"), ("repetition_history",),
+            ("outcomes", "acknowledged"), ("integrity", "record_ids", "missing_ids_count"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "alternate.json"
+            for schema in schemas:
+                path.write_text(json.dumps(schema), encoding="utf-8")
+                validator = BenchmarkValidator(schema_path=path)
+                valid, errors, _ = validator.validate(build_valid_fixture())
+                self.assertTrue(valid, errors)
+                for parts in paths:
+                    data = build_valid_fixture()
+                    target = data
+                    for part in parts[:-1]:
+                        target = target[part]
+                    target[parts[-1]] = None
+                    with self.subTest(schema=list(schema), path=".".join(parts)):
+                        valid, errors, _ = validator.validate(data)
+                        self.assertFalse(valid)
+                        self.assertTrue(errors)
+
+    def test_missing_nested_fields_are_rejected_without_exception(self):
+        paths = (
+            ("scenario", "equal_semantics", "acks"),
+            ("provenance", "config", "effective_settings", "acks"),
+            ("provenance", "topology", "rtt_ms"),
+            ("measurements", "latency", "raw_histogram"),
+            ("integrity", "record_ids"),
+            ("integrity", "high_watermark_audit", "partitions"),
+            ("outcomes", "acknowledged"),
+            ("repetition_history", "attempts"),
+        )
+        validator = BenchmarkValidator()
+        for parts in paths:
+            data = build_valid_fixture()
+            target = data
+            for part in parts[:-1]:
+                target = target[part]
+            del target[parts[-1]]
+            with self.subTest(path=".".join(parts)):
+                valid, errors, _ = validator.validate(data)
+                self.assertFalse(valid)
+                self.assertTrue(errors)
+
+    def test_custom_schema_does_not_require_repository_schema_file(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "alternate.json"
+            path.write_text("{}", encoding="utf-8")
+            original = Path.read_text
+            canonical = REPO_ROOT / "benchmarks" / "result-schema.json"
+            def read_text(obj, *args, **kwargs):
+                if obj == canonical:
+                    raise AssertionError("canonical schema should not be needed")
+                return original(obj, *args, **kwargs)
+            with patch.object(Path, "read_text", read_text):
+                validator = BenchmarkValidator(schema_path=path)
+                valid, errors, _ = validator.validate(build_valid_fixture())
+                self.assertTrue(valid, errors)
+
+
+class ReportOutputSafetyTests(unittest.TestCase):
+    def test_string_record_id_bounds_remain_valid(self):
+        data = build_valid_fixture()
+        data["integrity"]["record_ids"].update(start_id="first-record", end_id="last-record")
+        valid, errors, _ = BenchmarkValidator().validate(data)
+        self.assertTrue(valid, errors)
+
+    def test_alternate_schema_success_identifies_its_scope(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            schema = Path(directory) / "alternate.json"
+            path.write_text(json.dumps(build_valid_fixture()), encoding="utf-8")
+            schema.write_text("{}", encoding="utf-8")
+            cmd = [sys.executable, str(SCRIPT_PATH), "--schema", str(schema), str(path)]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(str(schema), result.stdout)
+            self.assertIn("Canonical repository schema was not checked", result.stdout)
+            machine = subprocess.run(cmd[:-1] + ["--json", cmd[-1]], capture_output=True, text=True, timeout=20)
+            self.assertEqual(machine.returncode, 0, machine.stderr)
+            report = json.loads(machine.stdout)
+            self.assertFalse(report["schema"]["canonical_checked"])
+            self.assertEqual(report["schema"]["path"], str(schema))
+
+    def test_relocated_standalone_reporter_accepts_explicit_schema(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            script = directory / "reporter.py"
+            script.write_text(SCRIPT_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+            path = directory / "result.json"
+            schema = directory / "alternate.json"
+            path.write_text(json.dumps(build_valid_fixture()), encoding="utf-8")
+            schema.write_text("{}", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(script), "--schema", str(schema), str(path)],
+                capture_output=True, text=True, timeout=20,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Canonical repository schema was not checked", result.stdout)
+
+    def test_alternate_summary_handles_formatter_structures(self):
+        paths = (
+            ("scenario",), ("provenance",), ("provenance", "source"),
+            ("provenance", "binary"), ("provenance", "broker"),
+            ("provenance", "host"), ("provenance", "host", "cpu"),
+            ("outcomes",), ("measurements",), ("measurements", "throughput"),
+            ("measurements", "latency"), ("measurements", "client_resources"),
+            ("measurements", "client_resources", "rss"),
+            ("measurements", "client_resources", "allocations"),
+            ("measurements", "broker_resources"), ("integrity",),
+            ("integrity", "record_ids"), ("integrity", "high_watermark_audit"),
+            ("repetition_history",),
+        )
+        numeric_paths = (
+            ("measurements", "throughput", "records_per_second"),
+            ("measurements", "throughput", "megabytes_per_second"),
+            ("measurements", "latency", "p50"), ("measurements", "latency", "p90"),
+            ("measurements", "latency", "p95"), ("measurements", "latency", "p99"),
+            ("measurements", "latency", "p99_9"),
+            ("measurements", "client_resources", "cpu_utilization_pct"),
+            ("measurements", "client_resources", "rss", "peak_rss_bytes"),
+            ("measurements", "client_resources", "allocations", "allocation_count"),
+            ("measurements", "broker_resources", "cpu_utilization_pct"),
+            ("measurements", "broker_resources", "peak_rss_bytes"),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            schema = Path(directory) / "alternate.json"
+            schema.write_text("{}", encoding="utf-8")
+            validator = BenchmarkValidator(schema_path=schema)
+            for parts in paths + numeric_paths:
+                for bad_value in (None, "invalid", [], {}):
+                    data = build_valid_fixture()
+                    target = data
+                    for part in parts[:-1]:
+                        target = target[part]
+                    target[parts[-1]] = bad_value
+                    with self.subTest(path=".".join(parts), value=type(bad_value).__name__):
+                        valid, errors, _ = validator.validate(data)
+                        report = benchmark_report.format_report_summary(
+                            data, errors, schema_path=schema, canonical_checked=False
+                        )
+                        self.assertIn("Canonical repository schema was not checked", report)
+                        self.assertIn("VALIDATION PASSED" if valid else "VALIDATION FAILED", report)
+
+    def test_unexpected_validation_exception_fails_closed(self):
+        validator = BenchmarkValidator()
+        class BrokenSchema:
+            def iter_errors(self, _data):
+                raise RuntimeError("sentinel")
+        validator.schema_validator = BrokenSchema()
+        valid, errors, _ = validator.validate(build_valid_fixture())
+        self.assertFalse(valid)
+        self.assertTrue(any("could not complete" in error for error in errors), errors)
+        self.assertFalse(any("sentinel" in error for error in errors), errors)
+
+    def test_unexpected_human_format_exception_fails_closed(self):
+        import contextlib
+        import io
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            path.write_text(json.dumps(build_valid_fixture()), encoding="utf-8")
+            output, error = io.StringIO(), io.StringIO()
+            with patch.object(sys, "argv", ["reporter", str(path)]), \
+                 patch.object(benchmark_report, "format_report_summary", side_effect=RuntimeError("sentinel")), \
+                 contextlib.redirect_stdout(output), contextlib.redirect_stderr(error):
+                status = benchmark_report.main()
+            self.assertEqual(status, 1)
+            self.assertIn("could not format", error.getvalue())
+            self.assertNotIn("sentinel", error.getvalue())
 
 if __name__ == "__main__":
     unittest.main()
