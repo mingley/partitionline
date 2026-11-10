@@ -1,0 +1,48 @@
+name: Producer assembly clean candidate
+on:
+  push:
+    branches: [qualification/producer-assembly-clean-20261110]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Default assembly controls
+        run: cargo test --locked --lib assembly_count_ -- --nocapture
+      - name: All-feature assembly controls
+        if: always()
+        run: cargo test --locked --all-features --lib assembly_count_ -- --nocapture
+      - name: Default existing assembly behavior
+        if: always()
+        run: cargo test --locked --lib producer::tests::assembling_many_produce_topics_does_not_hold_the_caller -- --exact --nocapture
+      - name: All-feature existing assembly behavior
+        if: always()
+        run: cargo test --locked --all-features --lib producer::tests::assembling_many_produce_topics_does_not_hold_the_caller -- --exact --nocapture
+      - name: Default grouping behavior
+        if: always()
+        run: cargo test --locked --lib producer::tests::grouping_ -- --nocapture
+      - name: All-feature grouping behavior
+        if: always()
+        run: cargo test --locked --all-features --lib producer::tests::grouping_ -- --nocapture
+      - name: Format
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Strict Clippy
+        if: always()
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Strict Rustdoc
+        if: always()
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --all-features --no-deps
+      - name: Show formatting correction
+        if: failure()
+        run: |
+          cargo fmt --all
+          git diff -- src/producer.rs
