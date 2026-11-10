@@ -93,8 +93,12 @@ numeric meter failure isolated. Its
 five actor and eight public controls in each feature profile, the existing
 authenticated shared-quota control, Clippy and rustdoc; formatting failed and
 the broad suite was skipped. The formatting-only successor
-`e993aabcaef316380e7c13ff31c0a81ab9b5be64` was still under test when this
-note was written.
+`e993aabcaef316380e7c13ff31c0a81ab9b5be64` passed
+[its focused run](https://github.com/mingley/partitionline/actions/runs/42869682907):
+six meter, five actor and eight public controls in each feature profile, the
+existing authenticated shared-quota control, formatting, strict Clippy and
+rustdoc. Its dependent broad broker suite was still running when this note
+was written.
 
 The [candidate patch](candidate.patch) applies to
 `50b5de969a14f11f52df6da36bf2037d4f61de60`. Text application of its hunks
