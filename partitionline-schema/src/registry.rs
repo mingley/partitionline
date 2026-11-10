@@ -2077,6 +2077,10 @@ impl<'a> JsonParser<'a> {
             }
             entries.push((key, value));
             index.insert_next(&entries)?;
+            // Catch up gradually, then keep at most 32 keys in the linear tail.
+            if entries.len().saturating_sub(index.nodes.len()) > 32 {
+                index.insert_next(&entries)?;
+            }
             self.skip_ws();
             match self.peek() {
                 Some(b',') => {
@@ -2358,7 +2362,7 @@ mod tests {
     #[test]
     fn json_key_index_preserves_duplicate_scope_and_error_order() {
         use std::fmt::Write as _;
-        for count in [0usize, 1, 31, 32, 33, 34, 64, 65, 96, 128, 129, 512, 4096] {
+        for count in [0usize, 1, 31, 32, 33, 34, 64, 65, 66, 80, 95, 96, 97, 128, 129, 512, 4096] {
             let mut body = String::from("{");
             for i in 0..count {
                 if i != 0 {
@@ -2385,6 +2389,30 @@ mod tests {
                             what: "json bad literal".into()
                         }
                     );
+                }
+                if (64..=129).contains(&count) {
+                    for duplicate in [0, 1, count - 1] {
+                        let mut escaped_new = body[..body.len() - 1].to_owned();
+                        write!(&mut escaped_new, r#","\u006b{duplicate:05}":0}}"#).unwrap();
+                        assert_eq!(
+                            JsonParser::new(&escaped_new).parse().unwrap_err(),
+                            RegistryError::Malformed {
+                                what: "json duplicate key".into()
+                            }
+                        );
+
+                        let original = format!(r#""k{duplicate:05}""#);
+                        let escaped = format!(r#""\u006b{duplicate:05}""#);
+                        let escaped_old = body.replacen(&original, &escaped, 1);
+                        let mut duplicate_new = escaped_old[..escaped_old.len() - 1].to_owned();
+                        write!(&mut duplicate_new, r#","k{duplicate:05}":0}}"#).unwrap();
+                        assert_eq!(
+                            JsonParser::new(&duplicate_new).parse().unwrap_err(),
+                            RegistryError::Malformed {
+                                what: "json duplicate key".into()
+                            }
+                        );
+                    }
                 }
                 for duplicate in [0, count / 2, count - 1] {
                     let mut bad = body[..body.len() - 1].to_owned();
@@ -2487,11 +2515,11 @@ mod tests {
     fn json_key_index_nesting_and_fast_path_transition() {
         use std::fmt::Write as _;
 
-        fn nested_objects(count: usize) -> String {
+        fn nested_objects(count: usize, width: usize) -> String {
             let mut body = String::from("null");
             for _ in 0..count {
                 let mut outer = String::from("{");
-                for i in 0..JSON_LINEAR_TAIL {
+                for i in 0..width {
                     if i != 0 {
                         outer.push(',');
                     }
@@ -2503,17 +2531,19 @@ mod tests {
             body
         }
 
-        assert!(JsonParser::new(&nested_objects(MAX_JSON_DEPTH))
-            .parse()
-            .is_ok());
-        assert_eq!(
-            JsonParser::new(&nested_objects(MAX_JSON_DEPTH + 1))
+        for width in [JSON_LINEAR_TAIL, 128] {
+            assert!(JsonParser::new(&nested_objects(MAX_JSON_DEPTH, width))
                 .parse()
-                .unwrap_err(),
-            RegistryError::Malformed {
-                what: "json nesting too deep".into()
-            }
-        );
+                .is_ok());
+            assert_eq!(
+                JsonParser::new(&nested_objects(MAX_JSON_DEPTH + 1, width))
+                    .parse()
+                    .unwrap_err(),
+                RegistryError::Malformed {
+                    what: "json nesting too deep".into()
+                }
+            );
+        }
 
         let mut prefix = String::from("{");
         for i in 0..JSON_LINEAR_TAIL {
@@ -2522,7 +2552,7 @@ mod tests {
             }
             write!(&mut prefix, r#""f{i:05}":0"#).unwrap();
         }
-        for position in [0, JSON_LINEAR_TAIL - 1] {
+        for position in [0, 1, JSON_LINEAR_TAIL - 1] {
             let mut immediate = prefix.clone();
             write!(&mut immediate, r#","f{position:05}":0}}"#).unwrap();
             assert_eq!(

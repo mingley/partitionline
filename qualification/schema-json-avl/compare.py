@@ -2,7 +2,7 @@
 """Paired, in-process comparison of the Registry JSON object index."""
 import csv
 import json
-import itertools
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -90,6 +90,22 @@ def measure(executable):
         raise ValueError("incomplete shapes: " + repr(set(result) ^ SHAPES))
     return result
 
+def differential(executable):
+    output = checked(
+        [executable, "json_index_differential_corpus", "--ignored", "--nocapture", "--test-threads=1"],
+        cwd=ROOT, timeout=120,
+    )
+    if "1 passed" not in output:
+        raise ValueError("differential test did not run exactly once")
+    records = []
+    for line in output.splitlines():
+        marker = line.find("PL_JSON_DIFF case=")
+        if marker >= 0:
+            records.append(line[marker + len("PL_JSON_DIFF "):])
+    if len(records) != 104 or len(set(line.split(" result=", 1)[0] for line in records)) != 104:
+        raise ValueError("differential corpus is incomplete or has duplicate labels")
+    return records
+
 def observe_resource(executable, arm, shape, trial, payload, keys):
     env = os.environ.copy()
     env["PL_JSON_PAYLOAD"] = str(payload)
@@ -139,19 +155,52 @@ def main():
     cpu = min(allowed)
     WORK.mkdir(parents=True)
     baseline = (QUALIFICATION / "baseline.rs.txt").read_text()
-    candidate64 = source_without_controls((SCHEMA / "src" / "registry.rs").read_text())
+    adaptive64 = source_without_controls((SCHEMA / "src" / "registry.rs").read_text())
+    promotion = """            entries.push((key, value));
+            index.insert_next(&entries)?;
+            // Catch up gradually, then keep at most 32 keys in the linear tail.
+            if entries.len().saturating_sub(index.nodes.len()) > 32 {
+                index.insert_next(&entries)?;
+            }
+            self.skip_ws();"""
+    single = """            entries.push((key, value));
+            index.insert_next(&entries)?;
+            self.skip_ws();"""
+    if adaptive64.count(promotion) != 1:
+        raise ValueError("adaptive migration marker")
+    split64 = adaptive64.replace(promotion, single, 1)
     threshold = "const JSON_LINEAR_TAIL: usize = 64;"
-    if candidate64.count(threshold) != 1:
+    if split64.count(threshold) != 1:
         raise ValueError("candidate threshold marker")
-    candidate32 = candidate64.replace(threshold, "const JSON_LINEAR_TAIL: usize = 32;", 1)
-    for candidate in (candidate32, candidate64):
+    split32 = split64.replace(threshold, "const JSON_LINEAR_TAIL: usize = 32;", 1)
+    for candidate in (split32, split64, adaptive64):
         if baseline[baseline.index(MARKER):] != candidate[candidate.index(MARKER):]:
             raise ValueError("benchmark test scaffolds differ")
     arms = {"baseline": compile_arm("baseline", baseline),
-            "candidate32": compile_arm("candidate32", candidate32),
-            "candidate64": compile_arm("candidate64", candidate64)}
+            "split32": compile_arm("split32", split32),
+            "split64": compile_arm("split64", split64),
+            "adaptive64": compile_arm("adaptive64", adaptive64)}
     os.sched_setaffinity(0, {cpu})
     print("cpu=" + str(cpu), flush=True)
+    transcripts = {name: differential(path) for name, path in arms.items()}
+    expected = transcripts["baseline"]
+    for name, transcript in transcripts.items():
+        if transcript != expected:
+            for index, (left, right) in enumerate(zip(expected, transcript)):
+                if left != right:
+                    print("DIFF_MISMATCH arm={} index={}".format(name, index), flush=True)
+                    print("baseline=" + left[:4096], flush=True)
+                    print("candidate=" + right[:4096], flush=True)
+                    break
+            raise ValueError("baseline and candidate JSON semantics differ: " + name)
+    for record in expected:
+        prefix, result = record.split(" result=", 1)
+        if result.startswith("Err("):
+            print("DIFF " + prefix + " result=" + result, flush=True)
+        else:
+            print("DIFF {} result=Ok bytes={} sha256={}".format(
+                prefix, len(result.encode()), hashlib.sha256(result.encode()).hexdigest()), flush=True)
+    print("differential_cases=" + str(len(expected)), flush=True)
     for name, path in arms.items():
         digest = checked(["sha256sum", path], cwd=ROOT).strip()
         print("binary=" + name + " " + digest, flush=True)
@@ -159,8 +208,12 @@ def main():
     values = {}
     writer = csv.writer(sys.stdout, lineterminator="\n")
     writer.writerow(["pair", "order", "arm", "shape", "iterations", "total_ns", "body_bytes"])
-    orders = list(itertools.permutations(("baseline", "candidate32", "candidate64")))
-    for pair in range(12):
+    base_order = ("baseline", "split32", "split64", "adaptive64")
+    orders = []
+    for offset in range(len(base_order)):
+        forward = base_order[offset:] + base_order[:offset]
+        orders.extend((forward, tuple(reversed(forward))))
+    for pair in range(16):
         order = orders[pair % len(orders)]
         for position, arm in enumerate(order):
             rows = measure(arms[arm])
@@ -170,10 +223,11 @@ def main():
                 writer.writerow([pair, position, arm, shape, iterations, ns, body_bytes])
         sys.stdout.flush()
     for shape in sorted(SHAPES):
-        for arm, reference in (("candidate32", "baseline"), ("candidate64", "baseline"),
-                               ("candidate64", "candidate32")):
+        for arm, reference in (("split32", "baseline"), ("split64", "baseline"),
+                               ("adaptive64", "baseline"), ("adaptive64", "split64"),
+                               ("adaptive64", "split32")):
             ratios = [100 * (values[p, arm, shape] / values[p, reference, shape] - 1)
-                      for p in range(12)]
+                      for p in range(16)]
             print("SUMMARY arm={} reference={} shape={} paired_median_pct={:.4f} min_pct={:.4f} max_pct={:.4f}".format(
                 arm, reference, shape, statistics.median(ratios), min(ratios), max(ratios)), flush=True)
 

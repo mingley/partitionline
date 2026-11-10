@@ -116,3 +116,77 @@
         black_box(result);
     }
 
+
+    #[test]
+    #[ignore = "baseline-versus-candidate JSON semantics corpus"]
+    fn json_index_differential_corpus() {
+        use std::fmt::Write as _;
+
+        fn prefix(count: usize, escaped_old: Option<usize>) -> String {
+            let mut body = String::from("{");
+            for i in 0..count {
+                if i != 0 {
+                    body.push(',');
+                }
+                if escaped_old == Some(i) {
+                    write!(&mut body, r#""\u006b{i:05}":0"#).unwrap();
+                } else {
+                    write!(&mut body, r#""k{i:05}":0"#).unwrap();
+                }
+            }
+            body
+        }
+
+        fn nested(depth: usize, leaf: &str) -> String {
+            let mut body = leaf.to_string();
+            for _ in 0..depth {
+                let mut outer = prefix(128, None);
+                write!(&mut outer, r#","next":{body}}}"#).unwrap();
+                body = outer;
+            }
+            body
+        }
+
+        let mut cases = Vec::new();
+        for count in [63usize, 64, 65, 66, 80, 95, 96, 97, 128] {
+            let normal = prefix(count, None);
+            cases.push((format!("valid-{count}"), format!("{normal}}}")));
+            for duplicate in [0, 1, count - 1] {
+                let new_escaped = format!(r#"{normal},"\u006b{duplicate:05}":1}}"#);
+                cases.push((format!("new-escape-{count}-{duplicate}"), new_escaped));
+                let prior_escaped = prefix(count, Some(duplicate));
+                let new_plain = format!(r#"{prior_escaped},"k{duplicate:05}":1}}"#);
+                cases.push((format!("old-escape-{count}-{duplicate}"), new_plain));
+            }
+            let malformed = format!(r#"{normal},"\u006b00000":tru}}"#);
+            cases.push((format!("bad-value-{count}"), malformed));
+            let colon = format!(r#"{normal},"extra" 1}}"#);
+            cases.push((format!("missing-colon-{count}"), colon));
+            let comma = format!(r#"{normal},"extra":1 "next":2}}"#);
+            cases.push((format!("missing-comma-{count}"), comma));
+            let trailing = format!("{normal},}}");
+            cases.push((format!("trailing-comma-{count}"), trailing));
+        }
+
+        cases.push(("wide-nested-32".into(), nested(MAX_JSON_DEPTH, "null")));
+        cases.push(("wide-nested-33".into(), nested(MAX_JSON_DEPTH + 1, "null")));
+        let leaf = prefix(128, None);
+        cases.push((
+            "wide-nested-index-duplicate".into(),
+            nested(MAX_JSON_DEPTH - 1, &format!(r#"{leaf},"\u006b00000":1}}"#)),
+        ));
+        cases.push((
+            "wide-nested-tail-duplicate".into(),
+            nested(MAX_JSON_DEPTH - 1, &format!(r#"{leaf},"\u006b00127":1}}"#)),
+        ));
+        cases.push((
+            "wide-nested-malformed-duplicate".into(),
+            nested(MAX_JSON_DEPTH - 1, &format!(r#"{leaf},"\u006b00000":tru}}"#)),
+        ));
+
+        for (name, body) in cases {
+            let result = JsonParser::new(&body).parse();
+            println!("PL_JSON_DIFF case={name} result={result:?}");
+        }
+    }
+

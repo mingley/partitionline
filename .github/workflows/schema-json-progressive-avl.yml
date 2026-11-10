@@ -1,8 +1,8 @@
-name: Split fast-path JSON AVL comparison
+name: Adaptive JSON AVL promotion comparison
 on:
   push:
     branches:
-      - qualification/schema-json-avl-fastpath-20261110
+      - qualification/schema-json-avl-adaptive-20261110
 permissions:
   contents: read
 jobs:
@@ -69,6 +69,15 @@ jobs:
               shutil.copytree(Path("tests/fixtures") / name, fixtures / name)
           path = dest / "src" / "registry.rs"
           text = path.read_text()
+          promotion = (
+              "            // Catch up gradually, then keep at most 32 keys in the linear tail.\n"
+              "            if entries.len().saturating_sub(index.nodes.len()) > 32 {\n"
+              "                index.insert_next(&entries)?;\n"
+              "            }\n"
+          )
+          if text.count(promotion) != 1:
+              raise ValueError("promotion marker")
+          text = text.replace(promotion, "", 1)
           before = "const JSON_LINEAR_TAIL: usize = 64;"
           if text.count(before) != 1:
               raise ValueError("threshold marker")
