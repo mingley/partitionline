@@ -37,7 +37,16 @@ and generated writer behavior are separate facts; the permissive write does
 not qualify v13 or make 3.9.1 a v13 response oracle. Formatting and
 test-target Clippy passed on that initial attempt.
 
-The new offline fixture and packaged-crate checks require their own exact-source
-run. Versions 2, 4, 5, 6 and 7, other nested shapes, more error codes,
+The [offline candidate run](https://github.com/mingley/partitionline/actions/runs/42866367751)
+at `1cfd8ba6f666fbf9e36c5053e15f5a9e8bf26e1b` passed the Apache matrix,
+retained-corpus comparison, both checkout offline profiles, formatting and
+test-target Clippy. Clean packaging failed before creating the crate: importing
+the shared Python helper created an ignored `__pycache__` file under the
+package's included test paths. A Git status check did not list that ignored
+file, but Cargo detected it as uncommitted. The runner now disables bytecode
+writes before importing the helper; this change and the packaged-crate tests
+require a separate run.
+
+Versions 2, 4, 5, 6 and 7, other nested shapes, more error codes,
 transactional behavior and live broker interactions remain open. See the
 [separate v13 record](README.md) for that version.

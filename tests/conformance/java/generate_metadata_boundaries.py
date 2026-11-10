@@ -6,6 +6,7 @@ import importlib.util
 import json
 from pathlib import Path
 import signal
+import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -15,6 +16,9 @@ RUST = ROOT / "tests/metadata_boundaries_conformance.rs"
 VERSIONS = (0, 1, 3, 8, 9, 10, 11, 12)
 PAIRS = 28
 
+# The helper is shipped under tests/. Avoid creating ignored bytecode that
+# Cargo's package include rules would otherwise consider an uncommitted file.
+sys.dont_write_bytecode = True
 spec = importlib.util.spec_from_file_location("metadata_v13_runner", BASE)
 if spec is None or spec.loader is None:
     raise RuntimeError("could not load existing bounded runner")
