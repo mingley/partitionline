@@ -17089,11 +17089,7 @@ mod tests {
         Vec<oneshot::Receiver<Result<RecordMetadata>>>,
     );
 
-    fn assembly_count_fixture(
-        count: usize,
-        records: bool,
-        receipts: bool,
-    ) -> AssemblyCountFixture {
+    fn assembly_count_fixture(count: usize, records: bool, receipts: bool) -> AssemblyCountFixture {
         let mut scratch = ProduceGroupScratch::default();
         let mut order = Vec::with_capacity(count);
         let mut receivers = Vec::new();
@@ -17124,9 +17120,7 @@ mod tests {
         (scratch, order, receivers)
     }
 
-    fn assembly_count_closed(
-        receivers: &mut [oneshot::Receiver<Result<RecordMetadata>>],
-    ) -> usize {
+    fn assembly_count_closed(receivers: &mut [oneshot::Receiver<Result<RecordMetadata>>]) -> usize {
         receivers
             .iter_mut()
             .map(|receiver| {
@@ -17162,8 +17156,14 @@ mod tests {
         drop(state);
         drop(task);
         let closed = assembly_count_closed(&mut receivers);
-        println!("ASSEMBLY_FIRST lookups={lookups} retained={} closed={closed}", scratch.buckets.len());
-        assert!(lookups <= 8_192, "first poll walked {lookups} topic lookups");
+        println!(
+            "ASSEMBLY_FIRST lookups={lookups} retained={} closed={closed}",
+            scratch.buckets.len()
+        );
+        assert!(
+            lookups <= 8_192,
+            "first poll walked {lookups} topic lookups"
+        );
     }
 
     #[cfg(debug_assertions)]
@@ -17178,7 +17178,10 @@ mod tests {
         let first = std::future::poll_fn(|cx| Poll::Ready(task.as_mut().poll(cx))).await;
         let lookups = ASSEMBLY_LOOKUPS.with(std::cell::Cell::get);
         assert!(first.is_pending(), "empty-topic drain must yield");
-        assert!(lookups <= 8_192, "empty-topic drain walked {lookups} lookups");
+        assert!(
+            lookups <= 8_192,
+            "empty-topic drain walked {lookups} lookups"
+        );
         drop(first);
         drop(task);
         assert_eq!(scratch.buckets.len(), 1);
@@ -17216,7 +17219,10 @@ mod tests {
                 (
                     topic.to_string(),
                     *partition,
-                    records.iter().map(|p| p.rec.value.clone()).collect::<Vec<_>>(),
+                    records
+                        .iter()
+                        .map(|p| p.rec.value.clone())
+                        .collect::<Vec<_>>(),
                 )
             })
             .collect::<Vec<_>>();
@@ -17252,7 +17258,10 @@ mod tests {
             Poll::Ready(groups) => Some(groups),
             Poll::Pending => None,
         };
-        assert!(matches!(rx.try_recv(), Err(oneshot::error::TryRecvError::Empty)));
+        assert!(matches!(
+            rx.try_recv(),
+            Err(oneshot::error::TryRecvError::Empty)
+        ));
         if let Some(groups) = groups {
             assert_eq!(groups.len(), 1);
             assert!(scratch.buckets.is_empty());
@@ -17358,7 +17367,10 @@ mod tests {
         drop(state);
         drop(task);
         let closed = assembly_count_closed(&mut receivers);
-        println!("ASSEMBLY_CANCEL retained={} closed={closed}", scratch.buckets.len());
+        println!(
+            "ASSEMBLY_CANCEL retained={} closed={closed}",
+            scratch.buckets.len()
+        );
         assert_eq!(closed, 0, "transferred records must retain their receipts");
     }
 
@@ -17398,8 +17410,9 @@ mod tests {
             let mut times = Vec::new();
             let mut counts = Vec::new();
             for _ in 0..reps {
-                let names: Vec<Arc<str>> =
-                    (0..topics).map(|i| Arc::from(format!("bench-{i}"))).collect();
+                let names: Vec<Arc<str>> = (0..topics)
+                    .map(|i| Arc::from(format!("bench-{i}")))
+                    .collect();
                 let mut batch = Vec::with_capacity(records);
                 for index in 0..records {
                     let partition = i32::try_from(index % partitions).unwrap_or(0);
