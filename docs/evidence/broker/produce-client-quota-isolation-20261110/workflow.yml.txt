@@ -1,0 +1,40 @@
+name: Kafka Produce client quota observation
+on:
+  push:
+    branches: [qualification/produce-quota-isolation-live-20261110]
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start Kafka 4.3.1
+        run: |
+          set -euo pipefail
+          docker run -d --name pl-quota -p 9092:9092 apache/kafka:4.3.1
+          docker image inspect apache/kafka:4.3.1 --format '{{.Id}} {{json .RepoDigests}}'
+          for i in $(seq 1 90); do
+            if docker exec pl-quota /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec pl-quota /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+          docker exec pl-quota /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic alpha --partitions 1 --replication-factor 1 --config message.timestamp.type=LogAppendTime
+      - name: Configure matching per-client quotas
+        run: |
+          set -euo pipefail
+          for v in 3 6; do
+            for n in alpha bravo; do
+              docker exec pl-quota /opt/kafka/bin/kafka-configs.sh --bootstrap-server localhost:9092 --alter --add-config 'producer_byte_rate=20' --entity-type clients --entity-name "quota-$n-v$v"
+              docker exec pl-quota /opt/kafka/bin/kafka-configs.sh --bootstrap-server localhost:9092 --describe --entity-type clients --entity-name "quota-$n-v$v"
+            done
+          done
+          sleep 3
+      - name: Observe two labels and two same-label connections
+        run: python3 -u qualification/produce-quota-isolation-live.py
+      - name: Stop Kafka
+        if: always()
+        run: docker rm -f pl-quota || true
