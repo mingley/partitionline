@@ -8,11 +8,11 @@ permissions:
 jobs:
   candidate:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 3
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -25,6 +25,22 @@ jobs:
         run: |
           cargo test --locked --lib producer::tests::grouping_drain_ -- --test-threads=1
           cargo test --locked --all-features --lib producer::tests::grouping_drain_ -- --test-threads=1
+      - name: Aggregate producer unit tests
+        run: |
+          set -u
+          failed=0
+          for profile in default all-features; do
+            if test "$profile" = default; then
+              cargo test --locked --lib producer::tests:: -- --test-threads=1 > "$RUNNER_TEMP/producer-$profile.log" 2>&1
+            else
+              cargo test --locked --all-features --lib producer::tests:: -- --test-threads=1 > "$RUNNER_TEMP/producer-$profile.log" 2>&1
+            fi
+            code=$?
+            echo "candidate_producer=$profile exit=$code"
+            grep -E '^test result:' "$RUNNER_TEMP/producer-$profile.log" || true
+            if test "$code" -ne 0; then failed=1; fi
+          done
+          exit "$failed"
       - name: Formatting
         if: always()
         run: cargo fmt --all -- --check
@@ -38,11 +54,11 @@ jobs:
         run: cargo doc --locked --all-features --no-deps
   baseline:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 3
       - uses: dtolnay/rust-toolchain@stable
       - name: Create baseline with candidate controls
         run: |
@@ -86,8 +102,31 @@ jobs:
             grep -Fx 'test producer::tests::grouping_drain_open_worker_requeues_restored_records ... FAILED' "$RUNNER_TEMP/baseline-$profile.log"
             grep -Fx 'test producer::tests::grouping_drain_open_worker_closed_retry_completes_records ... FAILED' "$RUNNER_TEMP/baseline-$profile.log"
             grep -Fx 'test producer::tests::grouping_drain_open_worker_full_retry_completes_records ... FAILED' "$RUNNER_TEMP/baseline-$profile.log"
-            grep -F 'test result: FAILED. 4 passed; 6 failed; 0 ignored' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -Fx 'test producer::tests::grouping_drain_worker_drop_without_runtime ... FAILED' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -F 'test result: FAILED. 4 passed; 7 failed; 0 ignored' "$RUNNER_TEMP/baseline-$profile.log"
           done
+      - name: Aggregate baseline producer unit tests
+        if: always()
+        run: |
+          set -u
+          git -C "$RUNNER_TEMP/drain-baseline" checkout -- src/producer.rs || exit 1
+          cd "$RUNNER_TEMP/drain-baseline" || exit 1
+          source_blob=$(git hash-object src/producer.rs) || exit 1
+          echo "baseline_source_blob=$source_blob"
+          test "$source_blob" = 426dbdb5c5e27fdf655930a76682c5c18fb07e89 || exit 1
+          failed=0
+          for profile in default all-features; do
+            if test "$profile" = default; then
+              cargo test --locked --lib producer::tests:: -- --test-threads=1 > "$RUNNER_TEMP/base-producer-$profile.log" 2>&1
+            else
+              cargo test --locked --all-features --lib producer::tests:: -- --test-threads=1 > "$RUNNER_TEMP/base-producer-$profile.log" 2>&1
+            fi
+            code=$?
+            echo "baseline_producer=$profile exit=$code"
+            grep -E '^test result:' "$RUNNER_TEMP/base-producer-$profile.log" || true
+            if test "$code" -ne 0; then failed=1; fi
+          done
+          exit "$failed"
       - name: Retain baseline logs
         if: always()
         uses: actions/upload-artifact@v4

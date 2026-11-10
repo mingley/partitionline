@@ -12961,6 +12961,50 @@ mod tests {
         assert_eq!(retained, count);
     }
 
+    #[test]
+    fn grouping_drain_worker_drop_without_runtime() {
+        use std::task::Poll;
+
+        let count = 8_193;
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let (worker, shared, mut receivers, retries, callbacks, permits) =
+            runtime.block_on(async {
+                let GroupingDrainOpenFixture {
+                    mut worker,
+                    shared,
+                    receivers,
+                    retries,
+                    callbacks,
+                } = grouping_drain_open_fixture(count).await;
+                let permits = Arc::new(StickyRecordBudget::new(count));
+                for pending in &mut worker.pending {
+                    pending.sticky_record = Some(permits.acquire().expect("record permit"));
+                }
+                let mut draining = Box::pin(worker.drain_pending(count));
+                let state =
+                    std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
+                assert!(state.is_pending(), "drain did not reach its first yield");
+                drop(draining);
+                (worker, shared, receivers, retries, callbacks, permits)
+            });
+        drop(runtime);
+        drop(retries);
+        drop(worker);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(permits.used.load(Ordering::SeqCst), 0);
+        assert_eq!(callbacks.load(Ordering::SeqCst), count);
+        assert_eq!(
+            shared.m_errors.load(Ordering::SeqCst),
+            u64::try_from(count).unwrap_or(u64::MAX)
+        );
+        assert!(receivers
+            .iter_mut()
+            .all(|receiver| matches!(receiver.try_recv(), Ok(Err(Error::Closed)))));
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn grouping_drain_small_and_empty_preserve_order() {
         let (mut worker, shared, mut receivers) = grouping_drain_fixture(4).await;
