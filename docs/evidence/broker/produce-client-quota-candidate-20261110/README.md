@@ -78,8 +78,10 @@ dependent broad broker suite was skipped. An earlier candidate
 [run](https://github.com/mingley/partitionline/actions/runs/42865079914) had the same
 formatting failure. The
 [formatted revision](https://github.com/mingley/partitionline/actions/runs/42868226917)
-passed the same focused controls, formatting, Clippy and rustdoc; its broader
-broker job was still queued when this note was written.
+passed the same focused controls, formatting, Clippy and rustdoc. Its broader
+broker job passed 836 default and 986 all-feature tests, with four ignored in
+each profile. That run predates the failure-domain change and does not explain
+the earlier unrelated broad-suite failure.
 
 Two additional controls inject a corrupt response-control offset or a missing
 internal charge length. On the prior candidate they each observed a different
