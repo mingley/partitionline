@@ -1,0 +1,934 @@
+diff --git a/partitionline-broker/src/metadata.rs b/partitionline-broker/src/metadata.rs
+--- a/partitionline-broker/src/metadata.rs
++++ b/partitionline-broker/src/metadata.rs
+@@ -26,8 +26,8 @@
+ //! canceled future can be retried. Drop requests stop without blocking to join.
+ 
+ mod bandwidth;
+-pub use bandwidth::{ProduceQuota, QuotaConfigError};
+-use bandwidth::{QuotaMark, QuotaMeter};
++pub use bandwidth::{ClientProduceQuotas, ProduceQuota, QuotaConfigError};
++use bandwidth::{QuotaMark, QuotaMeters, QuotaPolicy};
+ 
+ use crate::{
+     catalog::{self, Catalog, Topic, TopicId},
+@@ -252,12 +252,11 @@ struct CompactJob {
+     now_ms: i64,
+     reply: oneshot::Sender<Result<compaction::Outcome, Error>>,
+ }
+-#[derive(Clone, Copy)]
+ struct DataOptions<'a> {
+     reads: Option<fetch::Limits>,
+     retention: Option<retention::Config>,
+     endpoints: &'a [ControllerEndpoint],
+-    quota: Option<ProduceQuota>,
++    quota: Option<QuotaPolicy>,
+     #[cfg(test)]
+     quota_clock: Option<Instant>,
+     #[cfg(test)]
+@@ -638,7 +637,7 @@ impl Router {
+     async fn open_inner(
+         path: PathBuf,
+         config: Config,
+-        store: Option<(produce::Config, Option<ProduceQuota>)>,
++        store: Option<(produce::Config, Option<QuotaPolicy>)>,
+         reads: Option<fetch::Limits>,
+         retention: Option<retention::Config>,
+         compaction: Option<compaction::Policy>,
+@@ -1072,14 +1071,19 @@ impl From<Error> for QuotaRouterError {
+     }
+ }
+ 
+-/// Opt-in RF1 read/write router with one shared in-memory Produce byte bucket.
++/// Opt-in RF1 read/write router with in-memory Produce byte buckets.
+ ///
+-/// All Produce requests share a bucket regardless of client identity. This is
+-/// not Kafka's per-user or per-client quota. The bucket is reset on restart;
+-/// actor-owned work retains its charge after a caller drops the reply. The
+-/// bounded, capped token-bucket delay differs from Kafka's sampled quota.
++/// The shared policy uses one bucket for all Produce requests. The optional
++/// configured-client policy assigns buckets by exact client ID, which is an
++/// unauthenticated request-header label. Unknown or malformed IDs use the
++/// shared fallback bucket. Neither policy is Kafka's sampled per-user or
++/// per-client quota. Buckets reset on restart; actor-owned work retains its
++/// charge after a caller drops the reply. The capped token-bucket delay differs
++/// from Kafka's sampled quota.
+ /// Accounting and response-control failures can occur after an append has
+-/// committed; callers must treat the delivery outcome as ambiguous.
++/// committed; callers must treat the delivery outcome as ambiguous. A corrupt
++/// response-control slot or missing internal charge length fails all buckets
++/// closed. An individual bucket's numeric failure remains isolated.
+ ///
+ /// Use this type through the provided transport, which honors its absolute mute
+ /// deadline. A custom transport must use dispatch_controlled and enforce the
+@@ -1097,6 +1101,30 @@ impl QuotaRouter {
+         store: produce::Config,
+         reads: fetch::Limits,
+         quota: ProduceQuota,
++    ) -> Result<(Self, journal::Recovery), QuotaRouterError> {
++        Self::open_with_policy(path, config, store, reads, QuotaPolicy::Shared(quota)).await
++    }
++
++    /// Open the RF1 read/write profile with preconfigured client-label buckets.
++    ///
++    /// Labels come from the Kafka request and are not authenticated identities.
++    /// Unknown, null, empty and malformed IDs share the configured fallback.
++    pub async fn open_with_client_quotas(
++        path: impl Into<PathBuf>,
++        config: Config,
++        store: produce::Config,
++        reads: fetch::Limits,
++        quotas: ClientProduceQuotas,
++    ) -> Result<(Self, journal::Recovery), QuotaRouterError> {
++        Self::open_with_policy(path, config, store, reads, QuotaPolicy::Clients(quotas)).await
++    }
++
++    async fn open_with_policy(
++        path: impl Into<PathBuf>,
++        config: Config,
++        store: produce::Config,
++        reads: fetch::Limits,
++        policy: QuotaPolicy,
+     ) -> Result<(Self, journal::Recovery), QuotaRouterError> {
+         store.validate().map_err(Error::from)?;
+         if config
+@@ -1118,7 +1146,7 @@ impl QuotaRouter {
+         let (inner, recovery) = Router::open_inner(
+             path.into(),
+             config,
+-            Some((store, Some(quota))),
++            Some((store, Some(policy))),
+             Some(reads),
+             None,
+             None,
+@@ -1246,33 +1274,40 @@ fn take_queued_produce(
+ // Charge even if the receiver disappeared after the actor started. When a
+ // reply exists, patch only the exact slot captured by the Produce writer.
+ fn charge_produce(
+-    meter: &mut Option<QuotaMeter>,
++    meters: &mut Option<QuotaMeters>,
++    selection: Option<usize>,
+     bytes: Option<usize>,
+     produced: Option<&mut produce::Produced>,
+     now: impl FnOnce() -> Instant,
+ ) -> Option<QuotaMark> {
+-    let meter = meter.as_mut()?;
++    let meters = meters.as_mut()?;
+     let Some(bytes) = bytes else {
+-        meter.fail();
++        meters.fail_all();
+         return Some(QuotaMark::Failed);
+     };
+-    let mark = meter.charge(bytes, now());
++    let mark = match meters.meter(selection) {
++        Some(meter) => meter.charge(bytes, now()),
++        None => {
++            meters.fail_all();
++            return Some(QuotaMark::Failed);
++        }
++    };
+     if let (QuotaMark::Ready { millis, .. }, Some(produced)) = (mark, produced) {
+         match (&mut produced.response, produced.throttle_at) {
+             (None, None) => {}
+             (Some(response), Some(at)) => {
+                 let Some(end) = at.checked_add(4) else {
+-                    meter.fail();
++                    meters.fail_all();
+                     return Some(QuotaMark::Failed);
+                 };
+                 let Some(slot) = response.get_mut(at..end) else {
+-                    meter.fail();
++                    meters.fail_all();
+                     return Some(QuotaMark::Failed);
+                 };
+                 slot.copy_from_slice(&millis.to_be_bytes());
+             }
+             _ => {
+-                meter.fail();
++                meters.fail_all();
+                 return Some(QuotaMark::Failed);
+             }
+         }
+@@ -1305,7 +1340,7 @@ fn actor(
+     };
+     let mut quota = options
+         .quota
+-        .map(|policy| QuotaMeter::new(policy, quota_clock()));
++        .map(|policy| QuotaMeters::new(policy, quota_clock()));
+     let mut grouped: Vec<DataJob> = Vec::new();
+     let mut queued_jobs: Vec<DataJob> = Vec::new();
+     let mut queued_admitted: Vec<Instant> = Vec::new();
+@@ -1383,6 +1418,13 @@ fn actor(
+                     continue;
+                 }
+                 let produce_key = job.lease.request.get(..2) == Some(&[0, 0]);
++                let selection = if produce_key {
++                    quota.as_ref().and_then(|meters| {
++                        meters.select(&job.lease.request, config.protocol_limits)
++                    })
++                } else {
++                    None
++                };
+                 grouped.clear();
+                 if produce_key {
+                     reserve_count(&mut grouped, 7);
+@@ -1418,14 +1460,19 @@ fn actor(
+                     if produce_key {
+                         let _ = charge_produce(
+                             &mut quota,
++                            selection,
+                             Some(job.lease.request.len()),
+                             None,
+                             quota_clock,
+                         );
+                     }
+                     for extra in grouped.drain(..) {
++                        let extra_selection = quota.as_ref().and_then(|meters| {
++                            meters.select(&extra.lease.request, config.protocol_limits)
++                        });
+                         let _ = charge_produce(
+                             &mut quota,
++                            extra_selection,
+                             Some(extra.lease.request.len()),
+                             None,
+                             quota_clock,
+@@ -1452,6 +1499,7 @@ fn actor(
+                         );
+                         let mark = charge_produce(
+                             &mut quota,
++                            selection,
+                             Some(job.lease.request.len()),
+                             produced.as_mut().ok(),
+                             quota_clock,
+@@ -1474,8 +1522,14 @@ fn actor(
+                         queued_jobs.append(&mut grouped);
+                         take_queued_produce(&mut queued_jobs, &mut queued_admitted, &mut batch);
+                         let mut sizes = [None; 8];
+-                        for (slot, body) in sizes.iter_mut().zip(&batch.bodies) {
+-                            *slot = Some(body.len());
++                        let mut selections = [None; 8];
++                        for ((size, selection), body) in
++                            sizes.iter_mut().zip(&mut selections).zip(&batch.bodies)
++                        {
++                            *size = Some(body.len());
++                            *selection = quota
++                                .as_ref()
++                                .and_then(|meters| meters.select(body, config.protocol_limits));
+                         }
+                         let senders = &batch.senders;
+                         batch.results = produce::process_queued(
+@@ -1507,7 +1561,9 @@ fn actor(
+                                 .results
+                                 .get_mut(index)
+                                 .and_then(|result| result.as_mut().ok());
+-                            let mark = charge_produce(&mut quota, size, produced, quota_clock);
++                            let selection = selections.get(index).copied().flatten();
++                            let mark =
++                                charge_produce(&mut quota, selection, size, produced, quota_clock);
+                             if let Some(slot) = marks.get_mut(index) {
+                                 *slot = mark;
+                             }
+@@ -1616,14 +1672,19 @@ fn actor(
+                     if produce_key {
+                         let _ = charge_produce(
+                             &mut quota,
++                            selection,
+                             Some(job.lease.request.len()),
+                             None,
+                             quota_clock,
+                         );
+                     }
+                     for extra in grouped.drain(..) {
++                        let extra_selection = quota.as_ref().and_then(|meters| {
++                            meters.select(&extra.lease.request, config.protocol_limits)
++                        });
+                         let _ = charge_produce(
+                             &mut quota,
++                            extra_selection,
+                             Some(extra.lease.request.len()),
+                             None,
+                             quota_clock,
+@@ -5021,6 +5082,58 @@ mod quota_accounting_tests {
+         }
+     }
+ 
++    #[test]
++    fn internal_control_corruption_fails_every_client_bucket_closed() {
++        let now = Instant::now();
++        let quota = ProduceQuota::new(100, 100, 10_000).unwrap();
++        let configured = ClientProduceQuotas::new(
++            quota,
++            vec![("alpha".into(), quota), ("bravo".into(), quota)],
++        )
++        .unwrap();
++        let mut meters = Some(QuotaMeters::new(QuotaPolicy::Clients(configured), now));
++        let mut invalid = produce::Produced {
++            response: Some(vec![0; 4]),
++            throttle_at: Some(usize::MAX),
++        };
++        assert!(matches!(
++            charge_produce(&mut meters, Some(0), Some(1), Some(&mut invalid), || now),
++            Some(QuotaMark::Failed)
++        ));
++        assert!(matches!(
++            charge_produce(&mut meters, Some(1), Some(1), None, || now),
++            Some(QuotaMark::Failed)
++        ));
++        assert!(matches!(
++            charge_produce(&mut meters, None, Some(1), None, || now),
++            Some(QuotaMark::Failed)
++        ));
++    }
++
++    #[test]
++    fn missing_charge_length_fails_every_client_bucket_closed() {
++        let now = Instant::now();
++        let quota = ProduceQuota::new(100, 100, 10_000).unwrap();
++        let configured = ClientProduceQuotas::new(
++            quota,
++            vec![("alpha".into(), quota), ("bravo".into(), quota)],
++        )
++        .unwrap();
++        let mut meters = Some(QuotaMeters::new(QuotaPolicy::Clients(configured), now));
++        assert!(matches!(
++            charge_produce(&mut meters, Some(0), None, None, || now),
++            Some(QuotaMark::Failed)
++        ));
++        assert!(matches!(
++            charge_produce(&mut meters, Some(1), Some(1), None, || now),
++            Some(QuotaMark::Failed)
++        ));
++        assert!(matches!(
++            charge_produce(&mut meters, None, Some(1), None, || now),
++            Some(QuotaMark::Failed)
++        ));
++    }
++
+     #[test]
+     fn response_patch_failure_can_follow_a_committed_append(
+     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+@@ -5057,9 +5170,13 @@ mod quota_accounting_tests {
+         // Inject a corrupted control-field offset after the append has completed.
+         produced.throttle_at = Some(usize::MAX);
+         let policy = ProduceQuota::new(1, 1, 1_000)?;
+-        let mut meter = Some(QuotaMeter::new(policy, Instant::now()));
++        let mut meter = Some(QuotaMeters::new(
++            QuotaPolicy::Shared(policy),
++            Instant::now(),
++        ));
+         let mark = charge_produce(
+             &mut meter,
++            None,
+             Some(request.len()),
+             Some(&mut produced),
+             Instant::now,
+@@ -5124,7 +5241,7 @@ mod quota_accounting_tests {
+                     reads: None,
+                     retention: None,
+                     endpoints: &[],
+-                    quota: Some(policy),
++                    quota: Some(QuotaPolicy::Shared(policy)),
+                     quota_clock: Some(fixed),
+                     quota_gate: Some(&gate),
+                 },
+@@ -5201,4 +5318,157 @@ mod quota_accounting_tests {
+         std::fs::remove_dir_all(root)?;
+         Ok(())
+     }
++    fn named_fixture(
++        request: &[u8],
++        name: &str,
++    ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
++        let prefix = request.get(..8).ok_or("short request prefix")?;
++        let old_len = i16::from_be_bytes(request.get(8..10).ok_or("short length")?.try_into()?);
++        let old_len = if old_len == -1 {
++            0
++        } else {
++            usize::try_from(old_len)?
++        };
++        let tail = request.get(10 + old_len..).ok_or("short client ID")?;
++        let mut result = Vec::new();
++        result.extend_from_slice(prefix);
++        result.extend_from_slice(&i16::try_from(name.len())?.to_be_bytes());
++        result.extend_from_slice(name.as_bytes());
++        result.extend_from_slice(tail);
++        Ok(result)
++    }
++
++    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++    async fn grouped_client_buckets_keep_acks_zero_and_dropped_work_separate(
++    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
++        let root: PathBuf = std::env::temp_dir().join(format!(
++            "partitionline-quota-actor-{}-{}",
++            std::process::id(),
++            NEXT.fetch_add(1, Ordering::Relaxed)
++        ));
++        std::fs::create_dir(&root)?;
++        let mut config = Config::new(0, "127.0.0.1".into(), 19095, "quota-test".into());
++        config.max_queued_requests = 3;
++        let (mut catalog, _) = Catalog::open(root.join("catalog"), config.catalog_limits)?;
++        let mut raw = [0; 16];
++        raw[15] = 2;
++        catalog.create("alpha", TopicId::new(raw)?, 2)?;
++        let store = produce::Store::open(produce::Config::new(root.join("parts")), &catalog)?;
++
++        let policy = ProduceQuota::new(100, 1, 60_000)?;
++        let policies = ClientProduceQuotas::new(
++            policy,
++            vec![("alpha".to_owned(), policy), ("bravo".to_owned(), policy)],
++        )?;
++        let fixed = Instant::now();
++        let (sender, receiver) = mpsc::channel(3);
++        let (pre_tx, pre_rx) = std::sync::mpsc::channel();
++        let (started_tx, started_rx) = std::sync::mpsc::channel();
++        let (release_tx, release_rx) = std::sync::mpsc::channel();
++        let stopping = Arc::new(AtomicBool::new(false));
++        let worker_stop = Arc::clone(&stopping);
++        let worker_config = config.clone();
++        let (change_tx, changes) = watch::channel(());
++        let change_tx = Arc::new(change_tx);
++        let wakeup = Arc::downgrade(&change_tx);
++        let task = tokio::task::spawn_blocking(move || {
++            if pre_rx.recv().is_err() {
++                return;
++            }
++            let gate = QuotaGate {
++                entered: std::cell::Cell::new(false),
++                started: started_tx,
++                release: release_rx,
++            };
++            actor(
++                catalog,
++                Some(store),
++                receiver,
++                &worker_config,
++                &worker_stop,
++                DataOptions {
++                    reads: None,
++                    retention: None,
++                    endpoints: &[],
++                    quota: Some(QuotaPolicy::Clients(policies)),
++                    quota_clock: Some(fixed),
++                    quota_gate: Some(&gate),
++                },
++                &change_tx,
++                None,
++            );
++        });
++        let router = Arc::new(Router {
++            config,
++            sender,
++            stopping,
++            failed: AtomicBool::new(false),
++            task: Mutex::new(Some(task)),
++            data: true,
++            data_slots: Arc::new(Semaphore::new(3)),
++            reads: None,
++            retention: None,
++            changes,
++            compaction: false,
++            wakeup,
++        });
++        let acks1 = named_fixture(
++            include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin"),
++            "alpha",
++        )?;
++        let acks0 = named_fixture(
++            include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks0.request.bin"),
++            "bravo",
++        )?;
++        let sizes = [acks1.len(), acks0.len(), acks1.len()];
++        let mut requests = vec![
++            Box::pin(router.dispatch_reusing(acks1.clone(), Vec::new())),
++            Box::pin(router.dispatch_reusing(acks0, Vec::new())),
++            Box::pin(router.dispatch_reusing(acks1.clone(), Vec::new())),
++        ];
++        for request in &mut requests {
++            std::future::poll_fn(|cx| match request.as_mut().poll(cx) {
++                Poll::Pending => Poll::Ready(Ok(())),
++                Poll::Ready(_) => Poll::Ready(Err("request completed before actor start")),
++            })
++            .await?;
++        }
++        assert_eq!(router.sender.capacity(), 0);
++        assert!(matches!(
++            router.dispatch_reusing(acks1, Vec::new()).await,
++            Err(Error::QueueFull)
++        ));
++        pre_tx.send(())?;
++        let count =
++            tokio::task::spawn_blocking(move || started_rx.recv_timeout(Duration::from_secs(5)))
++                .await??;
++        assert_eq!(count, 3, "the actor must start one grouped batch");
++        drop(requests.remove(0));
++        release_tx.send(())?;
++        let no_response = requests.remove(0).await?;
++        assert!(
++            no_response.response.is_none(),
++            "acks=0 must not produce a response"
++        );
++        let reply = requests.remove(0).await?;
++        let second = i32::try_from((sizes[1] - 1) * 10)?;
++        let third = i32::try_from((sizes[0] + sizes[2] - 1) * 10)?;
++        assert_eq!(
++            amount(no_response.quota)?,
++            second,
++            "bravo must not inherit alpha debt"
++        );
++        assert_eq!(
++            amount(reply.quota)?,
++            third,
++            "alpha must retain its dropped started request charge"
++        );
++        let body = reply.response.ok_or("missing Produce response")?;
++        let field = body.len().checked_sub(4).ok_or("short Produce response")?;
++        assert_eq!(i32::from_be_bytes(body[field..].try_into()?), third);
++        drop(requests);
++        router.shutdown().await?;
++        std::fs::remove_dir_all(root)?;
++        Ok(())
++    }
+ }
+diff --git a/partitionline-broker/src/metadata/bandwidth.rs b/partitionline-broker/src/metadata/bandwidth.rs
+--- a/partitionline-broker/src/metadata/bandwidth.rs
++++ b/partitionline-broker/src/metadata/bandwidth.rs
+@@ -7,11 +7,12 @@ use std::{
+ const BYTE_NANOS: u128 = 1_000_000_000;
+ const MAX_THROTTLE_MILLIS: u32 = 60_000;
+ 
+-/// Validated router-wide Produce byte rate and burst.
++/// Validated Produce byte rate and burst.
+ ///
+-/// The policy uses one in-memory bucket shared by all connections for one
+-/// router, not Kafka's per-user or per-client quota. Restarting the router
+-/// resets its debt. The charge is the request header and body, excluding the
++/// The shared policy uses one in-memory bucket for one router. The optional
++/// client-label policy uses a bounded set of in-memory buckets. Neither is
++/// Kafka's sampled per-user or per-client quota. Restarting the router resets
++/// its debt. The charge is the request header and body, excluding the
+ /// four-byte frame prefix.
+ ///
+ /// Each connection's mute is capped while debt is shared. This does not enforce
+@@ -33,6 +34,52 @@ pub struct ProduceQuota {
+     maximum_millis: u32,
+ }
+ 
++/// A bounded set of per-client Produce buckets and one fallback bucket.
++///
++/// Configured client IDs are exact, case-sensitive Kafka request-header labels,
++/// not authenticated identities. A client can choose its own label. Unknown,
++/// null, empty and malformed IDs use the shared fallback bucket. This policy is
++/// not Kafka's sampled per-user or per-client quota and is not an authorization
++/// or tenant-isolation boundary. Bucket debt is reset when the router restarts.
++#[derive(Debug, Clone)]
++pub struct ClientProduceQuotas {
++    fallback: ProduceQuota,
++    clients: Vec<(Box<str>, ProduceQuota)>,
++}
++
++impl ClientProduceQuotas {
++    /// Configure at most 256 distinct nonempty client IDs of at most 256 UTF-8
++    /// bytes each. Retained names are compacted and sorted at configuration
++    /// time; requests do not create buckets or allocate names.
++    pub fn new(
++        fallback: ProduceQuota,
++        clients: Vec<(String, ProduceQuota)>,
++    ) -> Result<Self, QuotaConfigError> {
++        if clients.len() > 256
++            || clients
++                .iter()
++                .any(|(name, _)| name.is_empty() || name.len() > 256)
++        {
++            return Err(QuotaConfigError);
++        }
++        let mut clients: Vec<(Box<str>, ProduceQuota)> = clients
++            .into_iter()
++            .map(|(name, quota)| (name.into_boxed_str(), quota))
++            .collect();
++        clients.sort_unstable_by(|left, right| left.0.cmp(&right.0));
++        if clients.windows(2).any(|pair| pair[0].0 == pair[1].0) {
++            return Err(QuotaConfigError);
++        }
++        Ok(Self { fallback, clients })
++    }
++}
++
++#[derive(Debug, Clone)]
++pub(super) enum QuotaPolicy {
++    Shared(ProduceQuota),
++    Clients(ClientProduceQuotas),
++}
++
+ /// Invalid Produce quota configuration.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+ pub struct QuotaConfigError;
+@@ -60,6 +107,74 @@ impl ProduceQuota {
+     }
+ }
+ 
++/// Actor-owned meters. The lookup table never grows from request data.
++pub(super) struct QuotaMeters {
++    fallback: QuotaMeter,
++    clients: Vec<(Box<str>, QuotaMeter)>,
++}
++
++impl QuotaMeters {
++    pub(super) fn new(policy: QuotaPolicy, now: Instant) -> Self {
++        match policy {
++            QuotaPolicy::Shared(policy) => Self {
++                fallback: QuotaMeter::new(policy, now),
++                clients: Vec::new(),
++            },
++            QuotaPolicy::Clients(policy) => Self {
++                fallback: QuotaMeter::new(policy.fallback, now),
++                clients: policy
++                    .clients
++                    .into_iter()
++                    .map(|(name, quota)| (name, QuotaMeter::new(quota, now)))
++                    .collect(),
++            },
++        }
++    }
++
++    /// Select before processing mutates the request. Parse failures and unknown
++    /// names use the shared fallback, and the unconfigured common path does not
++    /// parse a header a second time.
++    pub(super) fn select(&self, request: &[u8], limits: crate::protocol::Limits) -> Option<usize> {
++        if self.clients.is_empty() {
++            return None;
++        }
++        let version = request
++            .get(2..4)
++            .and_then(|bytes| <[u8; 2]>::try_from(bytes).ok())
++            .map(i16::from_be_bytes)?;
++        if !(3..=13).contains(&version) {
++            return None;
++        }
++        let (header, _) = crate::protocol::RequestHeader::parse(
++            request,
++            if version >= 9 { 2 } else { 1 },
++            limits,
++        )
++        .ok()?;
++        if header.api_key != 0 {
++            return None;
++        }
++        let name = header.client_id?;
++        self.clients
++            .binary_search_by(|(entry, _)| entry.as_ref().cmp(name))
++            .ok()
++    }
++
++    pub(super) fn meter(&mut self, selection: Option<usize>) -> Option<&mut QuotaMeter> {
++        match selection {
++            None => Some(&mut self.fallback),
++            Some(index) => self.clients.get_mut(index).map(|(_, meter)| meter),
++        }
++    }
++
++    pub(super) fn fail_all(&mut self) {
++        self.fallback.fail();
++        for (_, meter) in &mut self.clients {
++            meter.fail();
++        }
++    }
++}
++
+ #[derive(Debug, Clone, Copy)]
+ enum Balance {
+     Credit(u128),
+@@ -173,6 +288,91 @@ mod tests {
+         }
+     }
+ 
++    fn header(version: i16, client: Option<&str>) -> Vec<u8> {
++        let mut bytes = Vec::new();
++        bytes.extend_from_slice(&0i16.to_be_bytes());
++        bytes.extend_from_slice(&version.to_be_bytes());
++        bytes.extend_from_slice(&7i32.to_be_bytes());
++        match client {
++            Some(client) => {
++                bytes.extend_from_slice(&(client.len() as i16).to_be_bytes());
++                bytes.extend_from_slice(client.as_bytes());
++            }
++            None => bytes.extend_from_slice(&(-1i16).to_be_bytes()),
++        }
++        if version >= 9 {
++            bytes.push(0); // flexible request header tags
++        }
++        bytes
++    }
++
++    #[test]
++    fn named_client_buckets_are_independent_and_fallback_is_shared() {
++        let now = Instant::now();
++        let policy = ProduceQuota::new(1_000, 100, 10_000).unwrap();
++        let config = ClientProduceQuotas::new(
++            policy,
++            vec![("bravo".into(), policy), ("alpha".into(), policy)],
++        )
++        .unwrap();
++        let mut meters = QuotaMeters::new(QuotaPolicy::Clients(config), now);
++        let limits = crate::protocol::Limits::default();
++        let a = meters.select(&header(3, Some("alpha")), limits);
++        let b = meters.select(&header(9, Some("bravo")), limits);
++        assert!(a.is_some() && b.is_some() && a != b);
++        assert_eq!(meters.select(&header(13, Some("alpha")), limits), a);
++        assert_eq!(ms(meters.meter(a).unwrap().charge(200, now)), 100);
++        assert_eq!(ms(meters.meter(b).unwrap().charge(50, now)), 0);
++        assert_eq!(ms(meters.meter(a).unwrap().charge(100, now)), 200);
++        assert_eq!(meters.select(&header(9, Some("other")), limits), None);
++        assert_eq!(meters.select(&header(9, None), limits), None);
++        assert_eq!(meters.select(&header(9, Some("")), limits), None);
++        assert_eq!(meters.select(&[0, 0, 0, 9], limits), None);
++        assert_eq!(ms(meters.meter(None).unwrap().charge(150, now)), 50);
++        assert_eq!(ms(meters.meter(None).unwrap().charge(50, now)), 100);
++
++        // The original shared policy deliberately aggregates different labels.
++        let mut shared = QuotaMeters::new(QuotaPolicy::Shared(policy), now);
++        assert_eq!(shared.select(&header(3, Some("alpha")), limits), None);
++        assert_eq!(shared.select(&header(9, Some("bravo")), limits), None);
++        assert_eq!(ms(shared.meter(None).unwrap().charge(200, now)), 100);
++        assert_eq!(ms(shared.meter(None).unwrap().charge(50, now)), 150);
++    }
++
++    #[test]
++    fn client_configuration_is_bounded_and_rejects_duplicates() {
++        let q = ProduceQuota::new(100, 100, 1_000).unwrap();
++        assert!(ClientProduceQuotas::new(q, vec![("".into(), q)]).is_err());
++        assert!(ClientProduceQuotas::new(q, vec![("x".repeat(257), q)]).is_err());
++        assert!(ClientProduceQuotas::new(q, vec![("a".into(), q), ("a".into(), q)]).is_err());
++        let many = (0..257).map(|i| (i.to_string(), q)).collect();
++        assert!(ClientProduceQuotas::new(q, many).is_err());
++        assert!(ClientProduceQuotas::new(q, vec![("é".repeat(128), q)]).is_ok());
++    }
++
++    #[test]
++    fn failed_named_meter_does_not_erase_or_poison_other_debts() {
++        let now = Instant::now();
++        let q = ProduceQuota::new(100, 100, 10_000).unwrap();
++        let config =
++            ClientProduceQuotas::new(q, vec![("alpha".into(), q), ("bravo".into(), q)]).unwrap();
++        let mut meters = QuotaMeters::new(QuotaPolicy::Clients(config), now);
++        let limits = crate::protocol::Limits::default();
++        let a = meters.select(&header(3, Some("alpha")), limits);
++        let b = meters.select(&header(3, Some("bravo")), limits);
++        meters.meter(a).unwrap().balance = Balance::Debt(u128::MAX);
++        assert!(matches!(
++            meters.meter(a).unwrap().charge(1, now),
++            QuotaMark::Failed
++        ));
++        assert_eq!(ms(meters.meter(b).unwrap().charge(150, now)), 500);
++        assert!(matches!(
++            meters.meter(a).unwrap().charge(1, now),
++            QuotaMark::Failed
++        ));
++        assert_eq!(ms(meters.meter(b).unwrap().charge(1, now)), 510);
++    }
++
+     #[test]
+     fn partial_refill_and_round_up_preserve_debt() {
+         let now = Instant::now();
+diff --git a/partitionline-broker/tests/produce_quota.rs b/partitionline-broker/tests/produce_quota.rs
+--- a/partitionline-broker/tests/produce_quota.rs
++++ b/partitionline-broker/tests/produce_quota.rs
+@@ -4,7 +4,7 @@
+ use partitionline_broker::{
+     catalog::{Catalog, TopicId},
+     fetch,
+-    metadata::{self, ProduceQuota, QuotaRouter},
++    metadata::{self, ClientProduceQuotas, ProduceQuota, QuotaRouter},
+     produce,
+     transport::{self, ExchangeControl, Handler, Peer, Transport},
+ };
+@@ -64,6 +64,28 @@ async fn open(root: &Path, millis: u32) -> Result<QuotaRouter> {
+     .await?
+     .0)
+ }
++fn with_client_id(request: &[u8], name: &str) -> Result<Vec<u8>> {
++    let prefix = request.get(..8).ok_or("short request prefix")?;
++    let old_len = i16::from_be_bytes(
++        request
++            .get(8..10)
++            .ok_or("short client length")?
++            .try_into()?,
++    );
++    let old_len = if old_len == -1 {
++        0
++    } else {
++        usize::try_from(old_len)?
++    };
++    let tail = request.get(10 + old_len..).ok_or("short client ID")?;
++    let mut result = Vec::with_capacity(prefix.len() + 2 + name.len() + tail.len());
++    result.extend_from_slice(prefix);
++    result.extend_from_slice(&i16::try_from(name.len())?.to_be_bytes());
++    result.extend_from_slice(name.as_bytes());
++    result.extend_from_slice(tail);
++    Ok(result)
++}
++
+ async fn send(socket: &mut TcpStream, bytes: &[u8]) -> Result {
+     socket
+         .write_all(&i32::try_from(bytes.len())?.to_be_bytes())
+@@ -277,6 +299,161 @@ async fn receive_after_mute(socket: &mut TcpStream, deadline: Instant) -> Result
+     Ok(body)
+ }
+ 
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn unconfigured_and_malformed_clients_charge_the_shared_fallback() -> Result {
++    let root = scratch()?;
++    let fixture = fixture("produce-v3-acks1", "request").await?;
++    let unknown = with_client_id(&fixture, "unknown")?;
++    let empty = with_client_id(&fixture, "")?;
++    let mut null = with_client_id(&fixture, "")?;
++    null[8..10].copy_from_slice(&(-1i16).to_be_bytes());
++    let alpha = with_client_id(&fixture, "alpha")?;
++    let slow = ProduceQuota::new(1, u64::try_from(unknown.len())?, 60_000)?;
++    let fast = ProduceQuota::new(1_000_000, 1_000_000, 60_000)?;
++    let policies = ClientProduceQuotas::new(slow, vec![("alpha".to_owned(), fast)])?;
++    let (router, _) = QuotaRouter::open_with_client_quotas(
++        root.join("catalog"),
++        common(),
++        produce::Config::new(root.join("parts")),
++        fetch::Limits::default(),
++        policies,
++    )
++    .await?;
++
++    // A started Produce with a malformed UTF-8 client ID fails parsing but
++    // still consumes fallback quota, just like other started work.
++    let malformed = vec![0, 0, 0, 3, 0, 0, 0, 7, 0, 1, 0xff];
++    assert!(router.dispatch_controlled(malformed).await.is_err());
++    let mut reported = Vec::new();
++    for request in [unknown, null, empty, alpha] {
++        let (outcome, _) = router.dispatch_controlled(request).await?.into_parts();
++        let response = outcome.response.ok_or("missing Produce response")?;
++        let start = response.len().checked_sub(4).ok_or("short response")?;
++        reported.push(i32::from_be_bytes(response[start..].try_into()?));
++    }
++    assert!(
++        reported[0] > 0,
++        "malformed work was not charged to fallback"
++    );
++    assert!(
++        reported[1] > reported[0] + 1_000,
++        "null ID did not share fallback"
++    );
++    assert!(reported[2] > 0, "empty ID did not share fallback");
++    assert_eq!(reported[3], 0, "named alpha inherited fallback debt");
++    router.shutdown().await?;
++    fs::remove_dir_all(root)?;
++    Ok(())
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn client_quota_separates_connections_and_sequences_acks_zero() -> Result {
++    let root = scratch()?;
++    let slow = ProduceQuota::new(25, 1, 15_000)?;
++    let fast = ProduceQuota::new(1_000_000, 1_000_000, 15_000)?;
++    let policies = ClientProduceQuotas::new(
++        fast,
++        vec![("alpha".to_owned(), slow), ("bravo".to_owned(), fast)],
++    )?;
++    let router = Arc::new(
++        QuotaRouter::open_with_client_quotas(
++            root.join("catalog"),
++            common(),
++            produce::Config::new(root.join("parts")),
++            fetch::Limits::default(),
++            policies,
++        )
++        .await?
++        .0,
++    );
++    let Observations {
++        handler,
++        mut started,
++        mut deadlines,
++    } = observing(&router, false);
++    let mut transport = Transport::bind(
++        ([127, 0, 0, 1], 0).into(),
++        transport::Config::default(),
++        handler,
++    )
++    .await?;
++    let mut first = TcpStream::connect(transport.local_addr()).await?;
++    let mut second = TcpStream::connect(transport.local_addr()).await?;
++    let mut third = TcpStream::connect(transport.local_addr()).await?;
++    let a = with_client_id(&fixture("produce-v3-acks0", "request").await?, "alpha")?;
++    let b = with_client_id(&fixture("produce-v9-acks1", "request").await?, "bravo")?;
++    let a_again = with_client_id(&fixture("produce-v3-acks1", "request").await?, "alpha")?;
++
++    send(&mut first, &a).await?;
++    started_request(&mut started, 0).await?;
++    let deadline = produce_deadline(&mut deadlines).await?;
++    send(&mut first, &metadata_request()).await?;
++    send(&mut second, &b).await?;
++    let b_started = started_request(&mut started, 0).await?;
++    assert!(
++        b_started < deadline,
++        "unrelated label waited for alpha's mute"
++    );
++    let b_deadline = tokio::time::timeout(Duration::from_secs(2), deadlines.recv())
++        .await?
++        .ok_or("deadline observation closed")?;
++    assert!(b_deadline.is_none(), "bravo inherited alpha's debt");
++    let response = tokio::time::timeout(Duration::from_secs(2), receive(&mut second)).await??;
++    let mut expected = fixture("produce-v9-acks1", "response").await?;
++    // Alpha's already completed acks=0 append advances the sole partition.
++    assert_eq!(&expected[19..27], &0i64.to_be_bytes());
++    expected[19..27].copy_from_slice(&1i64.to_be_bytes());
++    assert_eq!(
++        response, expected,
++        "bravo response, offset and zero throttle"
++    );
++    assert!(Instant::now() < deadline);
++
++    // A second connection with alpha's label must see the first connection's
++    // debt. The first alpha request had acks=0, but it was already charged.
++    send(&mut third, &a_again).await?;
++    assert!(started_request(&mut started, 0).await? < deadline);
++    let _second_alpha_deadline = produce_deadline(&mut deadlines).await?;
++    let alpha_response =
++        tokio::time::timeout(Duration::from_secs(2), receive(&mut third)).await??;
++    let field = alpha_response
++        .len()
++        .checked_sub(4)
++        .ok_or("short response")?;
++    let alpha_throttle = i32::from_be_bytes(alpha_response[field..].try_into()?);
++    let standalone_ms = i32::try_from((a_again.len() - 1) * 40)?;
++    assert!(
++        alpha_throttle > standalone_ms + 1_000,
++        "second alpha connection did not retain first connection's debt"
++    );
++    let mut alpha_expected = fixture("produce-v3-acks1", "response").await?;
++    assert_eq!(&alpha_expected[25..33], &0i64.to_be_bytes());
++    alpha_expected[25..33].copy_from_slice(&2i64.to_be_bytes());
++    let throttle_field = alpha_expected.len() - 4;
++    alpha_expected[throttle_field..].copy_from_slice(&alpha_throttle.to_be_bytes());
++    assert_eq!(
++        alpha_response, alpha_expected,
++        "second alpha response and offset"
++    );
++    assert!(Instant::now() < deadline);
++    assert!(
++        started.try_recv().is_err(),
++        "alpha's metadata reached the handler during mute"
++    );
++    let reply = tokio::time::timeout(
++        Duration::from_secs(6),
++        receive_after_mute(&mut first, deadline),
++    )
++    .await??;
++    assert_eq!(&reply[..4], &77i32.to_be_bytes());
++    assert!(started_request(&mut started, 3).await? >= deadline);
++
++    transport.shutdown().await?;
++    router.shutdown().await?;
++    fs::remove_dir_all(root)?;
++    Ok(())
++}
++
+ #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+ async fn acks_zero_mutes_a_pipelined_request_then_resumes() -> Result {
+     for version in [3, 10, 13] {

@@ -68,8 +68,31 @@ each feature profile, one existing authenticated shared-quota control,
 strict all-target/all-feature Clippy and rustdoc. Formatting failed, and the
 dependent broad broker suite was skipped. An earlier candidate
 [run](https://github.com/mingley/partitionline/actions/runs/42865079914) had the same
-formatting failure. A subsequent revision corrects formatting; further
-structural-failure controls and broad tests require separate results.
+formatting failure. The
+[formatted revision](https://github.com/mingley/partitionline/actions/runs/42868226917)
+passed the same focused controls, formatting, Clippy and rustdoc; its broader
+broker job was still queued when this note was written.
+
+Two additional controls inject a corrupt response-control offset or a missing
+internal charge length. On the prior candidate they each observed a different
+named bucket still accepting work and failed in
+[run 42868573395](https://github.com/mingley/partitionline/actions/runs/42868573395).
+These are injected internal states; they do not show such corruption occurs
+naturally. Revision `c59ec2e65e8689800b13ee3da3b27dfa498b8fad` fails every
+bucket closed on these structural failures while leaving an individual
+numeric meter failure isolated. Its
+[run](https://github.com/mingley/partitionline/actions/runs/42868617253) passed six meter,
+five actor and eight public controls in each feature profile, the existing
+authenticated shared-quota control, Clippy and rustdoc; formatting failed and
+the broad suite was skipped. The formatting-only successor
+`e993aabcaef316380e7c13ff31c0a81ab9b5be64` was still under test when this
+note was written.
+
+The [candidate patch](candidate.patch) applies to
+`50b5de969a14f11f52df6da36bf2037d4f61de60`. Text application of its hunks
+reproduced the three successor source files exactly; native `git apply` was
+not run here. The [candidate workflow](candidate-workflow.yml.txt) and
+[negative-control workflow](invariant-baseline-workflow.yml.txt) are retained.
 
 The probe and focused controls do not test actual Kafka Java clients against
 the candidate, named quotas under TLS or SASL, dynamic quota changes, durable
