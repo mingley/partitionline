@@ -155,8 +155,8 @@ fn verify_corpus(text: &str) -> Result<String, Box<dyn Error>> {
 
 #[test]
 fn metadata_boundaries_committed_corpus() -> Result<(), Box<dyn Error>> {
-    let input = include_str!("fixtures/metadata_wire/boundaries-apache.txt");
-    let expected = include_str!("fixtures/metadata_wire/boundaries-rust.txt");
+    let input = include_str!("fixtures/metadata_wire/all-v0-v12-apache.txt");
+    let expected = include_str!("fixtures/metadata_wire/all-v0-v12-rust.txt");
     assert_eq!(verify_corpus(input)?, expected);
     Ok(())
 }
