@@ -42,6 +42,13 @@ links the individual runs and results. The current branch contains later changes
 | Client format, Clippy, audit, docs, package, auth and integrity smoke | Passed. Other jobs failed or were skipped. |
 | Instruction-count gate | No baseline for this Rust version; no regression comparison. |
 
+On the later [8570b01 CI run][main-857-ci], the Schema job passed, while the
+Linux and Windows client libraries, current Kafka jobs and broker default
+library failed. The docs and package jobs also failed because of mutable
+repository links introduced in that commit. A [targeted repair][docs-package]
+passed the extracted-crate documentation check; full release gates remain open.
+The CI run was still in progress when this status was recorded.
+
 The [preceding complete snapshot][ci-92a] failed its broker default library;
 the later pass does not explain that failure. An [earlier snapshot][ci-669]
 recorded an OS-denied process-descriptor sample; later passes do not explain it.
@@ -114,6 +121,9 @@ and [work plan][next] retain those results and earlier evidence.
   across several owners at a yield. A synthetic control saw closed receipts;
   it was not a public Kafka history. An isolated [count-reuse experiment][producer-count]
   does not fix delivery, and both baseline and candidate broad profiles failed.
+  A [drain-to-grouping design][grouping-design] records a separate private
+  control in which receipt senders closed and seeded bytes remained charged
+  after cancellation; it does not establish a real Kafka history or a fix.
 - **Client compatibility.** Current client library and Kafka jobs fail.
   Consumer and group behavior, cancellation, authentication and protocol
   coverage remain incomplete. An [Admin cursor guard][cursor-fix] detects
@@ -182,7 +192,7 @@ results and experiments.
 
 [ci]: https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/docs/evidence/releases/main-ci-ffad-20261110/README.md
 [history]: https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/STATUS.md
-[next]: https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/docs/plan/next-work.md
+[next]: https://github.com/mingley/partitionline/blob/fc839cf08e6bdcadf1e4f022b570d4cb53637176/docs/plan/next-work.md
 [tls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/security/tls-provider-assessment-20261108/README.md
 [owner-controls]: https://github.com/mingley/partitionline/blob/e18186f0cb9c25393117fe41148ae5860f52a8a0/docs/evidence/client/producer-ownership-regression-controls-20261108/README.md
 [owner-draft]: https://github.com/mingley/partitionline/blob/ed86c9c937dd3f5a7edb73858a6474b04073a827/docs/evidence/client/producer-owned-batch-rust-draft-20261108/README.md
@@ -247,3 +257,7 @@ results and experiments.
 [schema-json]: https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/docs/evidence/schema/json-avl-split-fastpath-20261110/README.md
 [producer-count]: https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/docs/evidence/client/producer-assembly-count-20261110/README.md
 [assembly-review]: https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/docs/evidence/client/producer-assembly-drop-review-20261110/README.md
+
+[main-857-ci]: https://github.com/mingley/partitionline/actions/runs/42878680393
+[docs-package]: https://github.com/mingley/partitionline/blob/fc839cf08e6bdcadf1e4f022b570d4cb53637176/docs/evidence/releases/docs-package-repair-20261110/README.md
+[grouping-design]: https://github.com/mingley/partitionline/blob/fc839cf08e6bdcadf1e4f022b570d4cb53637176/docs/evidence/client/producer-grouping-cancellation-design-20261110/README.md
