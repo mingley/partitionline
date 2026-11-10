@@ -1,0 +1,119 @@
+name: Producer drain staging controls
+on:
+  push:
+    branches:
+      - qualification/producer-drain-staging-candidate-20261110
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Record source
+        run: |
+          rustc --version
+          git rev-parse HEAD
+          git hash-object src/producer.rs
+      - name: Focused drain controls
+        run: |
+          cargo test --locked --lib producer::tests::grouping_drain_ -- --test-threads=1
+          cargo test --locked --all-features --lib producer::tests::grouping_drain_ -- --test-threads=1
+      - name: Expected later grouping failure
+        run: |
+          set -eu
+          for profile in default all-features; do
+            set +e
+            if test "$profile" = default; then
+              cargo test --locked --lib producer::tests::grouping_drain_following_grouping_is_not_fixed -- --exact --ignored --nocapture > "$RUNNER_TEMP/later-$profile.log" 2>&1
+            else
+              cargo test --locked --all-features --lib producer::tests::grouping_drain_following_grouping_is_not_fixed -- --exact --ignored --nocapture > "$RUNNER_TEMP/later-$profile.log" 2>&1
+            fi
+            code=$?
+            set -e
+            echo "profile=$profile exit=$code"
+            grep -E 'NEXT_GROUPING_WITNESS|test result:' "$RUNNER_TEMP/later-$profile.log" || true
+            test "$code" -ne 0
+            grep -F 'NEXT_GROUPING_WITNESS total=8193 closed=8193 still_accounted=8193 pending=0' "$RUNNER_TEMP/later-$profile.log"
+            grep -F 'later grouping still drops receipt senders' "$RUNNER_TEMP/later-$profile.log"
+          done
+      - name: Formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Strict test lint
+        if: always()
+        run: cargo clippy --locked --all-features --lib --tests -- -D warnings
+      - name: Strict rustdoc
+        if: always()
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --all-features --no-deps
+      - name: Retain diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drain-staging-${{ github.sha }}
+          path: ${{ runner.temp }}/later-*.log
+          if-no-files-found: warn
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Create baseline with candidate controls
+        run: |
+          rustc --version
+          git worktree add --detach "$RUNNER_TEMP/drain-baseline" 8570b01da6693acbcaa66120c861c5fd689628c4
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import os
+          candidate = Path("src/producer.rs").read_bytes()
+          path = Path(os.environ["RUNNER_TEMP"]) / "drain-baseline/src/producer.rs"
+          baseline = path.read_bytes()
+          marker = b"#[cfg(test)]\nmod tests {"
+          if baseline.count(marker) != 1 or candidate.count(marker) != 1:
+              raise ValueError("missing unique test module")
+          prefix = baseline.split(marker, 1)[0]
+          tests = candidate.split(marker, 1)[1]
+          print("baseline_prefix_sha256=" + hashlib.sha256(prefix).hexdigest())
+          path.write_bytes(prefix + marker + tests)
+          PY
+          git -C "$RUNNER_TEMP/drain-baseline" hash-object src/producer.rs
+      - name: Expected baseline failures
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/drain-baseline"
+          for profile in default all-features; do
+            set +e
+            if test "$profile" = default; then
+              cargo test --locked --lib producer::tests::grouping_drain_ -- --test-threads=1 > "$RUNNER_TEMP/baseline-$profile.log" 2>&1
+            else
+              cargo test --locked --all-features --lib producer::tests::grouping_drain_ -- --test-threads=1 > "$RUNNER_TEMP/baseline-$profile.log" 2>&1
+            fi
+            code=$?
+            set -e
+            echo "baseline=$profile exit=$code"
+            grep -E 'test result:|grouping_drain_(cancellation_retains_receipts|cancellation_during_deadline_scan|worker_abort_restores_before_drop)' "$RUNNER_TEMP/baseline-$profile.log" || true
+            test "$code" -ne 0
+            grep -F 'producer::tests::grouping_drain_cancellation_retains_receipts' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -F 'producer::tests::grouping_drain_cancellation_during_deadline_scan' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -F 'producer::tests::grouping_drain_worker_abort_restores_before_drop' "$RUNNER_TEMP/baseline-$profile.log"
+            grep -F 'test result: FAILED. 2 passed; 3 failed; 1 ignored' "$RUNNER_TEMP/baseline-$profile.log"
+          done
+      - name: Retain baseline logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drain-staging-baseline-${{ github.sha }}
+          path: ${{ runner.temp }}/baseline-*.log
+          if-no-files-found: warn
