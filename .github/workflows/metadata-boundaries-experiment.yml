@@ -1,0 +1,48 @@
+name: Metadata boundary Apache wire experiment
+on:
+  push:
+    branches:
+      - qualification/metadata-boundaries-20261110
+permissions:
+  contents: read
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Record tools and source
+        run: |
+          rustc --version
+          cargo --version
+          java --version
+          git rev-parse HEAD
+          sha256sum tests/conformance/java/ConformanceMetadataBoundaries.java tests/conformance/java/generate_metadata_boundaries.py tests/metadata_boundaries_conformance.rs
+      - name: Compare bounded body fixtures
+        run: timeout 900s python3 tests/conformance/java/generate_metadata_boundaries.py --output target/metadata-boundaries
+      - name: Strict lint
+        if: always()
+        run: cargo clippy --locked --all-features --test metadata_boundaries_conformance -- -D warnings
+      - name: Formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Show formatting correction
+        if: failure()
+        run: |
+          cargo fmt --all
+          git diff -- tests/metadata_boundaries_conformance.rs
+      - name: Retain fixtures and process receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metadata-boundaries-${{ github.sha }}
+          path: target/metadata-boundaries
+          if-no-files-found: warn
+          retention-days: 30
