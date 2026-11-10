@@ -2358,7 +2358,9 @@ mod tests {
     #[test]
     fn json_key_index_preserves_duplicate_scope_and_error_order() {
         use std::fmt::Write as _;
-        for count in [0usize, 1, 31, 32, 33, 34, 64, 65, 66, 80, 95, 96, 97, 128, 129, 512, 4096] {
+        for count in [
+            0usize, 1, 31, 32, 33, 34, 64, 65, 66, 80, 95, 96, 97, 128, 129, 512, 4096,
+        ] {
             let mut body = String::from("{");
             for i in 0..count {
                 if i != 0 {
