@@ -414,8 +414,12 @@ async fn client_quota_separates_connections_and_sequences_acks_zero() -> Result 
     send(&mut third, &a_again).await?;
     assert!(started_request(&mut started, 0).await? < deadline);
     let _second_alpha_deadline = produce_deadline(&mut deadlines).await?;
-    let alpha_response = tokio::time::timeout(Duration::from_secs(2), receive(&mut third)).await??;
-    let field = alpha_response.len().checked_sub(4).ok_or("short response")?;
+    let alpha_response =
+        tokio::time::timeout(Duration::from_secs(2), receive(&mut third)).await??;
+    let field = alpha_response
+        .len()
+        .checked_sub(4)
+        .ok_or("short response")?;
     let alpha_throttle = i32::from_be_bytes(alpha_response[field..].try_into()?);
     let standalone_ms = i32::try_from((a_again.len() - 1) * 40)?;
     assert!(
@@ -427,7 +431,10 @@ async fn client_quota_separates_connections_and_sequences_acks_zero() -> Result 
     alpha_expected[25..33].copy_from_slice(&2i64.to_be_bytes());
     let throttle_field = alpha_expected.len() - 4;
     alpha_expected[throttle_field..].copy_from_slice(&alpha_throttle.to_be_bytes());
-    assert_eq!(alpha_response, alpha_expected, "second alpha response and offset");
+    assert_eq!(
+        alpha_response, alpha_expected,
+        "second alpha response and offset"
+    );
     assert!(Instant::now() < deadline);
     assert!(
         started.try_recv().is_err(),
