@@ -14,7 +14,7 @@
 | TLS, SASL, and credential handling | [Security](security.md) and [token lifecycle](auth-refresh.md) |
 | Client internals | [Design](design.md) |
 | Broker development | [Broker README](https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/partitionline-broker/README.md) |
-| Schema Registry and serialization | [Companion README](https://github.com/mingley/partitionline/blob/ef20cb151dc7d310ab6f16d72b82ebc6c1071574/partitionline-schema/README.md) |
+| Schema Registry and serialization | [Companion README](https://github.com/mingley/partitionline/blob/main/partitionline-schema/README.md) |
 | Versions this client speaks | [Wire versions](wire-versions.md) |
 | Run and compare benchmarks | [Benchmark instructions](benchmark.md) and [measurement rules](benchmark-contract.md) |
 | Release process | [Release guide](RELEASE.md) |
@@ -22,13 +22,13 @@
 
 ## Development plans
 
-The [task registry](https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/plan/tasks.json) tracks status and dependencies. Use the
-[session guide](https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/plan/README.md) to select work. The [roadmap](ROADMAP.md),
-[client performance plan](https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/plan/performance-leadership.md),
-[gateway plan](https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/docs/plan/gateway-adoption.md), and
-[broker plan](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/broker-implementation.md) describe the goals and checks.
+The [task registry](https://github.com/mingley/partitionline/blob/main/docs/plan/tasks.json) tracks status and dependencies. Use the
+[work plan](https://github.com/mingley/partitionline/blob/main/docs/plan/README.md) to select work. The [roadmap](ROADMAP.md),
+[client performance plan](https://github.com/mingley/partitionline/blob/main/docs/plan/performance-leadership.md),
+[gateway plan](https://github.com/mingley/partitionline/blob/main/docs/plan/gateway-adoption.md), and
+[broker plan](https://github.com/mingley/partitionline/blob/main/docs/plan/broker-implementation.md) describe the goals and checks.
 
 [STATUS.md](STATUS.md) records current qualification results and open work.
 [CIVILIZATION.md](CIVILIZATION.md) and dated audits preserve earlier plans and
-results. Links to plans outside the package use a fixed source snapshot; see the
-checkout for later changes.
+results. Links to development plans and the companion guide follow `main`;
+they may differ from the version in your checkout.
