@@ -9691,7 +9691,11 @@ async fn reserve_grouped_topic_counts(
         for (index, (partition, _)) in groups.order.iter().enumerate() {
             let _inserted = groups.slots.insert(*partition, index);
         }
-        pause_walk(&mut walked).await;
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     total_groups
 }
