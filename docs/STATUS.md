@@ -231,7 +231,7 @@ results and experiments.
 [ci-199]: https://github.com/mingley/partitionline/blob/2463421e6137185a506c71fdb0fe4acaee530cab/docs/evidence/releases/main-ci-199-20261109/README.md
 [metadata-boundaries]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/conformance/q-conf-metadatawire/boundaries-20261110.md
 [quota-client-id]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/broker/produce-client-quota-isolation-20261110/README.md
-[json-avl]: https://github.com/mingley/partitionline/blob/2ac5db7947ab9b13b3e0139df9a7c22f30ead38d/docs/evidence/schema/json-progressive-avl-20261110/README.md
+[json-avl]: https://github.com/mingley/partitionline/blob/cfe9a1ac5187aebad36269681275af97bf68ba60/docs/evidence/schema/json-progressive-avl-20261110/README.md
 
 [quota-named]: https://github.com/mingley/partitionline/blob/cfe9a1ac5187aebad36269681275af97bf68ba60/docs/evidence/broker/produce-client-quota-candidate-20261110/README.md
 [json-avl-tail]: https://github.com/mingley/partitionline/blob/cfe9a1ac5187aebad36269681275af97bf68ba60/docs/evidence/schema/json-avl-tail-comparison-20261110/README.md
