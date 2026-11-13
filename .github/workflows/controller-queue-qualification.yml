@@ -98,7 +98,7 @@ jobs:
       - name: Retain reports, logs and inputs
         timeout-minutes: 20
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: controller-queue-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
