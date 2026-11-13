@@ -12,7 +12,7 @@ jemalloc = ["dep:tikv-jemallocator"]
 mimalloc = ["dep:mimalloc"]
 
 [dependencies]
-partitionline = { version = "0.1.0", path = "../.." }
+partitionline = { version = "0.2.0", path = "../.." }
 nullbroker = { version = "0.1.0", path = "../nullbroker" }
 codec = { version = "0.1.0", path = "../codec" }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "time", "sync", "macros"] }
