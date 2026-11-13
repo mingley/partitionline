@@ -2577,7 +2577,8 @@ impl PendingRecords {
         buffered_bytes: &mut usize,
     ) -> Vec<FetchedRecord> {
         let available = self.count_runnable(paused).await;
-        let mut out = Vec::with_capacity(available.min(cap));
+        let total = available.min(cap);
+        let mut out = Vec::with_capacity(total.min(4096));
         let mut index = 0;
         let mut walked = 0usize;
         let mut skipped = 0usize;
@@ -2588,7 +2589,7 @@ impl PendingRecords {
             if paused.contains(&run.topic, run.partition) {
                 index += 1;
                 skipped = skipped.saturating_add(1);
-                if skipped == 8 * 1024 {
+                if skipped == 1024 {
                     skipped = 0;
                     tokio::task::yield_now().await;
                 }
@@ -2607,10 +2608,13 @@ impl PendingRecords {
                     break;
                 };
                 *buffered_bytes = buffered_bytes.saturating_sub(record_bytes(&rec));
+                if out.len() == out.capacity() {
+                    out.reserve(total.saturating_sub(out.len()).min(4096));
+                }
                 out.push(rec);
                 taken = taken.saturating_add(1);
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     if let Some(run) = self.order.get_mut(index) {
                         run.count = run.count.saturating_sub(taken);
@@ -3476,7 +3480,7 @@ impl BrokerFetchSession {
             for stored in parts.values() {
                 let _stored = self.id_names.insert(stored.id, Arc::clone(name));
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -5140,7 +5144,7 @@ impl Consumer {
             .await
         {
             Ok(b) => b,
-            Err(e) if e.is_retriable() => {
+            Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {
                 self.reconnect_bootstrap(deadline).await?;
                 version = self.metadata_version;
                 let allow = self.cfg.allow_auto_topic_creation || version < 4 && topics.is_none();
@@ -12506,7 +12510,7 @@ enum ListedPartitions {
 }
 
 fn metadata_name_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// List partition indexes for each requested topic.
@@ -12528,7 +12532,7 @@ async fn partition_indexes_for_names<'a>(
     topics: &[crate::protocol::api::TopicMetadata],
     names: impl IntoIterator<Item = &'a str>,
 ) -> Result<Vec<Vec<i32>>> {
-    let mut copies: HashMap<&str, Vec<usize>> = HashMap::with_capacity(topics.len());
+    let mut copies: HashMap<&str, Vec<usize>> = HashMap::with_capacity(topics.len().min(4096));
     let mut walked = 0usize;
     for (index, topic) in topics.iter().enumerate() {
         walked = walked.saturating_add(1);
@@ -12536,6 +12540,9 @@ async fn partition_indexes_for_names<'a>(
             if let Some(slots) = copies.get_mut(name) {
                 slots.push(index);
             } else {
+                if copies.len() == copies.capacity() {
+                    copies.reserve(topics.len().saturating_sub(index).min(4096));
+                }
                 let _ = copies.insert(name, vec![index]);
             }
         }
@@ -14895,8 +14902,8 @@ mod tests {
                 .len()
         });
         tokio::time::sleep(std::time::Duration::from_millis(30)).await;
-        worker.abort();
         let elapsed = started.elapsed();
+        worker.abort();
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "draining fetched records held the caller for {elapsed:?}"
@@ -14918,8 +14925,8 @@ mod tests {
                 .unwrap_or(0)
         });
         tokio::time::sleep(std::time::Duration::from_millis(30)).await;
-        worker.abort();
         let elapsed = started.elapsed();
+        worker.abort();
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "prepending fetched records held the caller for {elapsed:?}"
@@ -18204,15 +18211,17 @@ mod tests {
                 topic_authorized_operations: -1,
             })
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = partition_indexes_for_names(&topics, ["topic-0"]) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
+        let elapsed = {
+            let mut work = std::pin::pin!(partition_indexes_for_names(&topics, ["topic-0"]));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "indexing metadata names held the caller for {:?}",
-            started.elapsed()
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing metadata names held the caller for {elapsed:?}",
         );
         let sample = [
             crate::protocol::api::TopicMetadata {
@@ -18579,12 +18588,14 @@ mod tests {
             );
         }
         let _stored = session.partitions.insert(topic, parts);
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = session.refresh_id_names() => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(session.refresh_id_names());
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "refreshing session topic ids held the caller for {elapsed:?}"

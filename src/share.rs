@@ -2632,23 +2632,19 @@ async fn prune_share_leader_plan(plan: &mut ShareLeaderPlan) {
 async fn prune_share_leader_topics(topics: &mut HashMap<Arc<str>, Vec<i32>>) {
     let mut pending = std::mem::take(topics);
     let mut kept = Vec::new();
-    loop {
-        let keys: Vec<Arc<str>> = pending.keys().take(8 * 1024).cloned().collect();
-        if keys.is_empty() {
-            break;
-        }
-        let full = keys.len() == 8 * 1024;
-        for key in keys {
-            if let Some(parts) = pending.remove(&key) {
-                if !parts.is_empty() {
-                    kept.push((key, parts));
-                }
+    {
+        let mut drain = pending.drain();
+        let mut walked = 0usize;
+        for (key, parts) in &mut drain {
+            if !parts.is_empty() {
+                kept.push((key, parts));
+            }
+            walked = walked.saturating_add(1);
+            if walked == 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
-        if !full {
-            break;
-        }
-        tokio::task::yield_now().await;
     }
     if topics.capacity() < pending.capacity() {
         *topics = pending;
@@ -2657,7 +2653,7 @@ async fn prune_share_leader_topics(topics: &mut HashMap<Arc<str>, Vec<i32>>) {
     for (topic, parts) in kept {
         let _stored = topics.insert(topic, parts);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7371,7 +7367,7 @@ async fn group_share_ack_topics(
             });
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7532,9 +7528,12 @@ fn share_topic_by_id(topic_ids: &HashMap<Arc<str>, [u8; 16]>, id: [u8; 16]) -> R
 async fn index_share_topic_ids(
     ids: &HashMap<Arc<str>, [u8; 16]>,
 ) -> HashMap<[u8; 16], Option<Arc<str>>> {
-    let mut by_id = HashMap::with_capacity(ids.len());
+    let mut by_id = HashMap::with_capacity(ids.len().min(4096));
     let mut walked = 0usize;
     for (name, id) in ids {
+        if by_id.len() == by_id.capacity() {
+            by_id.reserve(ids.len().saturating_sub(by_id.len()).min(4096));
+        }
         match by_id.entry(*id) {
             std::collections::hash_map::Entry::Vacant(slot) => {
                 let _stored = slot.insert(Some(Arc::clone(name)));
@@ -7544,7 +7543,7 @@ async fn index_share_topic_ids(
             }
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -9433,12 +9432,14 @@ mod tests {
                 (topic_id, 0, Vec::new())
             })
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = group_share_ack_topics(resolved) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(group_share_ack_topics(resolved));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "grouping share acknowledgement topics held the caller for {elapsed:?}"
@@ -10889,33 +10890,37 @@ mod tests {
             let _ = ids.insert(name, id);
             wanted.push(id);
         }
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = index_share_topic_ids(&ids) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(index_share_topic_ids(&ids));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "indexing share topic ids held the caller for {elapsed:?}"
         );
         let index = index_share_topic_ids(&ids).await;
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = async {
+        let lookup_elapsed = {
+            let mut work = std::pin::pin!(async {
                 let mut named = 0usize;
                 for id in &wanted {
                     let _named = share_topic_from_index(&index, *id);
                     named = named.saturating_add(1);
-                    if named == 8 * 1024 {
+                    if named == 1024 {
                         named = 0;
                         tokio::task::yield_now().await;
                     }
                 }
-            } => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let lookup_elapsed = started.elapsed();
+            });
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             lookup_elapsed < std::time::Duration::from_millis(80),
             "naming indexed share topics held the caller for {lookup_elapsed:?}"

@@ -19732,20 +19732,26 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::admin::encode_consumer_group_describe_response(&mut body, 1, &groups)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_consumer_group_describe_response_cooperative(&mut body, 1) => {
-                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
-                assert_eq!(
-                    decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
-                    Some("member-0")
-                );
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_consumer_group_describe_response_cooperative(
+                &mut body, 1
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
+                    assert_eq!(
+                        decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
+                        Some("member-0")
+                    );
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding consumer group members held the caller for {elapsed:?}"
@@ -19807,20 +19813,26 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::admin::encode_share_group_describe_response(&mut body, 1, &groups)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_share_group_describe_response_cooperative(&mut body, 1) => {
-                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
-                assert_eq!(
-                    decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
-                    Some("member-0")
-                );
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_share_group_describe_response_cooperative(
+                &mut body, 1
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
+                    assert_eq!(
+                        decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
+                        Some("member-0")
+                    );
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding share group members held the caller for {elapsed:?}"

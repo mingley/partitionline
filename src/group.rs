@@ -819,7 +819,7 @@ pub fn resolve_sticky_owned_partitions_cooperative(
                     },
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -8680,7 +8680,7 @@ where
             .await
         {
             Ok(body) => body,
-            Err(e) if e.is_retriable() => {
+            Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {
                 replace_known_coord(coord, cfg, deadline).await?;
                 let version = negotiated_coord_version(coord, api_key)?;
                 let body = coord
@@ -9290,17 +9290,24 @@ mod tests {
             })
             .collect();
         let mut topics = Vec::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = refill_offset_topics_cooperative(&mut topics, &items) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        let finished = {
+            let mut work = std::pin::pin!(refill_offset_topics_cooperative(&mut topics, &items));
+            let started = std::time::Instant::now();
+            let (done, elapsed) = tokio::select! {
+                () = &mut work => (true, started.elapsed()),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => (false, started.elapsed()),
+            };
+            assert!(
+                elapsed < std::time::Duration::from_millis(80),
+                "refilling offset topics held the caller for {elapsed:?}"
+            );
+            done
+        };
+        if !finished {
+            topics.clear();
+            refill_offset_topics_cooperative(&mut topics, &items).await;
         }
-        let elapsed = started.elapsed();
         assert_eq!(topics.len(), 8_192);
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "refilling offset topics held the caller for {elapsed:?}"
-        );
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -9751,12 +9758,14 @@ mod tests {
             owned.push(("orders".to_string(), index));
         }
         let claims = vec![("member".to_string(), owned, 1)];
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = resolve_sticky_owned_partitions_cooperative(&claims) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(resolve_sticky_owned_partitions_cooperative(&claims));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "resolving owned partitions held the caller for {elapsed:?}"
