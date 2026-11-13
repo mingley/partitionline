@@ -522,7 +522,12 @@ async fn repeated_delayed_retry_cannot_reset_budget_or_exceed_eight_attempts() {
         let peer = Peer::start().await;
         peer.script(1, (0..8).map(|_| Reply::Delay(delay, response(16))))
             .await;
-        let mut client = StreamsClient::new(peer.config()).unwrap();
+        let mut cfg = peer.config();
+        if delay.is_zero() {
+            cfg.connection.retry_backoff = Duration::ZERO;
+            cfg.connection.retry_backoff_max = Duration::ZERO;
+        }
+        let mut client = StreamsClient::new(cfg).unwrap();
         let started = Instant::now();
         let result = client
             .heartbeat_timeout(&request(), Duration::from_millis(70))
