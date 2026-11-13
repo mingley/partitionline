@@ -3245,12 +3245,12 @@ where
 }
 
 fn pending_leader_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Group each pending partition under its cached leader.
 ///
-/// The walk pauses every 8,192 partitions. Without that pause, grouping
+/// The walk pauses every 1,024 partitions. Without that pause, grouping
 /// 4,000,000 partitions held the caller for 1.77 seconds.
 ///
 /// The first time a leader is seen, it stays first. A missing leader stops
@@ -3284,12 +3284,12 @@ async fn group_pending_by_leader<'a>(
 }
 
 fn missing_leader_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// List topics that do not have a cached leader.
 ///
-/// The walk pauses every 8,192 partitions. Without that pause, listing
+/// The walk pauses every 1,024 partitions. Without that pause, listing
 /// 4,000,000 partitions held the caller for 881 milliseconds.
 ///
 /// A topic is kept once, the first time it is missing. A topic that already
@@ -3316,12 +3316,12 @@ async fn topics_missing_leaders<'a>(
 }
 
 fn unique_name_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Keep the first copy of each topic name.
 ///
-/// The walk pauses every 8,192 names. Without that pause, collecting
+/// The walk pauses every 1,024 names. Without that pause, collecting
 /// 2,000,000 names held the caller for 1.55 seconds.
 ///
 /// Later copies of the same name are dropped. Order follows the first copy.
@@ -10193,12 +10193,12 @@ impl Admin {
     }
 
     fn known_leader_chunk() -> usize {
-        8 * 1024
+        1024
     }
 
     /// Return each cached leader once.
     ///
-    /// The walk pauses every 8,192 partitions. Without that pause, finding
+    /// The walk pauses every 1,024 partitions. Without that pause, finding
     /// leaders for 4,000,000 partitions held the caller for 246 milliseconds.
     ///
     /// A leader that is already in the result is not added again. A partition
@@ -17215,12 +17215,12 @@ fn first_seen_missing_ids<'a, T: AsRef<str>>(
 }
 
 fn owned_string_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Copy each id into an owned string.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, copying 2,000,000
+/// The walk pauses every 1,024 ids. Without that pause, copying 2,000,000
 /// ids held the caller for 181 milliseconds.
 ///
 /// Each id is still copied.
@@ -17239,12 +17239,12 @@ async fn collect_strings<T: Into<String>>(items: impl IntoIterator<Item = T>) ->
 }
 
 fn result_slot_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Open one empty result slot per item.
 ///
-/// The walk pauses every 8,192 slots. Without that pause, opening 2,000,000
+/// The walk pauses every 1,024 slots. Without that pause, opening 2,000,000
 /// group results and their indexes held the caller for 229 milliseconds.
 ///
 /// Every slot starts empty.
@@ -17338,12 +17338,12 @@ where
 }
 
 fn known_coord_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Collect coordinators that are already cached.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, collecting
+/// The walk pauses every 1,024 ids. Without that pause, collecting
 /// 2,000,000 cached coordinators held the caller for 1.04 seconds.
 ///
 /// A coordinator is kept once, the first time it is seen. An id without a
@@ -17374,12 +17374,12 @@ async fn cached_coordinator_nodes<T: AsRef<str>>(
 }
 
 fn coordinator_group_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// File each id under its cached coordinator.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, grouping 2,000,000
+/// The walk pauses every 1,024 ids. Without that pause, grouping 2,000,000
 /// coordinators held the caller for 1.11 seconds.
 ///
 /// A missing id or a missing coordinator stops the walk and returns an error.
@@ -17410,12 +17410,12 @@ async fn group_ids_by_coordinator<T: AsRef<str>>(
 }
 
 fn missing_id_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// List ids that do not have a cached coordinator.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, listing 2,000,000
+/// The walk pauses every 1,024 ids. Without that pause, listing 2,000,000
 /// ids held the caller for 1.76 seconds.
 ///
 /// The first copy of an id is kept. A later copy, and an id that already has
