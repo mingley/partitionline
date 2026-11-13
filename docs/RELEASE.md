@@ -1,15 +1,17 @@
 # Releases
 
 `partitionline` 0.1.0 is already published on crates.io. Never recut that
-version. Current source contains API changes and unresolved correctness
-failures; it is not ready for the next release. The [status](STATUS.md) links
-to the recorded results and current work.
+version. Root `Cargo.toml`, [`CHANGELOG.md`](../CHANGELOG.md), and the packaged
+guides are prepared for **`partitionline` 0.2.0**; cutting `v0.2.0` requires
+landing the release candidate on `main` with a complete green `ci` run on that
+exact commit SHA. See [status](STATUS.md) for current validation records and
+ongoing production-qualification scope.
 
 ## Crates and versions
 
 | Crate | Current publication state |
 | --- | --- |
-| `partitionline` | 0.1.0 published; the next release needs a new version |
+| `partitionline` | 0.1.0 published on crates.io; 0.2.0 prepared in manifest and changelog (publish after exact-SHA `main` CI) |
 | `partitionline-broker` | Experimental, `publish = false` |
 | `partitionline-schema` | Companion under development, `publish = false` |
 
@@ -18,27 +20,31 @@ only the root crate; changing a companion's `publish` setting does not add it
 to that workflow.
 
 Use latest stable Rust for builds and validation. `rust-version` in each
-manifest records the minimum compiler accepted by Cargo; it is currently 1.99.
+manifest records the minimum compiler accepted by Cargo; it is currently `1.99`.
 Tested broker and platform combinations are listed in [support](support.md).
 
 While the API is 0.x, a breaking change to a stable public item needs a minor
 version bump. Additive changes and fixes can use a patch version. Changes to
 [protocol helpers](api-stability.md) may use a patch if the changelog describes
-them. Raising `rust-version` also needs a minor bump. The existing
-`ConsumerConfig` field addition and compiler requirement mean the next client
-release must be at least 0.2.0; do not relabel them as a 0.1.x patch.
+them. Raising `rust-version` also needs a minor bump. Version `0.2.0` bumps the
+minor series for `rust-version = "1.99"`, the default `zlib-rs` gzip backend,
+and the `ConsumerConfig`, record, metrics, and Admin struct updates documented
+in [`CHANGELOG.md`](../CHANGELOG.md#020---2026-11-12); never relabel breaking
+changes as a `0.1.x` patch.
 
 ## Prepare the candidate
 
-1. Fix the open correctness and release blockers. Run default and all-feature
-   tests, formatting, strict all-target Clippy, rustdoc and package-consumer
-   checks on the candidate. Retain failed and skipped cases. A focused passing
-   test does not replace a failed full suite.
-2. Update `Cargo.toml` and `Cargo.lock`, and move the relevant unreleased notes
-   into a dated changelog section. Update installation examples for the
-   target version and verify the packaged README; the published 0.1.0 overview
-   still contains pre-publication instructions. Document API migrations and the
-   compiler requirement. Keep production and performance claims within the evidence.
+1. Fix open release blockers and run default and all-feature tests, formatting,
+   strict all-target Clippy, rustdoc, and package-consumer checks on the
+   candidate. Retain failed and skipped cases. A focused passing test does not
+   replace a failed full suite.
+2. Ensure `Cargo.toml` and `Cargo.lock` match the target `X.Y.Z` version and
+   that [`CHANGELOG.md`](../CHANGELOG.md) has a dated `## [X.Y.Z]` section
+   documenting API migrations, feature defaults, and the compiler requirement.
+   Verify installation snippets (`0.2` for the `0.2.x` series) and packaged
+   documentation links (`scripts/check-package-docs.py` and
+   `scripts/check-doc-examples.py`). Keep production and performance claims
+   within recorded evidence.
 3. Commit and push the candidate to `main`. Require successful `ci` for that
    exact commit, then validate the packaged crate with
    `scripts/ci-crate-consumer.sh` and `scripts/ci-publish-ready.sh`.

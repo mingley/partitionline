@@ -1,17 +1,20 @@
 # Status
 
-Updated 10 November 2026.
+Updated 12 November 2026.
 
-Partitionline is **not yet qualified for production use**. It has not
-established that it is the fastest Kafka client or server.
+Partitionline is **not yet qualified for production use**. Suite HOLD remains
+in effect: benchmark samples are unsigned and have not established that it is
+the fastest Kafka client or server.
 
 The client provides producer, consumer, group, transaction and Admin APIs.
-Version 0.1.0 is published; the repository contains later changes. The next
-client release must be at least 0.2.0 because the public API and compiler
-requirements have changed. The broker and Schema Registry companion are
-unpublished. No new release is ready. The published
-[0.1.0 overview](https://docs.rs/crate/partitionline/0.1.0) still contains
-pre-publication installation instructions and older benchmark figures.
+Version 0.1.0 is published on crates.io, and root `Cargo.toml`,
+[`CHANGELOG.md`](../CHANGELOG.md), and the packaged guides are prepared for
+`0.2.0` (`rust-version = "1.99"`, default `zlib-rs` gzip backend, and updated
+public APIs). Cutting `v0.2.0` requires green exact-SHA `main` CI and
+`scripts/ci-publish-ready.sh`; see the [release guide](RELEASE.md). The broker
+and Schema Registry companion remain unpublished (`publish = false`). The
+published [0.1.0 overview](https://docs.rs/crate/partitionline/0.1.0) reflects
+the earlier baseline.
 
 The broker is experimental. It has an RF1 data path and a separate metadata
 quorum, but does not replicate partition data or implement native Kafka KRaft.

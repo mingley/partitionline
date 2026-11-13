@@ -18,11 +18,11 @@ older 3.9.1 and 4.1.0 smoke runs are historical coverage.
 
 | Dimension | Configured scope | Evidence |
 |---|---|---|
-| Crate version | `0.1.0` on crates.io | Installable; do not re-cut `0.1.0` |
-| Rust | Latest stable; the manifest minimum is **1.99** | Stable-only CI for the client, broker and schema companion. Older compilers are not supported. |
+| Crate version | `0.2.0` prepared; `0.1.0` on crates.io | Do not re-cut `0.1.0`; publish `0.2.0` via [RELEASE.md](RELEASE.md) |
+| Rust | Latest stable; `rust-version` minimum is **1.99** | Stable-only CI for the client, broker and schema companion. Older compilers are not supported. |
 | Host OS (CI) | Linux (`ubuntu-latest`); native macOS (`macos-15`) and Windows (`windows-2025`) for mock/runtime and packed consumers | `.github/workflows/ci.yml`; KL08-05 / KL08-14 native default/tracing cells |
 | Host arch (CI) | Linux `x86_64`; macOS `arm64`; Windows `x86_64` MSVC | Native compiler/runtime guards and retained platform reports |
-| Brokers (current source) | Apache Kafka **4.1.2**, **4.2.1**, **4.3.1**; historical smoke on **3.9.1** / **4.1.0** | `broker-current` required profiles and separate `broker-smoke` history; [frozen image digests](../tests/conformance/current-broker-cells.json) |
+| Brokers (current source) | Apache Kafka **4.1.2**, **4.2.1**, **4.3.1**; historical smoke on `apache/kafka:3.9.1` and `apache/kafka:4.1.0` | `broker-current` required profiles and separate `broker-smoke` history; [frozen image digests](../tests/conformance/current-broker-cells.json) |
 | Default features | gzip through `zlib-rs`; TLS through rustls and Ring | `Cargo.toml` defaults + deny/audit lanes |
 | Auth in smoke | SASL PLAIN / SCRAM / OAUTHBEARER + rustls TLS (when auth smoke runs) | `scripts/ci-auth-smoke.sh` (soft-skip without Java/Kafka unless `REQUIRE_AUTH=1`) |
 
@@ -145,14 +145,19 @@ procedure.
 
 ### Published crate
 
-crates.io `partitionline` 0.1.0 is tag `v0.1.0` (4 September 2026, 8:28 PM CT). The [migration guide](migrate-from-rdkafka.md) is the current map. It names files and symbols.
+crates.io `partitionline` 0.1.0 is tag `v0.1.0` (4 September 2026, 8:28 PM CT).
+Version `0.2.0` is prepared in `Cargo.toml` and
+[`CHANGELOG.md`](../CHANGELOG.md#020---2026-11-12); the
+[migration guide](migrate-from-rdkafka.md) is the current map of files and
+symbols.
 
-An older check compared commit `ca50ca1` (22 September 2026, 1:08 PM CT) with that tag. At that commit, 14 files under `src/` differed from the published crate. That count belongs to the check. Current source is later than both the tag and `ca50ca1`.
-
-The published crate predates the buffer limits, record representations and
-compiler requirement in the [unreleased changes](../CHANGELOG.md#unreleased).
-The next client release must be at least 0.2.0. Build configurations with
-builders so new fields do not require exhaustive struct literals.
+An older check compared commit `ca50ca1` (22 September 2026, 1:08 PM CT) with
+`v0.1.0`. At that commit, 14 files under `src/` differed from the published
+crate. Current `0.2.0` source includes the buffer limits, compact record
+representations, `zlib-rs` default gzip backend, and `rust-version = "1.99"`
+documented in [`CHANGELOG.md`](../CHANGELOG.md#020---2026-11-12). Construct
+configurations with builders or `..Default::default()` so future field
+additions do not break exhaustive struct literals.
 
 The 0.x caller contract for error categories (retryable, abort-required, fatal, unsupported, timeout, ambiguous delivery) and for public config fields is in [api-stability.md](api-stability.md). Match error categories, not `Display` text. Build configs with the builders, or with `Default` plus overrides.
 
@@ -164,7 +169,7 @@ Prefer a patch release for fixes. A breaking change to a Stable surface bumps `0
 
 ### Still open for KL-08
 
-This matrix does not close KL-08. Still open: two independent adopter 24-hour and 7-day records, traffic-shadow promotion, and an operator-approved rollback proof under production SLOs. The [adopter exercise template](adopter-exercise.md) is blank. Filling it in is how a run becomes evidence. The template itself is not evidence.
+Does **not** close KL-08. Still open: two independent adopter 24-hour and 7-day records, traffic-shadow promotion, and an operator-approved rollback proof under production SLOs. The [adopter exercise template](adopter-exercise.md) is blank. Filling it in is how a run becomes evidence. The template itself is not evidence.
 
 ### Quotas and incremental fetch
 

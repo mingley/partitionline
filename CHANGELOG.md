@@ -7,127 +7,177 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
-Source changes after the published 0.1.0 release. The next release is still
-being qualified; see [status](docs/STATUS.md) and the [release guide](docs/RELEASE.md).
-Earlier working notes and dated measurements are in the
-[archive](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/archive/unreleased-notes-20261030.md).
+Unpublished repository work (`partitionline-broker` and `partitionline-schema`
+remain `publish = false`; see [`docs/STATUS.md`](docs/STATUS.md) and
+[`docs/RELEASE.md`](docs/RELEASE.md)).
 
-### API and configuration changes
+## [0.2.0] - 2026-11-12
 
-- `Producer::close` and `close_timeout` now return errors from their initial
-  flush after attempting shutdown. Earlier Git revisions suppressed non-timeout
-  flush errors. Errors consumed by an earlier flush or arising only during
-  shutdown are not returned. Keep checking individual delivery results.
-- The Admin `DescribeTopicPartitions` aggregate now rejects detected
-  non-adjacent cursor repeats with a non-retriable protocol error. A repeat
-  can be transient; callers can use the raw page API when needed.
-- In the unpublished broker crate, `quotas::Error::code()` now returns `None`
-  for local throttling. Earlier revisions returned `Some(89)`; callers must
-  select any Kafka response according to its API and version.
-- Build with the latest stable Rust. Package manifests now require Rust 1.99.
-  The compiler requirement and public API changes require at least a 0.2.0
-  client release.
-- `ConsumerConfig` adds `buffer_memory` (32 MiB by default) and
-  `fetch_metadata_max_bytes` (128 MiB by default). Use their builders or add
-  both fields to exhaustive struct literals. The first limits retained Fetch
-  data; the second limits decoded Fetch metadata.
-- `FetchedRecord.topic` and `ShareRecord.topic` use `TopicName`. Names up to
-  23 bytes are stored inline; longer names use a `String`. `as_str()`, string
-  dereferencing, and comparisons with `str` and `String` remain available.
-  Share-acquisition keys use the same representation.
-- `FetchedRecord.key` uses `Option<RecordBytes>`. Keys up to 24 bytes are
-  stored inline; longer keys use a shared buffer.
-- `ProducerMetrics` and `ConsumerMetrics` add `throttle`
-  (`metrics::ThrottleStats`). Add the field to exhaustive struct literals or
-  use `..Default::default()`.
-- `DescribeLogDirsResult` adds `is_cordoned` for DescribeLogDirs v5. The
-  existing five-argument constructor defaults it to false; `with_cordoned`
-  sets it. Older wire versions omit it and decode false.
-- `Error::Closed` displays as `client closed`. Match the error variant rather
-  than its message.
+Major protocol, performance, safety, and API milestone (3,750+ commits since
+`v0.1.0`). Earlier intermediate working notes are preserved in the
+[2026-10-30 archive](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/docs/plan/archive/unreleased-notes-20261030.md).
 
-### Protocol and runtime changes
+### Breaking
 
-- The unpublished Schema Registry companion indexes older keys in large JSON
-  objects to avoid quadratic duplicate-key scans. Parsing remains synchronous
-  and the index uses additional memory.
-- Produce v13 uses Metadata topic IDs and maps replies through the identity
-  snapshot sent with each request. Stale IDs refresh within the original
-  delivery deadline; v3–v12 fallback remains. Transactions stay at Produce v11
-  unless initialization finalizes `transaction.version >= 2` and supports
-  EndTxn v5.
-- Consumers negotiate Fetch v18 per broker. Replica helpers support the
-  KIP-1166 HighWatermark tag; ordinary consumer requests omit its default.
-  This adds wire support, not follower-acknowledgement behavior.
-- Incremental Fetch sessions run per broker on v7–v18, with full Fetch fallback
-  on v4–v6. Requests track changed and forgotten partitions. Session recovery
-  uses the original deadline, and topic recreation clears stale buffered data.
-- Fetch frames and CRCs are checked on arrival. Record decompression waits
-  until a batch can be applied within `buffer_memory`; batches that cannot be
-  retained are fetched again later. Decompression errors can therefore surface
-  when the batch is applied.
-- Produce v6–v13 and Fetch v8–v18 honor broker throttles while other eligible
-  connections can make progress. Quota waits use the original delivery, request,
-  poll, or close budget.
-- ListOffsets v11 adds `EARLIEST_PENDING_UPLOAD_TIMESTAMP` and
-  `OffsetSpec::earliest_pending_upload`. Each leader negotiates its own range;
-  unsupported selectors or isolation return `Error::Unsupported`. Discovery,
-  connection, capability lookup and retries share the caller deadline, with
-  one ApiVersions control request per attempt. Live tiered-storage behavior
-  remains unqualified.
-- Replacement sockets negotiate their own API ranges and authenticate before
-  application requests. Name-based offset requests re-encode when coordinators
-  change versions; unrepresentable fields and UUID downgrades fail before the
-  request is sent. Discovery and retries share the original deadline.
-- gzip uses the default `zlib-rs` feature. Disable default features to use
-  miniz_oxide. Runtime CRC detection is enabled; compressed bytes can differ
-  while the wire format and decode limits stay the same. See
-  [gzip backends](docs/gzip-backend.md) for the measured tradeoffs.
-- Consumer-group heartbeat decoders limit decoded metadata to 128 MiB by
-  default. Explicit metadata-limit APIs accept another limit; very large
-  responses may require one.
-- Large protocol encoders yield every 8,192 topics, partitions, brokers, or
-  results so other tasks and caller deadlines can run. This covers Metadata,
-  Produce, Fetch, share, transaction, and offset encoders without changing
-  their encoded bytes.
-- The unpublished schema companion checks bounded Apache Avro Rust 0.22.0
-  encoding against Java Avro 1.12.1 in both directions. It rejects truncated
-  strings that the backend can otherwise resolve as null.
+- **Minimum Supported Rust Version (MSRV):** Raised `rust-version` from `1.85`
+  to `1.99` (build and validate with latest stable Rust).
+- **Default gzip backend (`zlib-rs`):** Enabled `zlib-rs` by default
+  (`default = ["zlib-rs"]`) with `flate2/runtime_detection`. `partitionline`
+  continues to forbid `unsafe` in its own source, while `zlib-rs` uses SIMD and
+  internal `unsafe` for gzip streams. Disable default features
+  (`default-features = false`) to retain the `miniz_oxide` fallback
+  ([`docs/gzip-backend.md`](docs/gzip-backend.md)).
+- **`ConsumerConfig` public fields:** Added `buffer_memory: usize` (default
+  32 MiB; caps retained Fetch record bytes across partitions and brokers) and
+  `fetch_metadata_max_bytes: usize` (default 128 MiB; caps decoded per-response
+  Fetch metadata). Prefer `ConsumerConfig::bootstrap(..)` builders or construct
+  struct literals with `..Default::default()`.
+- **Compact record & metadata types:**
+  - `FetchedRecord.topic` and `ShareRecord.topic` now use `TopicName` (inline
+    storage up to 23 bytes, heap `String` above 23 bytes; `Deref<Target = str>`,
+    `as_str()`, and `PartialEq` with `str` / `String` remain available).
+  - `FetchedRecord.key` now uses `Option<RecordBytes>` (inline up to 24 bytes,
+    shared buffer above 24 bytes; `Deref<Target = [u8]>`).
+  - `RecordMetadata.topic` now uses `Arc<str>` instead of `String`.
+- **Metrics struct fields:** Added `throttle: ThrottleStats` to
+  `ProducerMetrics` and `ConsumerMetrics`, and `reconnects: u64` to
+  `ConsumerMetrics`. Add `..Default::default()` to exhaustive struct literals.
+- **Protocol, codec, and share types:**
+  - `protocol::admin::DescribeLogDirsResult` adds `is_cordoned: bool` for
+    DescribeLogDirs v5 (`DescribeLogDirsResult::new` defaults it to `false`;
+    `with_cordoned` sets it; v1–v4 decode `false`).
+  - `protocol::admin::ListTransactionsRequest` adds `state_filters`,
+    `producer_id_filters`, `duration_ms`, and `transactional_id_pattern` (v2).
+  - `AcknowledgeType` adds `Renew` for share-group acquisition lock renewal
+    (KIP-1222).
+  - Enabling optional `feature = "zstd"` adds `Compression::Zstd` and
+    `ProducerConfig.zstd_level`.
+- **Shutdown, pagination, and error display:**
+  - `Producer::close` and `Producer::close_timeout` now return errors observed
+    by their initial `flush` after attempting worker shutdown, rather than
+    suppressing non-timeout flush errors. Keep checking per-record `send`
+    results.
+  - High-level `Admin::describe_topic_partitions` rejects detected non-adjacent
+    cursor repeats with a non-retriable `Error::Protocol` (raw page requests
+    remain available).
+  - `Error::Closed` formats as `"client closed"` on all paths; match `Error`
+    variants and [`Error` categories](docs/api-stability.md#error-categories-kl07-10)
+    rather than `Display` strings.
 
-### Fixes and maintenance
+### Performance
 
-- The benchmark reporter rejects duplicate JSON object keys and handles
-  malformed reports without an unhandled traceback. Its `--json` output adds
-  a `schema` object; consumers that reject unknown fields must allow it.
-- Close producer admission before retiring a worker. Cached handles and held
-  channel permits cannot accept records after its final drain.
-- Keep workers and retry records counted until callbacks and payload cleanup
-  finish, including cancellation before a task's first poll.
-- Fix incremental reservation growth above 8,192 elements. Decode grouped
-  assignments directly from borrowed topic names, and size small Share batch
-  lists from framing without changing validation errors.
-- Raise dependency minimums past the recorded Tokio, Rustls, WebPKI, trust-root
-  and RustCrypto advisories, including compatible versions retained by
-  downstream lockfiles. Refresh the active product, benchmark and fuzz locks.
-- Repair links to repository-only material in packaged documentation. Check
-  wrapped link labels and changelog navigation as well as the README and guides.
-- Correct reservation sizes for reused encoding, producer, and share buffers.
-  Allocation checks now cover partially occupied buffers and warm reuse.
-- Record decoding uses a bounded initial reservation for small batches while
-  continuing to charge allocation peaks to the shared metadata limit. The
-  existing 1,000-record allocation budget is restored without raising it.
-- Restore Kafka Java's error ordering for malformed record counts and negative
-  header-key lengths while retaining decoded-metadata limits.
-- KIP-848 heartbeat responses use Apache's signed-byte nullable-assignment
-  marker. Unchanged assignments and consumer close are handled, and responses
-  missing the final tag count are rejected.
-- Release readiness requires default and all-feature tests, exact-commit CI,
-  package-consumer checks, and the interruption-recovery rehearsal before
-  publication. Client 0.1.0 is already published; the broker and schema crates
-  remain unpublished.
-- Guides describe buffer accounting, cancellation and ambiguous delivery,
-  protocol versions, and the limits of recorded benchmarks. Production and
-  fastest-performance claims remain unqualified.
+- **Lazy Fetch batch decompression & compressed retention:** Fetch responses
+  frame and CRC-check record batches on arrival, deferring decompression and
+  record decoding until a batch fits within `ConsumerConfig::buffer_memory` and
+  retaining excess framed batches per partition instead of re-downloading them.
+  On gzip overfetch benchmarks, lazy decompression reduced real-broker consume
+  CPU/record by 70% (15.11 µs → 4.49 µs, +50% records/s) and peak RSS by 77%
+  (1,334 MB → 308 MB), and cut null-broker `nb-fetch-gzip-overfetch` allocated
+  bytes/record by 89% and peak RSS by 68% ([`docs/guide.md`](docs/guide.md)).
+- **SIMD gzip (`zlib-rs` + runtime CRC detection):** Default `zlib-rs` with
+  runtime PCLMULQDQ/AVX2/ARM-CRC detection increased gzip compression
+  throughput by +29% to +75% and decompression throughput by +15% to +99% on
+  JSON/text cells across arm64 and x86_64 while lowering callgrind instruction
+  counts by 21–50% ([`docs/gzip-backend.md`](docs/gzip-backend.md)).
+- **Reduced per-record allocations:** Inline `TopicName` (≤23 B) and
+  `RecordBytes` keys (≤24 B), shared `Arc<str>` `RecordMetadata.topic`, bounded
+  initial batch decode reservations, producer payload compaction on admission,
+  and returning fetched batches without per-record cloning when no
+  `ConsumerInterceptor` is configured.
+- **Incremental Fetch sessions (v7–v18):** Consumers maintain one incremental
+  Fetch session per active broker on Fetch v7–v18 (full-Fetch fallback on
+  v4–v6), transmitting only changed and forgotten partitions on steady-state
+  polls (shrinking a 128-partition unchanged Fetch v17 request from 4,268 B to
+  25 B).
+- **Cooperative yielding on large collections:** Protocol encoders/decoders,
+  metadata indexes, and producer/consumer/group/share/transaction/admin batch
+  walks yield every 8,192 elements so caller deadlines and sibling Tokio tasks
+  stay responsive without altering wire bytes
+  ([`docs/resource-contract.md`](docs/resource-contract.md#caller-deadlines)).
+
+### Added
+
+- **Optional pure-Rust `zstd` codec (`feature = "zstd"`):** Bounded Zstandard
+  compression (levels 1–19, default 3 via `ZstdLevel` and
+  `ProducerConfig::zstd_level`; Produce v7+ gate) and decompression (64 MiB
+  window/output ceiling, 1,024-frame cap, dictionary rejection) via `zstd-rs`,
+  verified across 150 bidirectional Rust/Java/librdkafka codec cells
+  ([`docs/zstd-spike.md`](docs/zstd-spike.md)).
+- **Kafka 4.x wire protocol support:**
+  - **Produce v13:** Topic UUID encoding from Metadata v10+ with per-request
+    identity snapshots, `UNKNOWN_TOPIC_ID` metadata refresh within the delivery
+    deadline, v3–v12 name-based fallback, and v12/v13 transactional Produce
+    when finalized `transaction.version >= 2` and EndTxn v5 are negotiated.
+  - **Fetch v18 & leader hints:** Per-broker Fetch v4–v18 negotiation, KIP-951
+    `CurrentLeader` and `NodeEndpoints` fast leader-cache updates on Produce
+    v10+ and Fetch v12+/v16+, `DivergingEpoch` truncation seeks, and KIP-1166
+    replica high-watermark sidecar codecs.
+  - **Offsets & initialization:** ListOffsets v1–v11 including
+    `OffsetSpec::earliest_pending_upload` (`-6`, KIP-1023), OffsetCommit and
+    OffsetFetch v10 with topic UUIDs plus typed `OffsetClient` /
+    `OffsetOptions`, InitProducerId v0–v6, Metadata v0–v13, and GROUP
+    FindCoordinator v0–v6.
+- **Groups, KIP-848, Share groups, and Streams:** KIP-848 signed-byte nullable
+  assignment markers, unchanged-assignment heartbeats, and fencing recovery;
+  KIP-932 / KIP-1222 share-group `ShareAcquireMode`, acquisition lock renewal
+  (`AcknowledgeType::Renew`), and topic-ID validation; caller-driven
+  `StreamsClient` heartbeats and `Admin::describe_streams_groups` (Streams v0,
+  explicit `allow_unstable`).
+- **Admin & partitioning additions:** `Admin::elect_leaders`,
+  `describe_quorum`, `add_raft_voter` (v0–v1), `remove_raft_voter`,
+  `alter_partition_reassignments_with_options` (v1 replication-factor guard),
+  `list_transactions_with_options` and `list_transactions_by_broker_with_options`
+  (v2 `transactional_id_pattern`), DescribeLogDirs v5 `is_cordoned`, and opt-in
+  `StickyPartitioner` (`ProducerConfig::partitioner`).
+- **Broker quota throttling:** Produce v6–v13 and Fetch v8–v18 honor broker
+  `throttle_time_ms` mutes per broker within caller delivery, poll, and close
+  deadlines while unmuted brokers and buffered records continue progressing,
+  tracked in `ThrottleStats`.
+
+### Changed
+
+- **Transactional error & recovery contract:** Operation-specific Apache error
+  tables classify retryable, abort-required (`TRANSACTION_ABORTABLE`,
+  `CONCURRENT_TRANSACTIONS`, `INVALID_TXN_STATE`, etc.), and fatal fencing
+  (`PRODUCER_FENCED`, `INVALID_PRODUCER_ID_MAPPING`) outcomes, recovering via
+  coordinator-authorized `InitProducerId` on classic coordinators or `EndTxn` v5
+  on transaction v2 ([`docs/api-stability.md`](docs/api-stability.md)).
+- **Configuration validation:** Constructor/connect checks reject multiple
+  simultaneous raw SASL mechanisms, out-of-domain raw producer `acks`, negative
+  consumer fetch bounds, empty bootstrap lists, and empty `group.id` before
+  network I/O.
+
+### Fixed
+
+- **Consumer group & offset correctness:** Interval auto-commit commits only
+  previously delivered offsets (never the batch being returned, prefetched
+  records beyond `max_poll_records`, or on `leave`/`close`/`unsubscribe`);
+  in-batch seeks filter earlier records; `auto.offset.reset=None` surfaces
+  out-of-range without advancing; `ReadCommitted` clears aborted intervals on
+  `ABORT` so subsequent committed transactions under the same producer ID stay
+  visible; topic recreation drops stale buffered records.
+- **Connection & coordinator safety:** Replacement sockets negotiate their own
+  `ApiVersions` ranges before SASL authentication; name-based offset requests
+  re-encode across coordinator version changes and reject unrepresentable fields
+  or UUID downgrades before transmission; producer worker retirement closes
+  admission before the final drain and retains worker/retry counts until
+  callbacks and payload cleanup finish.
+- **Buffer & codec accounting:** Fixed reservation sizing for reused and
+  partially occupied encode/producer/share buffers, incremental reservation
+  growth above 8,192 elements, and Java-matching malformed record-count and
+  negative header-key error ordering.
+
+### Security
+
+- Enforced 128 MiB default decoded-metadata ceilings on Fetch and
+  ConsumerGroupHeartbeat decoders (with explicit override helpers) to bound
+  amplification from valid frames.
+- Redacted `Sasl`, `OidcConfig`, and `TlsConfig` secrets in `Debug` output,
+  omitted OIDC HTTP error bodies and raw OAUTHBEARER error payloads from
+  `Display`, skipped `&self` in `tracing` spans, and bounded OIDC transient
+  retries.
+- Raised `tokio`, `rustls`, `rustls-webpki`, `webpki-roots`, `ctutils`,
+  `hashbrown`, and SCRAM crypto dependency minimums past published advisories.
 
 ## [0.1.0] - 2026-09-04
 

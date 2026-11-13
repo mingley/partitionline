@@ -11,30 +11,28 @@ and Admin APIs. This repository also contains an experimental
 
 ```toml
 [dependencies]
-partitionline = "0.1"
+partitionline = "0.2"
 ```
 
-Version 0.1.0 is available on [crates.io](https://crates.io/crates/partitionline).
-The examples and features below describe the newer repository source; some are
-not available in 0.1.0. For the published API, see the
-[0.1.0 documentation](https://docs.rs/partitionline/0.1.0/partitionline/).
-The published 0.1.0 overview still contains pre-publication installation
-instructions and older benchmark figures. To try the current source, clone the
-repository and point your application's
-dependency at that checkout (adjust the relative path as needed):
+See [`CHANGELOG.md`](CHANGELOG.md) for what changed in `0.2.0` since
+[`0.1.0`](https://docs.rs/partitionline/0.1.0/partitionline/), and
+[`docs/RELEASE.md`](docs/RELEASE.md) for publication gates on
+[crates.io](https://crates.io/crates/partitionline). Until `0.2.0` finishes
+publishing—or when testing unreleased `main` commits—you can depend on a local
+checkout (adjust the relative path as needed):
 
 ```toml
 [dependencies]
 partitionline = { path = "../partitionline" }
 ```
 
-The current source is **not yet qualified for production use**: client CI and
-Kafka compatibility checks still fail. See the [current status](docs/STATUS.md)
-for results and open work, and the [support matrix](docs/support.md) for tested
-versions and platforms. Performance rankings have not been established.
+`partitionline` is an `0.x` crate under active qualification (Suite HOLD
+remains unsigned, and production rankings have not been established). See
+[current status](docs/STATUS.md) for validation results and open work, and the
+[support matrix](docs/support.md) for tested Kafka versions and platforms.
 
-Use the latest stable Rust to build the current source. Building the TLS
-dependency Ring also needs a C toolchain. The examples assume a running Kafka
+Build with Rust `1.99` or newer (latest stable recommended). Building the TLS
+dependency `ring` requires a C toolchain. The examples assume a running Kafka
 broker and existing topics.
 
 ## Produce
@@ -169,11 +167,13 @@ let _iso = IsolationLevel::ReadCommitted;
 Use `TlsConfig` for TLS and optional client certificates. SASL supports PLAIN,
 SCRAM-SHA-256/512, OAUTHBEARER, and OIDC token acquisition. Automatic
 reauthentication on existing client connections is still in progress; see
-[token and session lifecycle](docs/auth-refresh.md). Compression supports
-gzip, snappy, and lz4. The default partitioner hashes keys with murmur2 and uses
-round-robin for records without keys. Current source also has an opt-in
-`StickyPartitioner`, selected with `ProducerConfig::partitioner`; its independent
-qualification is still in progress.
+[token and session lifecycle](docs/auth-refresh.md). Compression supports gzip
+(`zlib-rs` by default; see [gzip backends](docs/gzip-backend.md) for the
+`default-features = false` `miniz_oxide` fallback), snappy, lz4, and optional
+zstd (`features = ["zstd"]`). The default partitioner hashes keys with murmur2
+and uses round-robin for records without keys. Opt-in `StickyPartitioner` is
+available via `ProducerConfig::partitioner` while independent qualification
+continues.
 
 Defaults that differ from Java:
 

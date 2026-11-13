@@ -21,12 +21,10 @@ The tables name the Rust symbol and the file. They do not cite line numbers.
 An older revision pinned those lines to `ca50ca1`, and the lines no longer
 matched current source.
 
-The default-value comparison below covers the packed crates.io `0.1.0` crate
-and later source. Current source also adds `ConsumerConfig::buffer_memory`
-(a 32 MiB Fetch cap) and `fetch_metadata_max_bytes` (a 128 MiB decoded-metadata
-cap). Published `0.1.0` has the older runtime and feature set. The examples
-below target that dependency; see the [changelog](../CHANGELOG.md#unreleased)
-for current API changes.
+The default-value comparison below covers `partitionline` `0.2.0` (`ConsumerConfig`
+includes `buffer_memory` at 32 MiB and `fetch_metadata_max_bytes` at 128 MiB;
+see the [0.2.0 changelog](../CHANGELOG.md#020---2026-11-12) for changes since
+`0.1.0`).
 
 ## Dependency
 
@@ -34,14 +32,14 @@ for current API changes.
 # before
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 
-# after (crates.io 0.1.0)
-partitionline = "0.1"
+# after (crates.io 0.2.0)
+partitionline = "0.2"
 ```
 
 The client uses Tokio for async I/O and rustls with Ring for TLS. Ring requires
-a C compiler during the build. Current source enables the `zlib-rs` gzip backend
-by default and provides optional `tracing` spans; the published 0.1.0 feature
-set is an earlier baseline.
+a C compiler during the build. Version `0.2.0` requires Rust `1.99`+, enables
+the `zlib-rs` gzip backend by default, and provides optional `tracing` and
+`zstd` features.
 
 ## API shape
 
@@ -167,10 +165,10 @@ let _idem = ProducerConfig::bootstrap(["127.0.0.1:9092"])
 Porting rule: the shorter `delivery.timeout.ms` (30 s vs 120 s / 300 s),
 `max.block.ms` (30 s vs 60 s), `session.timeout.ms` (10 s vs 45 s), and the
 150 ms heartbeat change failure-detection timing. Raise them explicitly if
-your service was tuned against Java or librdkafka timeouts. Broker
-`throttle_time_ms` is decoded on the wire but the runtimes do not sleep on it
-(`quotas.producer_throttle`, `quotas.consumer_throttle`, partial), so
-throttled clusters behave more aggressively than Java here.
+your service was tuned against Java or librdkafka timeouts. Produce v6–v13 and
+Fetch v8–v18 honor broker `throttle_time_ms` per broker within caller
+deadlines, while older Produce/Fetch versions and Admin/group RPCs leave
+throttling to the broker (see [broker throttle](guide.md#broker-throttle)).
 
 ## Offsets and auto-commit
 
@@ -316,8 +314,9 @@ return an individual result for a cancelled `send` (`src/producer.rs`).
 
 1. **Feature gaps** — Kerberos is not implemented. See the
    [provider proposal](gssapi-boundary.md). zstd is an optional feature.
-   Unkeyed records use round-robin; the sticky partitioner is not shipped.
-   The current inventory is [protocol support](gaps.md).
+   Unkeyed records use round-robin by default (`StickyPartitioner` is opt-in
+   via `ProducerConfig::partitioner`). The current inventory is
+   [protocol support](gaps.md).
 2. **Defaults** — Earliest offset reset, auto-commit off, idempotence off,
    shorter delivery (30 s) / max-block (30 s) / session (10 s) timeouts,
    150 ms heartbeats, 5 ms linger, uncapped `max.poll.records`, 16 MiB fetch
@@ -341,7 +340,7 @@ port has to keep the limit in the last column. Dispositions are the
 | Feature | Registry entry | What to do instead |
 |---|---|---|
 | SASL GSSAPI / Kerberos | `auth.sasl_gssapi` (missing) | Pick SCRAM or OAUTHBEARER. The [provider proposal](gssapi-boundary.md) is waiting for approval. |
-| Sticky unkeyed partitioner | `producer.sticky_partitioner` (missing) | Unkeyed records round-robin. KL05-10 is in progress. |
+| Sticky unkeyed partitioner (default) | `producer.sticky_partitioner` (missing in frozen registry) | Default unkeyed placement is round-robin; opt-in `StickyPartitioner` is available via `ProducerConfig::partitioner` while KL05-10 qualification remains open. |
 | Kafka Streams / Connect / C ABI | `streams.runtime`, `connect.framework`, `c_abi.librdkafka` (out of scope) | Rewrite the call sites. This crate is not a C library. |
 | Broker-internal replication APIs | `broker_internal.*` (out of scope) | Not part of the client. |
 
@@ -402,6 +401,6 @@ Explicitly **not** proven (do not assume parity):
 
 - [`guide.md`](guide.md) — operator tour
 - [`gaps.md`](gaps.md) — full capability inventory
-- [`support.md`](support.md) — supported combinations for 0.1.x
+- [`support.md`](support.md) — supported combinations for 0.x
 - [`security.md`](security.md) — threat model
 - [`../tests/conformance/features.json`](../tests/conformance/features.json) — feature registry (KL05-01)
