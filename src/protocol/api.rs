@@ -5857,10 +5857,10 @@ pub(crate) async fn decode_produce_acks_into_cooperative(
             Bytes::new()
         };
         let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        reserve_additional(acks, part_count)?;
         let mut next = 0usize;
         while next < part_count {
-            let end = next.saturating_add(8 * 1024).min(part_count);
+            let end = next.saturating_add(1024).min(part_count);
+            reserve_additional(acks, end - next)?;
             let mut pull = ProduceAckPull {
                 buf,
                 version,
@@ -5880,7 +5880,7 @@ pub(crate) async fn decode_produce_acks_into_cooperative(
             buf::skip_tagged_fields(buf)?;
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6814,12 +6814,18 @@ mod tests {
         body.put_i32(0);
         let mut cursor = body.freeze();
         let mut acks = Vec::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = decode_produce_acks_into_cooperative(&mut cursor, 3, &mut acks) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_produce_acks_into_cooperative(
+                &mut cursor,
+                3,
+                &mut acks
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding produce acks held the caller for {elapsed:?}"

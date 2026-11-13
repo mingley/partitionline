@@ -1571,33 +1571,43 @@ impl DescribeAclsResponse {
     #[must_use]
     pub fn acls_resources(acls: &[AclBinding]) -> Vec<DescribeAclsResource> {
         let mut resources: Vec<DescribeAclsResource> = Vec::with_capacity(acls.len());
-        let mut seen: Vec<HashSet<AccessControlEntry>> = Vec::with_capacity(acls.len());
-        let mut slots: HashMap<i8, HashMap<i8, HashMap<String, usize>>> = HashMap::new();
+        let mut seen: Vec<Option<HashSet<AccessControlEntry>>> = Vec::with_capacity(acls.len());
+        let mut slots: HashMap<(i8, i8, &str), usize> = HashMap::with_capacity(acls.len());
         for acl in acls {
             let entry = acl.entry();
-            if let Some(&slot) = slots
-                .get(&acl.resource_type)
-                .and_then(|by_pattern| by_pattern.get(&acl.pattern_type))
-                .and_then(|by_name| by_name.get(acl.resource_name.as_str()))
-            {
-                let fresh = seen
-                    .get_mut(slot)
-                    .is_some_and(|known| known.insert(entry.clone()));
+            let key = (
+                acl.resource_type,
+                acl.pattern_type,
+                acl.resource_name.as_str(),
+            );
+            if let Some(&slot) = slots.get(&key) {
+                let Some(resource) = resources.get_mut(slot) else {
+                    continue;
+                };
+                if resource.acls.len() == 1 && resource.acls.first() == Some(&entry) {
+                    continue;
+                }
+                let fresh = if let Some(slot_seen) = seen.get_mut(slot) {
+                    let set = slot_seen.get_or_insert_with(|| {
+                        let mut known =
+                            HashSet::with_capacity(resource.acls.len().saturating_add(1));
+                        for existing in &resource.acls {
+                            let _ = known.insert(existing.clone());
+                        }
+                        known
+                    });
+                    set.insert(entry.clone())
+                } else {
+                    false
+                };
                 if fresh {
-                    if let Some(resource) = resources.get_mut(slot) {
-                        resource.acls.push(entry);
-                    }
+                    resource.acls.push(entry);
                 }
                 continue;
             }
             let slot = resources.len();
-            let by_name = slots
-                .entry(acl.resource_type)
-                .or_default()
-                .entry(acl.pattern_type)
-                .or_default();
-            let _previous = by_name.insert(acl.resource_name.clone(), slot);
-            seen.push(HashSet::from([entry.clone()]));
+            let _previous = slots.insert(key, slot);
+            seen.push(None);
             resources.push(DescribeAclsResource {
                 resource_type: acl.resource_type,
                 resource_name: acl.resource_name.clone(),
@@ -2609,14 +2619,17 @@ pub async fn decode_describe_acls_response_cooperative<B: Buf>(
             ACL_PATTERN_LITERAL
         };
         let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut acls = Vec::with_capacity(an);
-        for _ in 0..an {
+        let mut acls = Vec::with_capacity(an.min(1024));
+        for acl_index in 0..an {
             let principal = buf::get_string(buf, flexible)?.unwrap_or_default();
             let host = buf::get_string(buf, flexible)?.unwrap_or_default();
             let operation = buf::get_i8(buf)?;
             let permission = buf::get_i8(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
+            }
+            if acls.len() == acls.capacity() {
+                acls.reserve(an.saturating_sub(acl_index).min(1024));
             }
             acls.push(AccessControlEntry {
                 principal,
@@ -2625,7 +2638,7 @@ pub async fn decode_describe_acls_response_cooperative<B: Buf>(
                 permission,
             });
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2640,7 +2653,7 @@ pub async fn decode_describe_acls_response_cooperative<B: Buf>(
             acls,
         });
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -2657,7 +2670,7 @@ pub async fn decode_describe_acls_response_cooperative<B: Buf>(
         for entry in &resource.acls {
             bindings.push(AclBinding::new(resource.pattern(), entry.clone()));
             bound = bound.saturating_add(1);
-            if bound == 8 * 1024 {
+            if bound == 1024 {
                 bound = 0;
                 tokio::task::yield_now().await;
             }

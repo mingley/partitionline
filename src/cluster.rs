@@ -106,7 +106,7 @@ impl<'a> SeenTopics<'a> {
             stack: [""; 16],
             filled: 0,
             heap: if topics > 16 {
-                HashSet::with_capacity(topics)
+                HashSet::with_capacity(topics.min(4096))
             } else {
                 HashSet::new()
             },
@@ -144,7 +144,7 @@ impl<'a> SeenTopics<'a> {
 /// One Metadata topic on the caller. Applying 2,000,000 topics held the caller for 4748ms.
 async fn pause_topic_apply(walked: &mut usize) {
     *walked = walked.saturating_add(1);
-    if *walked == 8 * 1024 {
+    if *walked == 1024 {
         *walked = 0;
         tokio::task::yield_now().await;
     }
@@ -1018,15 +1018,17 @@ mod tests {
         let mut md = MetadataResponse::blank();
         md.topics = topics;
         let mut cluster = Cluster::default();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = cluster.apply_image(&md, 12) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
+        let elapsed = {
+            let mut work = std::pin::pin!(cluster.apply_image(&md, 12));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "applying metadata topics held the caller for {:?}",
-            started.elapsed()
+            elapsed < std::time::Duration::from_millis(80),
+            "applying metadata topics held the caller for {elapsed:?}",
         );
         use crate::protocol::api::PartitionMetadata;
         let mut topic_id = [0u8; 16];

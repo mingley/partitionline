@@ -1158,7 +1158,7 @@ fn previous_partitions_by_topic(
 }
 
 fn previous_index_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Index previously owned partitions by topic and member.
@@ -5684,12 +5684,15 @@ async fn assignment_topic_ids_changed(
 ///
 /// Each cached name stays on its existing allocation.
 async fn clone_topic_ids(ids: &HashMap<Arc<str>, [u8; 16]>) -> HashMap<Arc<str>, [u8; 16]> {
-    let mut out = HashMap::with_capacity(ids.len());
+    let mut out = HashMap::with_capacity(ids.len().min(4096));
     let mut walked = 0usize;
     for (name, id) in ids {
+        if out.len() == out.capacity() {
+            out.reserve(ids.len().saturating_sub(out.len()).min(4096));
+        }
         let _stored = out.insert(Arc::clone(name), *id);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -11283,12 +11286,14 @@ mod tests {
                 (Arc::from(format!("topic-{index}")), id)
             })
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = clone_topic_ids(&identities) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(clone_topic_ids(&identities));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "cloning topic ids held the caller for {elapsed:?}"
@@ -11418,12 +11423,14 @@ mod tests {
         for index in 0..160_000 {
             let _ = prev.insert(format!("m{index}"), vec![(format!("topic-{index}"), index)]);
         }
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = previous_partitions_by_topic_cooperative(&prev) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(previous_partitions_by_topic_cooperative(&prev));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "indexing previous members held the caller for {elapsed:?}"

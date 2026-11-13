@@ -1466,12 +1466,15 @@ impl TopicPartition {
     /// Each name is copied. A repeated partition is copied again. Order stays
     /// the same.
     pub(crate) async fn list_from_cooperative(pairs: &[(String, i32)]) -> Vec<Self> {
-        let mut out = Vec::with_capacity(pairs.len());
+        let mut out = Vec::with_capacity(pairs.len().min(4096));
         let mut walked = 0usize;
-        for pair in pairs {
+        for (index, pair) in pairs.iter().enumerate() {
+            if out.len() == out.capacity() {
+                out.reserve(pairs.len().saturating_sub(index).min(4096));
+            }
             out.push(Self::from(pair));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2293,7 +2296,7 @@ impl PendingRecords {
         while let Some(run) = staged.pop_back() {
             self.order.push_front(run);
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 2 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -13909,12 +13912,14 @@ mod tests {
         let pairs: Vec<(String, i32)> = (0..2_000_000)
             .map(|partition| ("orders".to_string(), partition))
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = TopicPartition::list_from_cooperative(&pairs) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(TopicPartition::list_from_cooperative(&pairs));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "copying rebalance partitions held the caller for {elapsed:?}"
@@ -14674,12 +14679,14 @@ mod tests {
             })
             .collect();
         let mut pending = PendingRecords::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = pending.prepend_staged(staged) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(pending.prepend_staged(staged));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "prepending pending runs held the caller for {elapsed:?}"
