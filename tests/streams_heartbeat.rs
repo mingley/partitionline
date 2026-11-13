@@ -528,10 +528,13 @@ async fn repeated_delayed_retry_cannot_reset_budget_or_exceed_eight_attempts() {
             cfg.connection.retry_backoff_max = Duration::ZERO;
         }
         let mut client = StreamsClient::new(cfg).unwrap();
+        let budget = if delay.is_zero() {
+            Duration::from_millis(300)
+        } else {
+            Duration::from_millis(70)
+        };
         let started = Instant::now();
-        let result = client
-            .heartbeat_timeout(&request(), Duration::from_millis(70))
-            .await;
+        let result = client.heartbeat_timeout(&request(), budget).await;
         let elapsed = started.elapsed();
         drop(client);
         let frames = peer.close().await;
