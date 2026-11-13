@@ -109,9 +109,10 @@ jobs:
       - name: Checks
         run: |
           cargo fmt --all -- --check
-          cargo clippy --all-targets --all-features -- -D warnings
-          cargo test --all-targets
-          cargo package
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+          cargo build --locked --example verifiable_producer --example verifiable_consumer
+          cargo test --locked --all-targets
+          cargo package --locked
           bash scripts/ci-crate-consumer.sh
 
       - name: Exact-SHA CI green (KL-08)

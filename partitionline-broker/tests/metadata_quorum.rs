@@ -161,12 +161,8 @@ impl Cluster {
                     paths(&root)?,
                 )?);
             }
-            for id in 0..count {
-                group.nodes[id]
-                    .as_ref()
-                    .ok_or("missing node")?
-                    .wait_ready()
-                    .await?;
+            for node in group.nodes.iter().take(count) {
+                node.as_ref().ok_or("missing node")?.wait_ready().await?;
             }
             for id in 0..count {
                 group.open_router(id).await?;

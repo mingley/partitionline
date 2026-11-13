@@ -309,7 +309,7 @@ impl DirectoryOwnership {
     pub(crate) fn identify(&mut self, file: &File) -> Result<(), Error> {
         self.0.identify(file)
     }
-    #[cfg(all(test, unix))]
+    #[cfg(all(test, target_os = "linux"))]
     pub(crate) fn pinned_identity(&self) -> Result<(u64, u64, u64), Error> {
         self.0.pinned_identity()
     }
