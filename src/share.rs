@@ -3204,11 +3204,12 @@ impl ShareGroup {
             // The heartbeat carries topic names. A stale image loads on the
             // member socket while the coordinator answers.
             let consumer = &self.consumer;
-            let stale = !crate::consumer::topics_metadata_fresh(
-                self.topics.iter().map(String::as_str),
-                |topic| consumer.topic_metadata_fresh(topic),
-            )
-            .await;
+            let stale = first
+                && !crate::consumer::topics_metadata_fresh(
+                    self.topics.iter().map(String::as_str),
+                    |topic| consumer.topic_metadata_fresh(topic),
+                )
+                .await;
             let (version, body, metadata_refresh) = if stale {
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
@@ -3319,6 +3320,9 @@ impl ShareGroup {
             if let Some(Err(error)) = metadata_refresh {
                 self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
                 self.hb_err.store(0, Ordering::SeqCst);
+                if matches!(error, Error::Timeout) && !first {
+                    return Ok(());
+                }
                 return Err(error);
             }
             self.apply_share_assignment(resp.assignment.as_deref())
@@ -3445,6 +3449,7 @@ impl ShareGroup {
             rack_id: self.cfg.rack.clone(),
             subscribed_topic_names: Some(crate::group::clone_names(&self.topics).await),
         };
+        let mut refreshed_topics = false;
         while self.assigned.is_empty() {
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
@@ -3469,11 +3474,12 @@ impl ShareGroup {
             // The heartbeat carries topic names. A stale image loads on the
             // member socket while the coordinator answers.
             let consumer = &self.consumer;
-            let stale = !crate::consumer::topics_metadata_fresh(
-                self.topics.iter().map(String::as_str),
-                |topic| consumer.topic_metadata_fresh(topic),
-            )
-            .await;
+            let stale = !refreshed_topics
+                && !crate::consumer::topics_metadata_fresh(
+                    self.topics.iter().map(String::as_str),
+                    |topic| consumer.topic_metadata_fresh(topic),
+                )
+                .await;
             let (version, body, metadata_refresh) = if stale {
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
@@ -3571,8 +3577,9 @@ impl ShareGroup {
                 self.member_epoch = resp.member_epoch;
                 self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
             }
-            if let Some(Err(error)) = metadata_refresh {
-                return Err(error);
+            if let Some(refresh) = metadata_refresh {
+                refresh?;
+                refreshed_topics = true;
             }
             self.apply_share_assignment(resp.assignment.as_deref())
                 .await;
