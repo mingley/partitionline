@@ -141,7 +141,6 @@ async fn producer_startup_deadline_spans_tls_and_api_versions() {
     peer.await.unwrap();
 }
 
-#[expect(clippy::unwrap_used, reason = "the loopback test fixture must start")]
 async fn stall_listener() -> String {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let stall = listener.local_addr().unwrap();
@@ -705,7 +704,6 @@ async fn list_offsets_negotiates_a_new_leader() {
     );
 }
 
-#[expect(clippy::unwrap_used, reason = "the loopback test fixture must connect")]
 async fn two_leader_admin() -> (common::Mock, Admin) {
     let mock = common::Mock::start_two_node().await;
     mock.set_topic_partitions("t", 2);

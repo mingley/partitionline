@@ -11,10 +11,6 @@ use partitionline::{partition_for_key, Error, ProduceRecord, Producer, ProducerC
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
 
-#[expect(
-    clippy::unwrap_used,
-    reason = "bounded test record sizing must succeed and fit the accounting type"
-)]
 fn unkeyed_packed_bytes(value: &'static [u8]) -> u64 {
     let record = Record {
         offset: 0,

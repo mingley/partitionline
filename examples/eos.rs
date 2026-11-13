@@ -22,11 +22,11 @@ async fn run() -> partitionline::Result<()> {
         .transactional_id(transactional_id)
         .transaction_timeout(Duration::from_secs(30))
         .linger(Duration::ZERO)
-        .connect_timeout(Duration::from_secs(2))
-        .request_timeout(Duration::from_secs(2))
-        .max_block(Duration::from_secs(2))
-        .delivery_timeout(Duration::from_secs(5));
-    let producer = tokio::time::timeout(Duration::from_secs(10), async {
+        .connect_timeout(Duration::from_secs(5))
+        .request_timeout(Duration::from_secs(5))
+        .max_block(Duration::from_secs(5))
+        .delivery_timeout(Duration::from_secs(10));
+    let producer = tokio::time::timeout(Duration::from_secs(15), async {
         loop {
             match Producer::new(producer_config.clone()).await {
                 Ok(producer) => return Ok(producer),
@@ -39,14 +39,17 @@ async fn run() -> partitionline::Result<()> {
     })
     .await
     .map_err(|_| Error::Timeout)??;
+    producer.init_transactions().await?;
+    // Stock Apache Kafka brokers default `group.initial.rebalance.delay.ms` to
+    // 3s, so `request_timeout` must exceed the initial JoinGroup rebalance wait.
     let consumer_config = ConsumerConfig::bootstrap([bootstrap])
         .isolation(IsolationLevel::ReadCommitted)
         .auto_commit(false)
         .max_poll_records(64)
         .max_wait_ms(100)
-        .connect_timeout(Duration::from_secs(2))
-        .request_timeout(Duration::from_secs(2));
-    let joined = tokio::time::timeout(Duration::from_secs(10), async {
+        .connect_timeout(Duration::from_secs(5))
+        .request_timeout(Duration::from_secs(6));
+    let joined = tokio::time::timeout(Duration::from_secs(15), async {
         loop {
             match ConsumerGroup::join_topics(
                 consumer_config.clone(),

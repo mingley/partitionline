@@ -1,5 +1,4 @@
 //! Bounded topic identities in offset requests and responses.
-#![expect(clippy::unwrap_used, reason = "finite actual SDK fixture assertions")]
 use partitionline::protocol::group::*;
 
 #[test]

@@ -506,10 +506,6 @@ fn tracing_instruments_skip_self_holding_configs() {
 
 /// Assert an auth failure keeps its broker code while carrying no secret in
 /// Display or Debug (KL06-07).
-#[expect(
-    clippy::panic,
-    reason = "test-only assertion helper; failures must fail the test"
-)]
 fn assert_sanitized_broker_error(err: &Error, code: i16, secrets: &[&str], label: &str) {
     match err {
         Error::Broker { code: got, .. } => assert_eq!(

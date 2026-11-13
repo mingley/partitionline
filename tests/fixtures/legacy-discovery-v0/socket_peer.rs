@@ -1,5 +1,4 @@
 //! Owned, bounded discovery peer. Wire bodies follow the Apache schemas.
-#![expect(clippy::unwrap_used, reason = "owned finite fixture assertions")]
 use std::{collections::VecDeque, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},

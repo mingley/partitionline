@@ -569,7 +569,7 @@ impl Cluster {
     }
 
     fn invalidate_topic_chunk() -> usize {
-        8 * 1024
+        1024
     }
 
     /// Drop cached metadata for each topic.
@@ -1080,15 +1080,19 @@ mod tests {
         for name in &names {
             let _stored = cluster.leaders.insert(Arc::from(name.as_str()), vec![1]);
         }
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = cluster.invalidate_topics_cooperative(names.iter().map(String::as_str)) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
+        let elapsed = {
+            let mut work = std::pin::pin!(
+                cluster.invalidate_topics_cooperative(names.iter().map(String::as_str))
+            );
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "invalidating topics held the caller for {:?}",
-            started.elapsed()
+            elapsed < std::time::Duration::from_millis(80),
+            "invalidating topics held the caller for {elapsed:?}",
         );
         let _orders = cluster.leaders.insert(Arc::from("orders"), vec![4]);
         let _payments = cluster.leaders.insert(Arc::from("payments"), vec![5]);

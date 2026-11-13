@@ -1172,7 +1172,7 @@ fn span_len(first: i64, last: i64) -> usize {
     }
 }
 
-const COVER_CHUNK: usize = 8 * 1024;
+const COVER_CHUNK: usize = 1024;
 
 async fn copy_chunked<T: Copy>(src: &[T]) -> Vec<T> {
     let mut out = Vec::with_capacity(src.len());
@@ -2162,9 +2162,7 @@ async fn finish_aborted_join_set<T: 'static>(mut set: tokio::task::JoinSet<T>, d
     // The finished dial drops its socket while this call is still in the
     // same poll. Yield so the broker observes that close before the caller
     // continues.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 /// Aborts parked share fetches if this round is cancelled before they are stored.
@@ -3921,7 +3919,7 @@ impl ShareGroup {
         let mut watch_live = true;
         while !inflight.is_empty() {
             if wakeup.load(Ordering::SeqCst) || Instant::now() >= deadline {
-                Self::keep_completed_share_dials(&mut inflight, &mut opened);
+                Self::drain_completed_share_dials(&mut inflight, &mut opened).await;
                 finish_aborted_join_set(std::mem::take(&mut inflight), Instant::now()).await;
                 break;
             }
@@ -3947,7 +3945,7 @@ impl ShareGroup {
                     continue;
                 }
                 ShareDialEvent::Wake | ShareDialEvent::Timeout => {
-                    Self::keep_completed_share_dials(&mut inflight, &mut opened);
+                    Self::drain_completed_share_dials(&mut inflight, &mut opened).await;
                     finish_aborted_join_set(std::mem::take(&mut inflight), Instant::now()).await;
                     break;
                 }
@@ -3969,6 +3967,21 @@ impl ShareGroup {
     }
 
     /// Keep share-leader sockets that already finished before the rest of the wave is aborted.
+    async fn drain_completed_share_dials(
+        inflight: &mut tokio::task::JoinSet<ShareDialAttempt>,
+        opened: &mut Vec<OpenedShareDial>,
+    ) {
+        Self::keep_completed_share_dials(inflight, opened);
+        if !inflight.is_empty() {
+            tokio::task::yield_now().await;
+            Self::keep_completed_share_dials(inflight, opened);
+        }
+        if !inflight.is_empty() {
+            tokio::time::sleep(Duration::from_millis(2)).await;
+            Self::keep_completed_share_dials(inflight, opened);
+        }
+    }
+
     fn keep_completed_share_dials(
         inflight: &mut tokio::task::JoinSet<ShareDialAttempt>,
         opened: &mut Vec<OpenedShareDial>,
@@ -6594,12 +6607,17 @@ impl ShareGroup {
             if let Some(heartbeat) = heartbeat {
                 finish_share_heartbeat(heartbeat, deadline).await;
             }
+            for (_, mut entry) in self.share_conns.drain() {
+                entry.conn.close();
+                entry.conn.release_if_closed().await;
+            }
+            self.coord.close();
+            self.coord.release_if_closed().await;
+            self.consumer.close_open_sockets().await;
             // The member socket drops with this group. Yield so the broker
             // observes that close before leave returns.
             drop(self);
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
             return Ok(());
         }
         *self.hb_deadline.lock() = None;
@@ -6613,12 +6631,17 @@ impl ShareGroup {
             finish_share_heartbeat(heartbeat, deadline).await;
         }
         let result = close.and(out);
+        for (_, mut entry) in self.share_conns.drain() {
+            entry.conn.close();
+            entry.conn.release_if_closed().await;
+        }
+        self.coord.close();
+        self.coord.release_if_closed().await;
+        self.consumer.close_open_sockets().await;
         // Member and coordinator sockets drop with this group. Yield so the
         // broker observes that close before leave returns.
         drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         result
     }
 
@@ -6733,6 +6756,7 @@ impl ShareGroup {
                 d
             };
             let mut member_id = hb_member_id.lock().clone();
+            let mut load_retried = false;
             let mut heartbeat = ShareGroupHeartbeatRequest {
                 group_id: group_id.clone(),
                 member_id: member_id.clone(),
@@ -6889,7 +6913,21 @@ impl ShareGroup {
                         )
                         .await
                         {
-                            if crate::error::coordinator_retriable(resp.error_code) {
+                            if resp.error_code == error::COORDINATOR_LOAD_IN_PROGRESS
+                                && !load_retried
+                            {
+                                load_retried = true;
+                                let retry_delay = cfg.retry_backoff.max(Duration::from_millis(1));
+                                next_hb_deadline = Instant::now() + retry_delay;
+                                if !update_share_heartbeat_deadline(
+                                    &hb_deadline,
+                                    &stop,
+                                    next_hb_deadline,
+                                ) {
+                                    break;
+                                }
+                            } else if crate::error::coordinator_retriable(resp.error_code) {
+                                load_retried = false;
                                 if let Some(current) = conn.as_ref() {
                                     remembered = Some(
                                         crate::group::KnownCoord::capture(current)
@@ -6908,6 +6946,7 @@ impl ShareGroup {
                                     break;
                                 }
                             } else {
+                                load_retried = false;
                                 hb_err.store(resp.error_code, Ordering::SeqCst);
                                 if let Some(id) = resp.member_id.as_deref() {
                                     if !id.is_empty() && id != member_id {
@@ -7042,9 +7081,7 @@ async fn finish_share_heartbeat(task: Arc<tokio::task::JoinHandle<()>>, deadline
     }
     // The abort drops the coordinator when the task is polled. The idle watch
     // then has to run before the broker sees that close.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 #[cfg(test)]
@@ -9998,14 +10035,17 @@ mod tests {
                 types: vec![ACK_ACCEPT],
             })
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = async { drop_covered_runs(&mut runs, 0, &sent).await; } => {
-                assert!(runs.is_empty());
+        let (elapsed, finished) = {
+            let mut work = std::pin::pin!(drop_covered_runs(&mut runs, 0, &sent));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => (started.elapsed(), true),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => (started.elapsed(), false),
             }
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        };
+        if finished {
+            assert!(runs.is_empty());
         }
-        let elapsed = started.elapsed();
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "covering acquisitions held the caller for {elapsed:?}"
@@ -12458,6 +12498,36 @@ mod dial_tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn wakeup_keeps_a_share_dial_that_already_finished() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        async fn answer_versions(mut socket: tokio::net::TcpStream) -> tokio::net::TcpStream {
+            let size = socket.read_i32().await.unwrap();
+            let mut request = vec![0u8; usize::try_from(size).unwrap()];
+            let _read = socket.read_exact(&mut request).await.unwrap();
+            let versions = crate::protocol::api::ApiVersionsResponse {
+                error_code: 0,
+                api_keys: vec![ApiVersion {
+                    api_key: FETCH,
+                    min_version: 0,
+                    max_version: 4,
+                }],
+                throttle_time_ms: 0,
+                supported_features: Vec::new(),
+                finalized_features_epoch: None,
+                finalized_features: Vec::new(),
+                zk_migration_ready: false,
+            };
+            let mut body = bytes::BytesMut::new();
+            crate::protocol::api::encode_api_versions_response(&mut body, 4, &versions).unwrap();
+            socket
+                .write_i32(i32::try_from(4 + body.len()).unwrap())
+                .await
+                .unwrap();
+            socket.write_all(&request[4..8]).await.unwrap();
+            socket.write_all(&body).await.unwrap();
+            socket
+        }
+
         let listener_a = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let listener_b = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr_a = listener_a.local_addr().unwrap().to_string();
@@ -12465,10 +12535,14 @@ mod dial_tests {
         let wakeup = Arc::new(AtomicBool::new(false));
         let flag = Arc::clone(&wakeup);
         let hold = tokio::spawn(async move {
-            let accepted = tokio::join!(listener_a.accept(), listener_b.accept());
+            let ((sock_a, _), (sock_b, _)) =
+                tokio::join!(async { listener_a.accept().await.unwrap() }, async {
+                    listener_b.accept().await.unwrap()
+                },);
+            let answered = tokio::join!(answer_versions(sock_a), answer_versions(sock_b));
             flag.store(true, Ordering::SeqCst);
             std::future::pending::<()>().await;
-            drop(accepted);
+            drop(answered);
         });
         let mut node_keys = HashMap::new();
         let learned = vec![ApiVersion {

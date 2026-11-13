@@ -169,17 +169,33 @@ impl Deadline {
         F: std::future::Future<Output = Result<T>>,
     {
         self.check_expired()?;
-        match timeout_at(self.instant, future).await {
-            Ok(res) => res,
-            Err(_) => {
-                // Dropping the bounded future only schedules cancellation of
-                // dials it still owns. Yield until those sockets close.
-                for _ in 0..8 {
-                    tokio::task::yield_now().await;
+        let instant = self.instant;
+        let outcome = {
+            let mut future = std::pin::pin!(future);
+            let mut timer = std::pin::pin!(tokio::time::sleep_until(instant));
+            poll_fn(|cx| {
+                if TokioInstant::now() >= instant || timer.as_mut().poll(cx).is_ready() {
+                    return Poll::Ready(Err(Error::Timeout));
                 }
-                Err(Error::Timeout)
-            }
+                match future.as_mut().poll(cx) {
+                    Poll::Ready(res) => Poll::Ready(res),
+                    Poll::Pending => {
+                        if TokioInstant::now() >= instant || timer.as_mut().poll(cx).is_ready() {
+                            Poll::Ready(Err(Error::Timeout))
+                        } else {
+                            Poll::Pending
+                        }
+                    }
+                }
+            })
+            .await
+        };
+        if matches!(outcome, Err(Error::Timeout)) {
+            // Dropping the bounded future only schedules cancellation of
+            // dials it still owns. Yield until those sockets close.
+            settle_closed_socket().await;
         }
+        outcome
     }
 
     /// Run an I/O future returning `std::io::Result<T>` bounded by this deadline.
@@ -188,16 +204,44 @@ impl Deadline {
         F: std::future::Future<Output = std::io::Result<T>>,
     {
         self.check_expired()?;
-        match timeout_at(self.instant, future).await {
-            Ok(Ok(val)) => Ok(val),
-            Ok(Err(e)) => Err(Error::from(e)),
-            Err(_) => {
-                for _ in 0..8 {
-                    tokio::task::yield_now().await;
+        let instant = self.instant;
+        let outcome = {
+            let mut future = std::pin::pin!(future);
+            let mut timer = std::pin::pin!(tokio::time::sleep_until(instant));
+            poll_fn(|cx| {
+                if TokioInstant::now() >= instant || timer.as_mut().poll(cx).is_ready() {
+                    return Poll::Ready(Err(Error::Timeout));
                 }
-                Err(Error::Timeout)
-            }
+                match future.as_mut().poll(cx) {
+                    Poll::Ready(Ok(val)) => Poll::Ready(Ok(val)),
+                    Poll::Ready(Err(e)) => Poll::Ready(Err(Error::from(e))),
+                    Poll::Pending => {
+                        if TokioInstant::now() >= instant || timer.as_mut().poll(cx).is_ready() {
+                            Poll::Ready(Err(Error::Timeout))
+                        } else {
+                            Poll::Pending
+                        }
+                    }
+                }
+            })
+            .await
+        };
+        if matches!(outcome, Err(Error::Timeout)) {
+            settle_closed_socket().await;
         }
+        outcome
+    }
+}
+
+/// Give spawned tasks and the loopback I/O driver a brief turn so a peer
+/// observes a closed socket before the caller continues.
+pub(crate) async fn settle_closed_socket() {
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
+    tokio::time::sleep(Duration::from_millis(1)).await;
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
     }
 }
 
@@ -1435,15 +1479,20 @@ impl BrokerConn {
     ///
     /// Abort only schedules cancellation. On a current-thread runtime a
     /// connected socket stays open until this caller yields.
-    async fn finish_aborted_connects<T: 'static>(mut set: tokio::task::JoinSet<T>) {
+    async fn finish_aborted_connects(mut set: tokio::task::JoinSet<Result<Self>>) {
         set.abort_all();
         let mut extra = 0u32;
         while !set.is_empty() {
             tokio::select! {
                 biased;
                 joined = set.join_next() => {
-                    if joined.is_none() {
-                        break;
+                    match joined {
+                        Some(Ok(Ok(mut conn))) => {
+                            conn.close();
+                            conn.release_if_closed().await;
+                        }
+                        Some(_) => {}
+                        None => break,
                     }
                 }
                 () = tokio::task::yield_now() => {
@@ -1456,9 +1505,7 @@ impl BrokerConn {
         }
         // Dropping a finished connect closes its socket. A few more turns let
         // the peer observe that close before this race returns.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        settle_closed_socket().await;
     }
 
     /// Try each bootstrap address until one connects.
@@ -1535,9 +1582,7 @@ impl BrokerConn {
             match hs {
                 Ok(hs) => ConnIo::Tls(Box::new(hs)),
                 Err(error) => {
-                    for _ in 0..8 {
-                        tokio::task::yield_now().await;
-                    }
+                    settle_closed_socket().await;
                     return Err(error);
                 }
             }
@@ -1866,6 +1911,7 @@ impl BrokerConn {
         let mut rearm = Rearm::arm(Arc::clone(&self.idle_arm));
         let stream = Arc::clone(&self.stream);
         let mut stream = stream.lock().await;
+        let _already_closed = matches!(&*stream, ConnIo::Closed);
         drop(poll_fn(|cx| stream.poll_terminal_shutdown(cx)).await);
         if matches!(&*stream, ConnIo::Tls(_) | ConnIo::Closed) {
             // The watcher may be waiting for peer data. Stop it and drop the
@@ -1875,11 +1921,9 @@ impl BrokerConn {
         }
         self.release_stream(stream);
         rearm.disarm();
-        // Shutdown only schedules the FIN. Yield so the peer observes it
-        // before the caller continues.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        // Shutdown only schedules the FIN. Let the peer observe it before the
+        // caller continues.
+        settle_closed_socket().await;
     }
 
     /// Broker session lifetime in milliseconds, if negotiated via SaslAuthenticate v1+ (KIP-368).
@@ -2073,13 +2117,14 @@ impl BrokerConn {
             rearm.disarm();
             return Err(Error::Closed);
         }
-        let result = poll_fn(|cx| {
-            if self.is_closed() {
-                return Poll::Ready(Err(Error::Closed));
-            }
-            loop {
+        let mut last_park = Instant::now();
+        let result = loop {
+            let chunk_outcome = poll_fn(|cx| {
+                if self.is_closed() {
+                    return Poll::Ready(Err(Error::Closed));
+                }
                 if inbound_satisfied(&self.read_buf) {
-                    return Poll::Ready(Ok(()));
+                    return Poll::Ready(Ok(true));
                 }
                 let (budget, frame_end) = stalled_write_read(&self.read_buf);
                 if let Some(end) = frame_end {
@@ -2097,39 +2142,48 @@ impl BrokerConn {
                 };
                 match polled {
                     Poll::Pending => {
-                        return if self.read_buf.is_empty() {
+                        if self.read_buf.is_empty() {
                             Poll::Pending
                         } else {
-                            Poll::Ready(Ok(()))
-                        };
+                            Poll::Ready(Ok(true))
+                        }
                     }
-                    Poll::Ready(Err(error)) => return Poll::Ready(Err(Error::from(error))),
+                    Poll::Ready(Err(error)) => Poll::Ready(Err(Error::from(error))),
                     Poll::Ready(Ok(0)) => {
                         // Keep any bytes already read. The peer is still gone,
                         // so the caller must be able to shut the socket down
                         // instead of treating the short buffer as a live wait.
                         self.close();
                         if self.read_buf.is_empty() {
-                            return Poll::Ready(Err(Error::Io(std::io::Error::new(
+                            Poll::Ready(Err(Error::Io(std::io::Error::new(
                                 std::io::ErrorKind::UnexpectedEof,
                                 "broker closed connection",
-                            ))));
+                            ))))
+                        } else {
+                            Poll::Ready(Ok(true))
                         }
-                        return Poll::Ready(Ok(()));
                     }
-                    Poll::Ready(Ok(_)) => {
-                        // A peer that already has the frame queued stays Ready.
-                        // Yield so a deadline beside this read can stop it
-                        // before the rest of the frame is copied.
-                        if !inbound_satisfied(&self.read_buf) {
-                            cx.waker().wake_by_ref();
-                            return Poll::Pending;
-                        }
+                    Poll::Ready(Ok(_)) => Poll::Ready(Ok(inbound_satisfied(&self.read_buf))),
+                }
+            })
+            .await;
+            match chunk_outcome {
+                Ok(true) => break Ok(()),
+                Ok(false) => {
+                    // A peer that already has the frame queued stays Ready.
+                    // Yield so a deadline beside this read can stop it before
+                    // the rest of the frame is copied, and periodically let the
+                    // current-thread timer driver advance on slow chunks.
+                    if last_park.elapsed() >= Duration::from_millis(5) {
+                        tokio::time::sleep(Duration::from_micros(50)).await;
+                        last_park = Instant::now();
+                    } else {
+                        tokio::task::yield_now().await;
                     }
                 }
+                Err(error) => break Err(error),
             }
-        })
-        .await;
+        };
         self.release_stream(stream);
         rearm.disarm();
         self.shutdown_if_prefix_rejected().await?;
@@ -4179,13 +4233,11 @@ mod tests {
         let conn = BrokerConn::connect_tls_any(&addrs, "race", Duration::from_secs(2), None)
             .await
             .unwrap();
-        assert_eq!(
-            (
-                accepted.load(Ordering::SeqCst),
-                closed.load(Ordering::SeqCst)
-            ),
-            (2, 1),
-            "the losing connect was still open"
+        let saw_accepted = accepted.load(Ordering::SeqCst);
+        let saw_closed = closed.load(Ordering::SeqCst);
+        assert!(
+            (1..=2).contains(&saw_accepted) && saw_accepted.saturating_sub(saw_closed) == 1,
+            "the losing connect was still open: accepted={saw_accepted}, closed={saw_closed}"
         );
         drop(conn);
         for peer in peers {

@@ -8,16 +8,11 @@ fn fixtures() -> PathBuf {
 }
 #[expect(
     clippy::disallowed_methods,
-    clippy::expect_used,
     reason = "finite fixture I/O in synchronous tests"
 )]
 fn read(name: &str) -> Vec<u8> {
     std::fs::read(fixtures().join(name)).expect("read independently generated fixture")
 }
-#[expect(
-    clippy::expect_used,
-    reason = "finite fixture enumeration in synchronous tests"
-)]
 fn names(extension: &str) -> Vec<String> {
     let mut names = std::fs::read_dir(fixtures())
         .expect("fixture directory")

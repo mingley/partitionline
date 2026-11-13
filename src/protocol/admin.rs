@@ -26818,7 +26818,7 @@ pub async fn decode_describe_delegation_token_response_cooperative<B: Buf>(
     let flexible = describe_delegation_token_flexible(version)?;
     let error_code = buf::get_i16(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut tokens = Vec::with_capacity(n);
+    let mut tokens = Vec::with_capacity(n.min(4096));
     let mut walked = 0usize;
     for _ in 0..n {
         let principal_type = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -26837,7 +26837,7 @@ pub async fn decode_describe_delegation_token_response_cooperative<B: Buf>(
         let token_id = buf::get_string(buf, flexible)?.unwrap_or_default();
         let hmac = buf::get_bytes(buf, flexible)?.unwrap_or_default();
         let rn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut renewers = Vec::with_capacity(rn);
+        let mut renewers = Vec::with_capacity(rn.min(256));
         for _ in 0..rn {
             let principal_type = buf::get_string(buf, flexible)?.unwrap_or_default();
             let principal_name = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -26849,7 +26849,7 @@ pub async fn decode_describe_delegation_token_response_cooperative<B: Buf>(
                 principal_name,
             });
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -26870,7 +26870,7 @@ pub async fn decode_describe_delegation_token_response_cooperative<B: Buf>(
             renewers,
         });
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }

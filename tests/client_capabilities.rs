@@ -1,10 +1,4 @@
 //! Limited and mixed broker capability negotiation through public client APIs.
-#![expect(
-    clippy::unwrap_used,
-    clippy::expect_used,
-    clippy::panic,
-    reason = "bounded test peers and assertions fail immediately on unexpected wire behavior"
-)]
 
 mod common;
 

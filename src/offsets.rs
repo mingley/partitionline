@@ -120,9 +120,7 @@ async fn open_offset_socket(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -159,9 +157,7 @@ async fn retire_dialing_offsets(dialing: &mut tokio::task::JoinSet<OffsetDial>) 
     }
     // A cancelled dial drops its socket when the task is polled. The idle
     // watch then has to run before that broker sees the close.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 impl OffsetClient {
@@ -269,9 +265,7 @@ impl OffsetClient {
         }
         // A cancelled offset handshake drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     async fn finish_aborted_offset_dials(mut set: tokio::task::JoinSet<OffsetDial>) {
@@ -298,9 +292,7 @@ impl OffsetClient {
         }
         // A cancelled offset dial drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Validate connection settings without network I/O.
@@ -416,9 +408,7 @@ impl OffsetClient {
             Err(last)
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         finished
     }
 
@@ -454,9 +444,7 @@ impl OffsetClient {
             Err(last)
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         finished
     }
 

@@ -221,14 +221,18 @@ selftest() {
   force_rebuild() {
     local t="${CARGO_TARGET_DIR:-$CODEC/target}"
     rm -rf "$t"/release/.fingerprint/partitionline-* \
+      "$t"/release/.fingerprint/partitionline \
       "$t"/release/.fingerprint/codec-* \
+      "$t"/release/.fingerprint/codec \
       "$t"/release/.fingerprint/iai-* \
       "$t"/release/deps/partitionline-* \
       "$t"/release/deps/codec-* \
       "$t"/release/deps/iai-* \
       "$t"/release/build/partitionline-* \
-      "$t"/release/build/codec-*
-    if ls "$t"/release/deps/iai-* >/dev/null 2>&1; then
+      "$t"/release/build/partitionline \
+      "$t"/release/build/codec-* \
+      "$t"/release/build/codec
+    if ls "$t"/release/deps/iai-* "$t"/release/build/codec/*/out/iai-* >/dev/null 2>&1; then
       echo "ci-perf-gate self-test: ABORT — stale bench binary survived" >&2
       exit 1
     fi

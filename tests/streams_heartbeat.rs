@@ -1,10 +1,4 @@
 //! Public Streams heartbeat routing, cancellation and response semantics.
-#![expect(
-    clippy::unwrap_used,
-    clippy::panic,
-    clippy::indexing_slicing,
-    reason = "finite independently scripted socket assertions"
-)]
 #[path = "fixtures/streams-heartbeat/socket_peer.rs"]
 mod socket_peer;
 

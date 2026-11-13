@@ -1,10 +1,4 @@
 //! WriteTxnMarkers version negotiation and authoritative public abort outcomes.
-#![expect(
-    clippy::unwrap_used,
-    clippy::expect_used,
-    clippy::panic,
-    reason = "bounded scripted peers and assertions fail on unexpected wire outcomes"
-)]
 
 #[path = "fixtures/write-txn-markers-v2/socket_peer.rs"]
 mod socket_peer;

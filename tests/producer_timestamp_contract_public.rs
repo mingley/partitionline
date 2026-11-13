@@ -12,7 +12,6 @@ const LIMIT: Duration = Duration::from_secs(20);
 const EXPLICIT: i64 = 1_234_567;
 const LOG_APPEND: i64 = 9_876_543;
 
-#[expect(clippy::expect_used, reason = "fixture failures should fail this test")]
 async fn pair(producer: &Producer, prefix: &'static str) -> (RecordMetadata, RecordMetadata) {
     let mut implicit = Box::pin(
         producer.send(
@@ -43,11 +42,6 @@ async fn pair(producer: &Producer, prefix: &'static str) -> (RecordMetadata, Rec
     (a.expect("implicit receipt"), b.expect("explicit receipt"))
 }
 
-#[expect(
-    clippy::expect_used,
-    clippy::indexing_slicing,
-    reason = "fixture failures and missing observations should fail this test"
-)]
 async fn acknowledged(version: i16, compression: Compression) {
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 1);
@@ -150,11 +144,6 @@ async fn acknowledged(version: i16, compression: Compression) {
     let _close = producer.close_timeout(Duration::from_secs(2)).await;
 }
 
-#[expect(
-    clippy::expect_used,
-    clippy::indexing_slicing,
-    reason = "fixture failures and missing observations should fail this test"
-)]
 async fn unacknowledged(version: i16, compression: Compression) {
     let mock = common::Mock::start().await;
     mock.set_topic_partitions("t", 1);

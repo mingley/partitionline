@@ -1,7 +1,6 @@
 //! Reassignment policy negotiation and independent Apache wire regressions.
 #![expect(
     clippy::disallowed_methods,
-    clippy::panic,
     clippy::unreachable,
     reason = "finite test assertions and bounded fixture/artifact I/O; production lint unchanged"
 )]

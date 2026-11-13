@@ -7,7 +7,26 @@ import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-BINARY = Path(os.environ.get('PL_BENCH_PRODUCE_BINARY', ROOT / 'target/release/examples/bench_produce'))
+
+
+def _resolve_example_binary(configured):
+    path = Path(configured)
+    if path.exists():
+        return path
+    if path.parent.name == 'examples':
+        build_dir = path.parent.parent / 'build' / 'partitionline'
+        if build_dir.is_dir():
+            matches = [
+                cand for cand in build_dir.glob(f'*/out/{path.name}')
+                if cand.is_file() and os.access(cand, os.X_OK)
+            ]
+            if matches:
+                matches.sort(key=lambda item: item.stat().st_mtime_ns, reverse=True)
+                return matches[0]
+    return path
+
+
+BINARY = _resolve_example_binary(os.environ.get('PL_BENCH_PRODUCE_BINARY', ROOT / 'target/release/examples/bench_produce'))
 
 
 class ProducerBenchmarkSettings(unittest.TestCase):

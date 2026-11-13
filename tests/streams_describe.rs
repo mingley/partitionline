@@ -1,10 +1,4 @@
 //! Public Streams descriptions, coordinator routing and bounded ownership.
-#![expect(
-    clippy::unwrap_used,
-    clippy::panic,
-    clippy::indexing_slicing,
-    reason = "finite independently scripted socket assertions"
-)]
 #[path = "fixtures/streams-describe/socket_peer.rs"]
 mod socket_peer;
 use partitionline::protocol::streams::{self, StreamsGroupDescribeResponse};

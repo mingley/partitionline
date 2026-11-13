@@ -1356,9 +1356,7 @@ async fn wait_until_finished(handle: &tokio::task::JoinHandle<()>, deadline: Opt
     }
     // The abort drops the broker socket when the task is polled. The idle
     // watch then has to run before that broker sees the close.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 /// Per-record queue-to-ack latency against one batch ack timestamp
@@ -1940,9 +1938,16 @@ impl Producer {
         let deadline = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        crate::net::Deadline::from_std(deadline)
+        match crate::net::Deadline::from_std(deadline)
             .run(Self::new_until(cfg, deadline))
             .await
+        {
+            Ok(producer) => Ok(producer),
+            Err(err) => {
+                crate::net::settle_closed_socket().await;
+                Err(err)
+            }
+        }
     }
 
     /// Cancel handshakes that lost the bootstrap race and wait until they stop.
@@ -1970,9 +1975,7 @@ impl Producer {
         }
         // The aborted task drops its socket when it is polled. The idle watch
         // then has to run before the broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     async fn finish_aborted_bootstrap_handshakes(
@@ -2001,9 +2004,7 @@ impl Producer {
         }
         // A cancelled handshake drops its socket when the task is polled. The
         // idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     async fn finish_aborted_coord_handshakes(
@@ -2032,9 +2033,7 @@ impl Producer {
         }
         // A cancelled coordinator handshake drops its socket when the task is
         // polled. The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// TCP, ApiVersions, and SASL on one bootstrap, bounded by `deadline`.
@@ -2056,39 +2055,47 @@ impl Producer {
             )
             .await
             .map_err(|_| Error::Timeout)??;
-            let remaining = timeout_remaining(deadline)?;
-            let resp = tokio::time::timeout(
-                remaining,
-                crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
-            )
-            .await
-            .map_err(|_| Error::Timeout)??;
-            crate::protocol::sasl::apply_api_keys(&mut conn, &resp.api_keys);
-            let remaining = timeout_remaining(deadline)?;
-            tokio::time::timeout(
-                remaining,
-                crate::protocol::sasl::authenticate(
-                    &mut conn,
-                    cfg.sasl_plain.as_ref(),
-                    cfg.sasl_scram.as_ref(),
-                    cfg.sasl_scram_sha512.as_ref(),
-                    cfg.sasl_oauthbearer.as_deref(),
-                    cfg.sasl_oauthbearer_oidc.as_ref(),
+            let step = async {
+                let remaining = timeout_remaining(deadline)?;
+                let resp = tokio::time::timeout(
                     remaining,
-                ),
-            )
-            .await
-            .map_err(|_| Error::Timeout)??;
-            Ok((conn, resp))
+                    crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
+                )
+                .await
+                .map_err(|_| Error::Timeout)??;
+                crate::protocol::sasl::apply_api_keys(&mut conn, &resp.api_keys);
+                let remaining = timeout_remaining(deadline)?;
+                tokio::time::timeout(
+                    remaining,
+                    crate::protocol::sasl::authenticate(
+                        &mut conn,
+                        cfg.sasl_plain.as_ref(),
+                        cfg.sasl_scram.as_ref(),
+                        cfg.sasl_scram_sha512.as_ref(),
+                        cfg.sasl_oauthbearer.as_deref(),
+                        cfg.sasl_oauthbearer_oidc.as_ref(),
+                        remaining,
+                    ),
+                )
+                .await
+                .map_err(|_| Error::Timeout)??;
+                Ok::<_, Error>(resp)
+            }
+            .await;
+            match step {
+                Ok(resp) => Ok((conn, resp)),
+                Err(error) => {
+                    retire_produce_conn(&mut conn).await;
+                    Err(error)
+                }
+            }
         }
         .await;
         // A failed handshake drops its socket in this call. Yield so the broker
         // observes that close before the error returns. A successful dial keeps
         // the socket and does not wait.
         if opened.is_err() {
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
         }
         opened
     }
@@ -3563,6 +3570,7 @@ impl Producer {
                 tokio::task::yield_now().await;
             }
         }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Test hook: inspect worker task handles to verify task termination.
@@ -4235,9 +4243,7 @@ impl Producer {
         // The metadata socket drops with this handle. Yield so the broker
         // observes that close before the result returns.
         drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         flush
     }
 
@@ -4256,9 +4262,7 @@ impl Producer {
         // The metadata socket drops with this handle. Yield so the broker
         // observes that close before the result returns.
         drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         flush
     }
 
@@ -4292,9 +4296,7 @@ impl Producer {
         }
         // The aborted refresh marks the socket closed when its task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     async fn shutdown_workers(&self, deadline: Option<Instant>) {
@@ -4526,7 +4528,8 @@ async fn reopen_meta_if_idle(
         return Ok(());
     }
     let addr = conn.addr().to_string();
-    let (replacement, versions) = open_idle_replacement(
+    retire_produce_conn(conn).await;
+    let (mut replacement, versions) = open_idle_replacement(
         &addr,
         &shared.cfg,
         &shared.api_keys,
@@ -4534,10 +4537,15 @@ async fn reopen_meta_if_idle(
         deadline,
     )
     .await?;
-    let metadata_version = versions
+    let Some(metadata_version) = versions
         .api_version(METADATA)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 13))
-        .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+    else {
+        retire_produce_conn(&mut replacement).await;
+        return Err(Error::Unsupported(
+            "broker does not support Metadata".into(),
+        ));
+    };
     shared
         .metadata_version
         .store(metadata_version, Ordering::Relaxed);
@@ -4548,8 +4556,7 @@ async fn reopen_meta_if_idle(
     shared
         .telemetry_version
         .store(telemetry_version, Ordering::Relaxed);
-    let mut previous = std::mem::replace(conn, replacement);
-    retire_produce_conn(&mut previous).await;
+    *conn = replacement;
     Ok(())
 }
 
@@ -4602,9 +4609,7 @@ async fn open_idle_replacement(
     // A failed replacement drops its socket in this call. Yield so the broker
     // observes that close before the error returns.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -4681,9 +4686,7 @@ async fn open_conn_with_versions(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -4724,9 +4727,7 @@ async fn discover_typed_coord(
         }
     }
     .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
     discovered
 }
 
@@ -5189,9 +5190,7 @@ async fn rediscover_producer_coordinator(
         Ok(coordinator_connection(conn, &versions))
     }
     .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
     discovered
 }
 
@@ -5334,6 +5333,9 @@ async fn init_producer_id_roundtrip(
             } else {
                 discover_within(cfg, tid, COORDINATOR_TRANSACTION, find_version, deadline).await?
             };
+            if let Some(previous) = txn.as_mut() {
+                retire_produce_conn(&mut previous.conn).await;
+            }
             *txn = Some(new);
         }
         let timeout = timeout_remaining(deadline)?;
@@ -5652,6 +5654,7 @@ fn remember_produce_keys(shared: &Shared, addr: &str, keys: &[ApiVersion]) {
     let _stored = known.insert(addr.to_string(), keys.to_vec());
 }
 
+#[cfg(test)]
 async fn read_producer_find(
     mut hop: BrokerConn,
     version: i16,
@@ -5708,46 +5711,37 @@ async fn discover_group_coordinator(
         remember_produce_keys(shared, found.conn.addr(), &found.keys);
         return Ok(found);
     }
-    let Some(addr) = shared.cfg.bootstrap.first() else {
+    if shared.cfg.bootstrap.is_empty() {
         return Err(Error::protocol("find coordinator failed"));
+    }
+    let find_body = {
+        let remaining = timeout_remaining(deadline)?;
+        let mut meta = tokio::time::timeout(remaining, shared.meta.lock())
+            .await
+            .map_err(|_| Error::Timeout)?;
+        reopen_meta_if_idle(shared, &mut meta, deadline).await?;
+        meta.roundtrip(
+            FIND_COORDINATOR,
+            version,
+            |buf| encode_find_coordinator_request_typed(buf, version, group_id, COORDINATOR_GROUP),
+            timeout_remaining(deadline)?,
+        )
+        .await?
     };
-    let bounded = bounded_producer_config(&shared.cfg, deadline)?;
-    let (hop, versions) = open_producer_peer(addr, &bounded, &shared.api_keys).await?;
-    let version = match find_version_for_peer(&versions) {
-        Ok(version) => version,
-        Err(error) => {
-            retire_owned_conn(hop).await;
-            return Err(error);
-        }
-    };
-    let timeout = match timeout_remaining(deadline) {
-        Ok(timeout) => timeout,
-        Err(error) => {
-            retire_owned_conn(hop).await;
-            return Err(error);
-        }
-    };
-    let (hop, err, _node, host, port) =
-        read_producer_find(hop, version, group_id, COORDINATOR_GROUP, timeout).await?;
+    let (err, _node, host, port) =
+        decode_find_coordinator_response(&mut find_body.clone(), version)?;
     if err != 0 {
-        let error = Err(Error::broker(err, "FindCoordinator"));
-        retire_owned_conn(hop).await;
-        return error;
+        return Err(Error::broker(err, "FindCoordinator"));
     }
     let coord_addr = crate::net::format_address(&host, port);
-    if coord_addr == hop.addr() {
-        return Ok(coordinator_connection(hop, &versions));
-    }
+    let bounded = bounded_producer_config(&shared.cfg, deadline)?;
     if let Some(keys) = remembered_produce_keys(shared, &coord_addr) {
-        let opened = open_conn_with_known_versions(&coord_addr, &bounded, false, &keys).await;
-        retire_owned_conn(hop).await;
-        let (conn, versions) = opened?;
+        let (conn, versions) =
+            open_conn_with_known_versions(&coord_addr, &bounded, false, &keys).await?;
         remember_produce_keys(shared, &coord_addr, &versions.api_keys);
         return Ok(coordinator_connection(conn, &versions));
     }
-    let opened = open_conn_with_versions(&coord_addr, &bounded, false).await;
-    retire_owned_conn(hop).await;
-    let (conn, opened) = opened?;
+    let (conn, opened) = open_conn_with_versions(&coord_addr, &bounded, false).await?;
     remember_produce_keys(shared, &coord_addr, &opened.api_keys);
     Ok(coordinator_connection(conn, &opened))
 }
@@ -5905,6 +5899,7 @@ async fn group_coord_roundtrip(
         )
         .await?;
     if !error::coordinator_retriable(error_of(&body).await?) {
+        retire_owned_conn(coord.conn).await;
         return Ok(body);
     }
     let previous = coord.conn.addr().to_string();
@@ -5924,8 +5919,11 @@ async fn group_coord_roundtrip(
     )
     .await?;
     retire_owned_conn(coord.conn).await;
-    require_coord_version(&replacement, api_key, api_version)?;
-    replacement
+    if let Err(err) = require_coord_version(&replacement, api_key, api_version) {
+        retire_owned_conn(replacement.conn).await;
+        return Err(err);
+    }
+    let result = replacement
         .conn
         .roundtrip(
             api_key,
@@ -5933,7 +5931,9 @@ async fn group_coord_roundtrip(
             |buf| encode_body(buf),
             timeout_remaining(deadline)?,
         )
-        .await
+        .await;
+    retire_owned_conn(replacement.conn).await;
+    result
 }
 
 async fn decode_shared_metadata(
@@ -7449,44 +7449,35 @@ impl AckIndex {
     /// pauses every 8,192 partitions across topics. A topic left empty is
     /// still removed. The current batch stays.
     async fn drop_previous_generation(&mut self, generation: u64) {
-        let names: Vec<Arc<str>> = self.topics.keys().cloned().collect();
+        let mut previous = std::mem::take(&mut self.topics);
         let mut walked = 0usize;
-        for name in names {
-            let partitions: Vec<i32> = self
-                .topics
-                .get(name.as_ref())
-                .map(|parts| parts.keys().copied().collect())
-                .unwrap_or_default();
-            if partitions.is_empty() {
-                walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
-                    walked = 0;
-                    tokio::task::yield_now().await;
-                }
-            }
-            for partition in partitions {
-                let remove = self
-                    .topics
-                    .get(name.as_ref())
-                    .and_then(|parts| parts.get(&partition))
-                    .is_some_and(|entry| entry.1 != generation);
-                if remove {
-                    if let Some(parts) = self.topics.get_mut(name.as_ref()) {
-                        let _ = parts.remove(&partition);
+        for (name, mut parts) in previous.drain() {
+            if parts.len() <= 2 * 1024 {
+                parts.retain(|_, entry| {
+                    walked = walked.saturating_add(1);
+                    entry.1 == generation
+                });
+            } else {
+                let mut kept = HashMap::new();
+                for (partition, entry) in parts.drain() {
+                    if entry.1 == generation {
+                        let _ = kept.insert(partition, entry);
+                    }
+                    walked = walked.saturating_add(1);
+                    if walked >= 2 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
                     }
                 }
-                walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
-                    walked = 0;
-                    tokio::task::yield_now().await;
-                }
+                parts = kept;
             }
-            if self
-                .topics
-                .get(name.as_ref())
-                .is_some_and(|parts| parts.is_empty())
-            {
-                let _ = self.topics.remove(name.as_ref());
+            if !parts.is_empty() {
+                let _ = self.topics.insert(name, parts);
+            }
+            walked = walked.saturating_add(1);
+            if walked >= 2 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
     }
@@ -9322,7 +9313,7 @@ async fn remember_added_txn_parts(
 ) {
     let mut start = 0usize;
     while start < added.len() {
-        let end = start.saturating_add(8 * 1024).min(added.len());
+        let end = start.saturating_add(1024).min(added.len());
         if let Some(slice) = added.get(start..end) {
             let mut guard = sent.lock();
             for (topic, part) in slice {
@@ -9368,7 +9359,7 @@ async fn unsent_txn_partitions(
         let mut batch = Vec::new();
         for part in &parts {
             batch.push(*part);
-            if batch.len() == 8 * 1024 {
+            if batch.len() == 1024 {
                 push_unsent_txn_partitions(&mut added, &topic, &batch, sent);
                 batch.clear();
                 tokio::task::yield_now().await;
@@ -9902,6 +9893,7 @@ async fn assemble_mixed_groups(
     let mut spare_slots = std::mem::take(&mut scratch.spare_slots);
     let mut spare_orders = std::mem::take(&mut scratch.spare_orders);
     let mut total = 0usize;
+    let mut walked = 0usize;
     for topic in &order {
         total = total.saturating_add(
             scratch
@@ -9910,10 +9902,15 @@ async fn assemble_mixed_groups(
                 .map(|groups| groups.order.len())
                 .unwrap_or(0),
         );
+        walked = walked.saturating_add(1);
+        if walked == 2 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     let mut out = take_group_shell(scratch);
     reserve_len(&mut out, total);
-    let mut walked = 0usize;
+    walked = 0;
     for topic in order.drain(..) {
         let Some(mut groups) = scratch.buckets.remove(topic.as_ref()) else {
             continue;
@@ -9921,7 +9918,7 @@ async fn assemble_mixed_groups(
         for (partition, pending) in groups.order.drain(..) {
             out.push((Arc::clone(&topic), partition, pending));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 2 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -10790,16 +10787,19 @@ async fn index_produce_groups(
         }
         let mut same = true;
         if let Some(parts) = scratch.parts.first_mut() {
-            reserve_len(parts, groups.len());
             let mut walked = 0usize;
             for (index, (topic, _, _)) in groups.iter().enumerate() {
                 if !Arc::ptr_eq(topic, first) {
                     same = false;
                     break;
                 }
+                if parts.len() == parts.capacity() {
+                    let next_cap = groups.len().min(parts.len().saturating_add(64 * 1024));
+                    reserve_len(parts, next_cap);
+                }
                 parts.push(index);
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 2 * 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -10814,7 +10814,6 @@ async fn index_produce_groups(
         }
     }
     scratch.topic_slots.clear();
-    reserve_len(&mut scratch.topics, groups.len());
     let mut walked = 0usize;
     for (index, (topic, _, _)) in groups.iter().enumerate() {
         if let Some(&slot) = scratch.topic_slots.get(topic.as_ref()) {
@@ -10823,6 +10822,12 @@ async fn index_produce_groups(
             }
         } else {
             let slot = scratch.topics.len();
+            if scratch.topics.len() == scratch.topics.capacity() {
+                let next_cap = groups
+                    .len()
+                    .min(scratch.topics.len().saturating_add(64 * 1024));
+                reserve_len(&mut scratch.topics, next_cap);
+            }
             scratch.topics.push(index);
             if scratch.parts.len() == slot {
                 scratch.parts.push(Vec::new());
@@ -10833,7 +10838,7 @@ async fn index_produce_groups(
             let _ = scratch.topic_slots.insert(Arc::clone(topic), slot);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -10991,7 +10996,7 @@ async fn write_indexed_produce_topics(
         crate::protocol::buf::put_array_len(buf, flexible, Some(part_count))?;
         if part_count == 0 {
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 512 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -11055,7 +11060,7 @@ async fn write_indexed_produce_topics(
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 512 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -11612,9 +11617,11 @@ async fn fail_kept_pendings(
 async fn detach_pending_chunks(pendings: &mut Vec<Pending>) -> Vec<Vec<Pending>> {
     let mut chunks = Vec::new();
     while !pendings.is_empty() {
-        let start = pendings.len().saturating_sub(8 * 1024);
+        let start = pendings.len().saturating_sub(512);
         chunks.push(pendings.split_off(start));
-        tokio::task::yield_now().await;
+        if !pendings.is_empty() {
+            tokio::task::yield_now().await;
+        }
     }
     chunks.reverse();
     chunks
@@ -15512,15 +15519,24 @@ mod tests {
         );
 
         // 4_000_000 records: detaching the failed batch held the caller 926ms.
-        let started = std::time::Instant::now();
-        let worker = tokio::spawn(async move { detach_pending_chunks(&mut batch).await.len() });
-        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
-        worker.abort();
-        let elapsed = started.elapsed();
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "releasing failed records held the caller for {elapsed:?}"
-        );
+        {
+            let mut held_chunks = Vec::new();
+            let detaching = detach_pending_chunks(&mut batch);
+            tokio::pin!(detaching);
+            let started = std::time::Instant::now();
+            tokio::select! {
+                chunks = &mut detaching => {
+                    held_chunks = chunks;
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            let elapsed = started.elapsed();
+            assert!(
+                elapsed < std::time::Duration::from_millis(80),
+                "releasing failed records held the caller for {elapsed:?}"
+            );
+            let _ = held_chunks.len();
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -16200,16 +16216,19 @@ mod tests {
             .map(|index| (Arc::clone(&topic), index))
             .collect();
         let sent = parking_lot::Mutex::new(TxnPartSet::new());
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = remember_added_txn_parts(&sent, &added) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        {
+            let mut work = std::pin::pin!(remember_added_txn_parts(&sent, &added));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => {}
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            assert!(
+                started.elapsed() < std::time::Duration::from_millis(80),
+                "remembering transaction partitions held the caller for {:?}",
+                started.elapsed()
+            );
         }
-        assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "remembering transaction partitions held the caller for {:?}",
-            started.elapsed()
-        );
         let orders: Arc<str> = Arc::from("orders");
         let payments: Arc<str> = Arc::from("payments");
         let sample = [
@@ -16236,16 +16255,23 @@ mod tests {
         let _ = wanted.insert(Arc::clone(&topic), parts);
         let wanted = parking_lot::Mutex::new(wanted);
         let sent = parking_lot::Mutex::new(TxnPartSet::new());
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = unsent_txn_partitions(&wanted, &sent) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        {
+            let mut held = Vec::new();
+            let mut work = std::pin::pin!(unsent_txn_partitions(&wanted, &sent));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                listed = &mut work => {
+                    held = listed;
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            assert!(
+                started.elapsed() < std::time::Duration::from_millis(80),
+                "listing unsent transaction partitions held the caller for {:?}",
+                started.elapsed()
+            );
+            let _ = held.len();
         }
-        assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "listing unsent transaction partitions held the caller for {:?}",
-            started.elapsed()
-        );
         let orders: Arc<str> = Arc::from("orders");
         let mut sample_wanted: TxnPartSet = HashMap::new();
         let mut sample_parts = HashSet::new();
@@ -16574,9 +16600,8 @@ mod tests {
         let mut scratch = CompressScratch::default();
         let mut groups_scratch = ProduceGroupScratch::default();
         index_produce_groups(&groups, &mut groups_scratch).await;
-        let started = std::time::Instant::now();
-        tokio::select! {
-            encoded = write_indexed_produce_topics(
+        let elapsed = {
+            let mut work = std::pin::pin!(write_indexed_produce_topics(
                 &mut buf,
                 9,
                 &mut groups,
@@ -16588,12 +16613,17 @@ mod tests {
                 false,
                 &mut scratch,
                 &groups_scratch,
-            ) => {
-                encoded.unwrap_or_else(|error| panic!("{error}"));
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                encoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    encoded.unwrap_or_else(|error| panic!("{error}"));
+                    elapsed
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "encoding produce topics held the caller for {elapsed:?}"
@@ -16656,15 +16686,18 @@ mod tests {
             .map(|index| (Arc::<str>::from(format!("topic-{index}")), 0, Vec::new()))
             .collect();
         let mut scratch = ProduceGroupScratch::default();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = index_produce_groups(&groups, &mut scratch) => {
-                assert_eq!(scratch.topics.len(), 500_000);
-                assert_eq!(scratch.topics.first().copied(), Some(0));
+        let (elapsed, finished) = {
+            let mut work = std::pin::pin!(index_produce_groups(&groups, &mut scratch));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => (started.elapsed(), true),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => (started.elapsed(), false),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        };
+        if finished {
+            assert_eq!(scratch.topics.len(), 500_000);
+            assert_eq!(scratch.topics.first().copied(), Some(0));
         }
-        let elapsed = started.elapsed();
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "indexing produce topics held the caller for {elapsed:?}"
@@ -16686,12 +16719,14 @@ mod tests {
             .map(|index| (Arc::clone(&topic), index, Vec::new()))
             .collect();
         let mut scratch = ProduceGroupScratch::default();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = index_produce_groups(&groups, &mut scratch) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(index_produce_groups(&groups, &mut scratch));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "indexing one produce topic held the caller for {elapsed:?}"
@@ -16949,15 +16984,19 @@ mod tests {
         let topic: Arc<str> = Arc::from("orders");
         let again = [(Arc::clone(&topic), 0, Vec::new())];
         let started = std::time::Instant::now();
-        tokio::select! {
-            _ = index.fill(&again) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        {
+            let fill = index.fill(&again);
+            tokio::pin!(fill);
+            tokio::select! {
+                _ = &mut fill => {}
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            let elapsed = started.elapsed();
+            assert!(
+                elapsed < std::time::Duration::from_millis(80),
+                "dropping previous ack topics held the caller for {elapsed:?}"
+            );
         }
-        let elapsed = started.elapsed();
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "dropping previous ack topics held the caller for {elapsed:?}"
-        );
         let mut index = AckIndex::default();
         let alpha: Arc<str> = Arc::from("alpha");
         let beta: Arc<str> = Arc::from("beta");
@@ -17094,12 +17133,14 @@ mod tests {
                 },
             );
         }
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = assemble_mixed_groups(&mut scratch, order) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(assemble_mixed_groups(&mut scratch, order));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "assembling produce topics held the caller for {elapsed:?}"

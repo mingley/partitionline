@@ -157,10 +157,26 @@ def proc_sample(pid):
             "threads": int(status["Threads"]), "socket_fds": sockets}
 
 
+def resolve_binary(path):
+    if path.exists():
+        return path.resolve(strict=True)
+    if path.parent.name == "examples":
+        build_dir = path.parent.parent / "build" / "partitionline"
+        if build_dir.is_dir():
+            matches = [
+                cand for cand in build_dir.glob(f"*/out/{path.name}")
+                if cand.is_file() and os.access(cand, os.X_OK)
+            ]
+            if matches:
+                matches.sort(key=lambda item: item.stat().st_mtime_ns, reverse=True)
+                return matches[0].resolve(strict=True)
+    return path.resolve(strict=True)
+
+
 def checked_inputs(args):
     if not sys.platform.startswith("linux"):
         raise ValueError("driver requires Linux /proc telemetry")
-    binary = args.binary.resolve(strict=True)
+    binary = resolve_binary(args.binary)
     if not os.access(binary, os.X_OK):
         raise ValueError("binary is not executable")
     if not 100 <= args.duration_ms <= 86_400_000 or not 1 <= args.rate <= 1_000_000:

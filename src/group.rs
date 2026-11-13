@@ -408,12 +408,17 @@ async fn copy_topic_assignment(
     let mut walked = 0usize;
     for (member, partitions) in assigned {
         let Some(slot) = out.get_mut(&member) else {
+            walked = walked.saturating_add(1);
+            if walked == 2 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
             continue;
         };
         for partition in partitions {
             slot.push((topic.to_owned(), partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 2 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2539,9 +2544,14 @@ impl ConsumerGroup {
             self.check_kip848_membership().await?;
             self.apply_pending_assignment().await?;
         }
-        let offsets = crate::offsets::collect_bounded_commits(
+        let mut offsets = crate::offsets::collect_bounded_commits(
             self.consumer.delivered_commit_offsets_cooperative().await,
         )?;
+        if self.coord.offset_commit_version < 6 {
+            for (_, md) in &mut offsets {
+                md.leader_epoch = None;
+            }
+        }
         self.commit_prepared_offsets(&offsets, timeout.saturating_sub(started.elapsed()))
             .await?;
         self.snapshot_delivered_positions_cooperative().await;
@@ -2573,11 +2583,16 @@ impl ConsumerGroup {
             return Err(Error::Wakeup);
         }
         let started = Instant::now();
+        let include_epochs = self.coord.offset_commit_version >= 6;
         let mut epochs = crate::cluster::EpochList::new();
         let items =
             crate::offsets::collect_bounded_commits(offsets.into_iter().map(|(tp, offset)| {
                 let tp = tp.into();
-                let epoch = epochs.epoch(self.consumer.cluster(), &tp.topic, tp.partition);
+                let epoch = if include_epochs {
+                    epochs.epoch(self.consumer.cluster(), &tp.topic, tp.partition)
+                } else {
+                    -1
+                };
                 (
                     tp,
                     OffsetAndMetadata::from_wire(offset, epoch, String::new()),
@@ -2585,6 +2600,14 @@ impl ConsumerGroup {
             }))?;
         self.commit_with_metadata_timeout(items, timeout.saturating_sub(started.elapsed()))
             .await
+    }
+
+    fn auto_commit_epoch(&self, topic: &str, partition: i32) -> i32 {
+        if self.coord.offset_commit_version >= 6 {
+            self.consumer.position_epoch(topic, partition)
+        } else {
+            -1
+        }
     }
 
     /// Commit offsets with optional leader epoch and user metadata.
@@ -2632,7 +2655,7 @@ impl ConsumerGroup {
         } else {
             let mut topics = std::mem::take(&mut self.classic_commit_topics);
             refill_shared_offset_topics_cooperative(&mut topics, positions, |topic, partition| {
-                self.consumer.position_epoch(topic, partition)
+                self.auto_commit_epoch(topic, partition)
             })
             .await;
             if topics.is_empty() {
@@ -2848,7 +2871,7 @@ impl ConsumerGroup {
         let timeout = self.cfg.request_timeout;
         let mut topics = std::mem::take(&mut self.classic_commit_topics);
         refill_shared_offset_topics_cooperative(&mut topics, &to_commit, |topic, partition| {
-            self.consumer.position_epoch(topic, partition)
+            self.auto_commit_epoch(topic, partition)
         })
         .await;
         if topics.is_empty() {
@@ -2955,7 +2978,7 @@ impl ConsumerGroup {
                 let mut owned = Vec::with_capacity(to_commit.len());
                 let mut walked = 0usize;
                 for (topic, partition, offset) in &to_commit {
-                    let epoch = self.consumer.position_epoch(topic, *partition);
+                    let epoch = self.auto_commit_epoch(topic, *partition);
                     owned.push((
                         TopicPartition::new(topic.as_ref(), *partition),
                         OffsetAndMetadata::from_wire(*offset, epoch, String::new()),
@@ -3234,12 +3257,13 @@ impl ConsumerGroup {
             if let Some(heartbeat) = heartbeat {
                 finish_heartbeat_task(heartbeat, deadline).await;
             }
+            self.coord.close();
+            self.coord.release_if_closed().await;
+            self.consumer.close_open_sockets().await;
             // The member socket drops with this group. Yield so the broker
             // observes that close before leave returns.
             drop(self);
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
             return Ok(());
         }
         self.flush_async_commits(deadline).await;
@@ -3277,12 +3301,13 @@ impl ConsumerGroup {
         if let Some(heartbeat) = heartbeat {
             finish_heartbeat_task(heartbeat, deadline).await;
         }
+        self.coord.close();
+        self.coord.release_if_closed().await;
+        self.consumer.close_open_sockets().await;
         // Member and coordinator sockets drop with this group. Yield so the
         // broker observes that close before leave returns.
         drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         out
     }
 
@@ -3450,15 +3475,11 @@ impl ConsumerGroup {
         Ok(out)
     }
 
-    #[expect(
-        clippy::manual_async_fn,
-        reason = "The explicit Send future avoids lifetime inference failures"
-    )]
     fn rejoin_once(
         &mut self,
         deadline: Instant,
     ) -> impl std::future::Future<Output = Result<Vec<(String, i32)>>> + Send + '_ {
-        async move {
+        Box::pin(async move {
             let entries = self.join_protocol_entries().await?;
             let protocols: Vec<JoinGroupProtocol<'_>> = entries
                 .iter()
@@ -3729,45 +3750,86 @@ impl ConsumerGroup {
                 &mut self.prior_coords,
                 timeout,
             );
-            let synced = if let Some(flight) = flight.as_mut() {
-                let (synced, ()) = tokio::join!(sync_fut, flight);
-                synced
+            let synced = if let Some(flight_ref) = flight.as_mut() {
+                tokio::pin!(sync_fut);
+                let mut dials_done = false;
+                loop {
+                    tokio::select! {
+                        biased;
+                        synced = &mut sync_fut => break synced,
+                        () = &mut *flight_ref, if !dials_done => {
+                            dials_done = true;
+                        }
+                    }
+                }
             } else {
                 sync_fut.await
             };
-            if let Some(flight) = flight {
-                flight.store(&mut self.consumer);
-            }
-            let (version, body) = synced?;
-            let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)
-                .map_err(|e| group_decode_context(e, "SyncGroup", version, body.len()))?;
+            let (version, body) = match synced {
+                Ok(pair) => pair,
+                Err(error) => {
+                    if let Some(flight) = flight {
+                        self.keep_leader_flight(flight, deadline).await;
+                    }
+                    return Err(error);
+                }
+            };
+            let (err, assignment, ..) = match decode_sync_group_response(&mut body.clone(), version)
+            {
+                Ok(decoded) => decoded,
+                Err(error) => {
+                    if let Some(flight) = flight {
+                        self.keep_leader_flight(flight, deadline).await;
+                    }
+                    return Err(group_decode_context(
+                        error,
+                        "SyncGroup",
+                        version,
+                        body.len(),
+                    ));
+                }
+            };
             if err != 0 {
+                if let Some(flight) = flight {
+                    self.keep_leader_flight(flight, deadline).await;
+                }
                 return Err(Error::broker(err, "SyncGroup"));
             }
-            let assigned = decode_assignment_cooperative(&assignment)
-                .await
-                .map_err(|e| {
-                    group_decode_context(
-                        e,
+            let assigned = match decode_assignment_cooperative(&assignment).await {
+                Ok(assigned) => assigned,
+                Err(error) => {
+                    if let Some(flight) = flight {
+                        self.keep_leader_flight(flight, deadline).await;
+                    }
+                    return Err(group_decode_context(
+                        error,
                         "ConsumerProtocol assignment",
                         version,
                         assignment.len(),
-                    )
-                })?;
+                    ));
+                }
+            };
+            if flight.as_ref().is_some_and(LeaderDialFlight::is_ready) {
+                if let Some(done) = flight.take() {
+                    done.store(&mut self.consumer);
+                }
+            }
             let wanted = expand_topic_partitions_cooperative(assigned).await;
-            let revoked = self.assign_committed(&wanted, deadline, false).await?;
+            let revoked = self
+                .assign_committed(&wanted, deadline, false, flight)
+                .await?;
             self.hb_generation
                 .store(self.generation_id, Ordering::SeqCst);
             self.hb_err.store(0, Ordering::SeqCst);
             Ok(revoked)
-        }
+        })
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
         let deadline = Instant::now()
             .checked_add(self.cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        self.heartbeat_join_within(deadline).await
+        Box::pin(self.heartbeat_join_within(deadline)).await
     }
 
     async fn heartbeat_join_within(&mut self, deadline: Instant) -> Result<()> {
@@ -3914,6 +3976,17 @@ impl ConsumerGroup {
             return Err(error);
         }
         let assignment = resp.assignment.unwrap_or_default();
+        if metadata_refresh.is_none()
+            && assignment_has_unknown_topic_id(&assignment, self.consumer.topic_id_names()).await
+        {
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
+            self.consumer
+                .refresh_metadata_timeout(Some(&self.topics), timeout)
+                .await?;
+        }
         let names = self.consumer.topic_id_names();
         if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)
             && assignment_has_unknown_topic_id(&assignment, names).await
@@ -3923,7 +3996,9 @@ impl ConsumerGroup {
             ));
         }
         let wanted = wanted_from_kip848(&self.topics, names, &assignment).await;
-        let _ = self.assign_committed(&wanted, deadline, false).await?;
+        let _ = self
+            .assign_committed(&wanted, deadline, false, None)
+            .await?;
         *self.hb_ack.lock() = Some(assignment);
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
@@ -4022,7 +4097,7 @@ impl ConsumerGroup {
             return Ok(());
         }
         let _revoked = self
-            .assign_committed(&wanted, deadline, overlap_metadata)
+            .assign_committed(&wanted, deadline, overlap_metadata, None)
             .await?;
         {
             let mut pending = self.hb_assignment.lock();
@@ -4039,17 +4114,14 @@ impl ConsumerGroup {
         flight.finish(&mut self.consumer, deadline).await;
     }
 
-    #[expect(
-        clippy::manual_async_fn,
-        reason = "The explicit Send future avoids lifetime inference failures"
-    )]
     fn assign_committed<'a>(
         &'a mut self,
         wanted: &'a [(String, i32)],
         deadline: Instant,
         overlap_metadata: bool,
+        mut pre_flight: Option<LeaderDialFlight>,
     ) -> impl std::future::Future<Output = Result<Vec<(String, i32)>>> + Send + 'a {
-        async move {
+        Box::pin(async move {
             let identities = clone_topic_ids(self.consumer.topic_name_ids()).await;
             let all_current = self.consumer.assigned_offsets().to_vec();
             let mut current: HashMap<String, HashMap<i32, i64>> = HashMap::new();
@@ -4104,7 +4176,7 @@ impl ConsumerGroup {
                 let positions = self.consumer.positions_cooperative().await;
                 let to_commit = revoked_commits(
                     positions,
-                    |topic, partition| self.consumer.position_epoch(topic, partition),
+                    |topic, partition| self.auto_commit_epoch(topic, partition),
                     |tp, offset| {
                         position_is_committable(offset)
                             && revoked_contains(&revoked_parts, &tp.topic, tp.partition)
@@ -4114,9 +4186,17 @@ impl ConsumerGroup {
                 if !to_commit.is_empty() {
                     let timeout = deadline.saturating_duration_since(Instant::now());
                     if timeout.is_zero() {
+                        if let Some(flight) = pre_flight {
+                            self.keep_leader_flight(flight, deadline).await;
+                        }
                         return Err(Error::Timeout);
                     }
-                    self.commit_metadata_offsets(to_commit, timeout).await?;
+                    if let Err(error) = self.commit_metadata_offsets(to_commit, timeout).await {
+                        if let Some(flight) = pre_flight {
+                            self.keep_leader_flight(flight, deadline).await;
+                        }
+                        return Err(error);
+                    }
                 }
             }
             let mut kept_epochs: HashMap<String, HashMap<i32, i32>> = HashMap::new();
@@ -4151,7 +4231,25 @@ impl ConsumerGroup {
             let reset = self.cfg.auto_offset_reset;
             let mut warm_leaders = false;
             let fetched = if added.is_empty() {
-                if overlap_metadata {
+                if let Some(mut flight) = pre_flight.take() {
+                    if overlap_metadata {
+                        let timeout = deadline.saturating_duration_since(Instant::now());
+                        if timeout.is_zero() {
+                            self.keep_leader_flight(flight, deadline).await;
+                            return Err(Error::Timeout);
+                        }
+                        let (refreshed, ()) = tokio::join!(
+                            self.consumer
+                                .refresh_metadata_timeout(Some(&self.topics), timeout),
+                            &mut flight,
+                        );
+                        flight.store(&mut self.consumer);
+                        refreshed?;
+                    } else {
+                        (&mut flight).await;
+                        flight.store(&mut self.consumer);
+                    }
+                } else if overlap_metadata {
                     let timeout = deadline.saturating_duration_since(Instant::now());
                     if timeout.is_zero() {
                         return Err(Error::Timeout);
@@ -4167,11 +4265,18 @@ impl ConsumerGroup {
                 let timeout = deadline.saturating_duration_since(Instant::now());
                 if timeout.is_zero() {
                     self.classic_fetch_topics = topics;
+                    if let Some(flight) = pre_flight.take() {
+                        self.keep_leader_flight(flight, deadline).await;
+                    }
                     return Err(Error::Timeout);
                 }
                 let overlap_dials = self.coord.offset_fetch_version != 10
                     && !matches!(reset, AutoOffsetReset::None);
                 if !overlap_dials {
+                    if let Some(mut flight) = pre_flight.take() {
+                        (&mut flight).await;
+                        flight.store(&mut self.consumer);
+                    }
                     if overlap_metadata {
                         self.consumer
                             .refresh_metadata_timeout(Some(&self.topics), timeout)
@@ -4186,16 +4291,20 @@ impl ConsumerGroup {
                     self.classic_fetch_topics = topics;
                     fetched?
                 } else if overlap_metadata {
-                    let mut leaders = Vec::new();
-                    let mut seen_leaders = HashSet::new();
-                    remember_partition_leaders(
-                        self.consumer.cluster(),
-                        &added,
-                        &mut leaders,
-                        &mut seen_leaders,
-                    )
-                    .await;
-                    let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
+                    let mut dials = if let Some(flight) = pre_flight.take() {
+                        flight
+                    } else {
+                        let mut leaders = Vec::new();
+                        let mut seen_leaders = HashSet::new();
+                        remember_partition_leaders(
+                            self.consumer.cluster(),
+                            &added,
+                            &mut leaders,
+                            &mut seen_leaders,
+                        )
+                        .await;
+                        self.consumer.start_leader_dials(&leaders, deadline).await
+                    };
                     let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
                     let member_epoch = if self.kip848 { self.generation_id } else { -1 };
                     let member_id = if self.kip848 {
@@ -4314,16 +4423,20 @@ impl ConsumerGroup {
                     self.classic_fetch_topics = topics;
                     fetched
                 } else {
-                    let mut leaders = Vec::new();
-                    let mut seen_leaders = HashSet::new();
-                    remember_partition_leaders(
-                        self.consumer.cluster(),
-                        &added,
-                        &mut leaders,
-                        &mut seen_leaders,
-                    )
-                    .await;
-                    let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
+                    let mut dials = if let Some(flight) = pre_flight.take() {
+                        flight
+                    } else {
+                        let mut leaders = Vec::new();
+                        let mut seen_leaders = HashSet::new();
+                        remember_partition_leaders(
+                            self.consumer.cluster(),
+                            &added,
+                            &mut leaders,
+                            &mut seen_leaders,
+                        )
+                        .await;
+                        self.consumer.start_leader_dials(&leaders, deadline).await
+                    };
                     let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
                     let member_epoch = if self.kip848 { self.generation_id } else { -1 };
                     let member_id = if self.kip848 {
@@ -4495,7 +4608,11 @@ impl ConsumerGroup {
                 apply_reset_offsets(&mut starts, &reset_slots, listed).await?;
             }
             let starts = flatten_reset_starts(starts).await;
-            self.consumer.assign_all(&starts).await?;
+            let verify_uuid =
+                self.coord.offset_fetch_version == 10 || self.coord.offset_commit_version == 10;
+            self.consumer
+                .assign_all_opts(&starts, verify_uuid, true)
+                .await?;
             if assignment_topic_ids_changed(
                 wanted,
                 |topic, partition| self.consumer.assigned_topic_id(topic, partition),
@@ -4542,7 +4659,7 @@ impl ConsumerGroup {
                 self.cfg.rebalance.call(&revoked_parts, &added_parts);
             }
             Ok(revoked)
-        }
+        })
     }
 
     fn spawn_heartbeat_consumer(
@@ -5052,9 +5169,7 @@ async fn finish_heartbeat_task(task: Arc<tokio::task::JoinHandle<()>>, deadline:
     }
     // The abort drops the coordinator when the task is polled. The idle watch
     // then has to run before the broker sees that close.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 pub(crate) fn copy_member_id(dest: &mut String, source: &str) {
@@ -5964,7 +6079,7 @@ async fn revoked_commits(
             ));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6011,22 +6126,37 @@ async fn retain_interval_commits(
     mut assigned: impl FnMut(&str, i32) -> bool,
     mut topic_id: impl FnMut(&str, i32) -> Option<[u8; 16]>,
 ) {
-    let pending = std::mem::take(positions);
+    let mut write = 0usize;
+    let len = positions.len();
     let mut walked = 0usize;
-    for (topic, partition, offset) in pending {
-        let stored = ids
-            .get(topic.as_ref())
-            .and_then(|parts| parts.get(&partition))
-            .copied();
-        if position_is_committable(offset)
-            && assigned(topic.as_ref(), partition)
-            && stored == topic_id(topic.as_ref(), partition)
-        {
-            positions.push((topic, partition, offset));
+    for read in 0..len {
+        let keep = if let Some((topic, partition, offset)) = positions.get(read) {
+            let stored = ids
+                .get(topic.as_ref())
+                .and_then(|parts| parts.get(partition))
+                .copied();
+            position_is_committable(*offset)
+                && assigned(topic.as_ref(), *partition)
+                && stored == topic_id(topic.as_ref(), *partition)
+        } else {
+            false
+        };
+        if keep {
+            if write != read {
+                positions.swap(write, read);
+            }
+            write = write.saturating_add(1);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    while positions.len() > write {
+        let next_len = positions.len().saturating_sub(8 * 1024).max(write);
+        positions.truncate(next_len);
+        if positions.len() > write {
             tokio::task::yield_now().await;
         }
     }
@@ -6119,7 +6249,7 @@ async fn refill_shared_offset_topics_cooperative(
             used = used.saturating_add(1);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6324,7 +6454,7 @@ async fn refill_offset_topics_cooperative(
             },
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7091,7 +7221,7 @@ pub(crate) async fn committed_offset_pairs_cooperative(
             };
             out.push((TopicPartition::new(name, partition), md));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 2 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -7200,10 +7330,6 @@ type MemberCoordinatorConnection = (Consumer, Result<(BrokerConn, Vec<ApiVersion
 ///
 /// The member dial is required first when both fail. A coordinator error is
 /// returned only after the member socket has connected.
-#[expect(
-    clippy::manual_async_fn,
-    reason = "The explicit Send future avoids lifetime inference failures"
-)]
 pub(crate) fn connect_member_and_coordinator<'a>(
     cfg: &'a ConsumerConfig,
     group_id: &'a str,
@@ -7211,7 +7337,7 @@ pub(crate) fn connect_member_and_coordinator<'a>(
     prefetch_all: bool,
     deadline: Instant,
 ) -> impl std::future::Future<Output = Result<MemberCoordinatorConnection>> + Send + 'a {
-    async move {
+    Box::pin(async move {
         let started = async {
     let member = Consumer::connect_within(cfg.clone(), deadline);
     let coordinator = async move {
@@ -7299,11 +7425,9 @@ pub(crate) fn connect_member_and_coordinator<'a>(
     ))
     }
     .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         started
-    }
+    })
 }
 
 /// Wait until the coordinator closes `conn`.
@@ -7445,9 +7569,7 @@ pub(crate) async fn discover_coord_with_versions(
         }
     }
     .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
     discovered
 }
 
@@ -7559,9 +7681,7 @@ async fn finish_aborted_group_handshakes(
     }
     // A cancelled group handshake drops its socket when the task is polled.
     // The idle watch then has to run before that broker sees the close.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 async fn discover_coord_raced(
@@ -8068,9 +8188,7 @@ pub(crate) async fn connect_known_coord(
     }
     .await;
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -8213,10 +8331,9 @@ pub(crate) async fn rediscover_known_coord(
         }
         let remaining = bounded_coord_config(cfg, crate::net::Deadline::from_std(deadline))?;
         open_discovered_coord(&remaining, &addr, known, prior).await
-    }    .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
     }
+    .await;
+    crate::net::settle_closed_socket().await;
     match discovered {
         Ok(conn) => finish_reused_lookup(conn, crate::net::Deadline::from_std(deadline)).await,
         Err(error) => Err(error),
@@ -8336,9 +8453,7 @@ async fn rediscover_coord(
         Ok(open_coord_with_find_version(&bounded, &addr).await?.0)
     }
     .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
     discovered
 }
 
@@ -8506,9 +8621,7 @@ async fn open_coord_with_find_version(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -8516,10 +8629,6 @@ async fn open_coord_with_find_version(
 #[expect(
     clippy::too_many_arguments,
     reason = "coordinator RPC carries the learned bootstrap versions"
-)]
-#[expect(
-    clippy::manual_async_fn,
-    reason = "The explicit Send future avoids lifetime inference failures"
 )]
 pub(crate) fn coord_roundtrip_with_bootstrap<'a, F>(
     coord: &'a mut BrokerConn,
@@ -8536,7 +8645,7 @@ pub(crate) fn coord_roundtrip_with_bootstrap<'a, F>(
 where
     F: FnMut(i16, &mut BytesMut) -> Result<()> + Send + 'a,
 {
-    async move {
+    Box::pin(async move {
         let deadline = crate::net::Deadline::from_std(
             Instant::now()
                 .checked_add(request_timeout)
@@ -8607,7 +8716,7 @@ where
             deadline,
         )
         .await
-    }
+    })
 }
 
 fn bounded_coord_config(
@@ -9129,12 +9238,18 @@ mod tests {
             .map(|index| (Arc::clone(&topic), index, 1))
             .collect();
         let mut topics = Vec::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = refill_shared_offset_topics_cooperative(&mut topics, &items, |_, _| 0) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(refill_shared_offset_topics_cooperative(
+                &mut topics,
+                &items,
+                |_, _| 0
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "refilling shared offsets held the caller for {elapsed:?}"
@@ -9191,12 +9306,14 @@ mod tests {
         // A longer walk still has to pause after membership is a set.
         let items = commit_items(500_000);
         let mut topics = Vec::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = refill_offset_topics_cooperative(&mut topics, &items) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(refill_offset_topics_cooperative(&mut topics, &items));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "refilling offset-commit partitions held the caller for {elapsed:?}"
@@ -9426,12 +9543,14 @@ mod tests {
     async fn pairing_many_committed_offsets_does_not_hold_the_caller() {
         // 1_500_000 offsets: cloning the topic name held the caller 241ms.
         let map = offset_map(1_500_000);
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = committed_offset_pairs_cooperative(map) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(committed_offset_pairs_cooperative(map));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "pairing committed offsets held the caller for {elapsed:?}"
@@ -9495,12 +9614,14 @@ mod tests {
             let _ = out.insert(member.clone(), Vec::new());
             let _ = assigned.insert(member, vec![index]);
         }
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = copy_topic_assignment(&mut out, "orders", assigned) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(copy_topic_assignment(&mut out, "orders", assigned));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "copying assigned members held the caller for {elapsed:?}"
@@ -9663,12 +9784,47 @@ mod tests {
         find_body[4..6].copy_from_slice(&42i16.to_be_bytes());
         let find_body = find_body.freeze();
         let first_peer = tokio::spawn(async move {
+            use crate::protocol::api::{encode_api_versions_response, ApiVersionsResponse};
             use tokio::io::AsyncWriteExt;
             let Ok((mut socket, _)) = first.accept().await else {
                 return;
             };
             let _started = first_flag.fetch_add(1, Ordering::SeqCst);
             let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                    .expect("nonnegative test frame size fits usize");
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let mut versions_body = bytes::BytesMut::new();
+                        encode_api_versions_response(
+                            &mut versions_body,
+                            4,
+                            &ApiVersionsResponse {
+                                error_code: 0,
+                                api_keys: vec![ApiVersion {
+                                    api_key: FIND_COORDINATOR,
+                                    min_version: 1,
+                                    max_version: 1,
+                                }],
+                                throttle_time_ms: 0,
+                                supported_features: Vec::new(),
+                                finalized_features_epoch: None,
+                                finalized_features: Vec::new(),
+                                zk_migration_ready: false,
+                            },
+                        )
+                        .unwrap();
+                        let len = i32::try_from(4 + versions_body.len()).unwrap_or(0);
+                        let mut reply = Vec::new();
+                        reply.extend_from_slice(&len.to_be_bytes());
+                        reply.extend_from_slice(bytes);
+                        reply.extend_from_slice(&versions_body);
+                        let _wrote = socket.write_all(&reply).await;
+                    }
+                }
+            }
             if socket.read_exact(&mut size_buf).await.is_ok() {
                 let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
                     .expect("nonnegative test frame size fits usize");
@@ -11024,12 +11180,18 @@ mod tests {
         let positions: Vec<(TopicPartition, i64)> = (0..2_000_000)
             .map(|partition| (TopicPartition::new("orders", partition), 1))
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = revoked_commits(positions, |_topic, _partition| 4, |_tp, offset| offset >= 0) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(revoked_commits(
+                positions,
+                |_topic, _partition| 4,
+                |_tp, offset| offset >= 0,
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "collecting revoked commits held the caller for {elapsed:?}"

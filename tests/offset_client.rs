@@ -1,10 +1,4 @@
 //! Public offset identity routing and owned socket lifetime.
-#![expect(
-    clippy::unwrap_used,
-    clippy::panic,
-    clippy::indexing_slicing,
-    reason = "finite scripted socket assertions"
-)]
 #[path = "fixtures/offset-topic-ids-v10/socket_peer.rs"]
 mod socket_peer;
 

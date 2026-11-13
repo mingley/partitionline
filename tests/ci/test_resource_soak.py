@@ -44,13 +44,34 @@ def interrupt_ready(raw, host):
     return live_samples >= 4 and len(telemetry) >= 2
 
 
+def resolve_example_binary(configured):
+    path = Path(configured)
+    if path.exists():
+        return path.resolve(strict=True)
+    suffix = ".exe" if os.name == "nt" and path.suffix.lower() != ".exe" else ""
+    if suffix and path.with_suffix(".exe").exists():
+        return path.with_suffix(".exe").resolve(strict=True)
+    if path.parent.name == "examples":
+        build_dir = path.parent.parent / "build" / "partitionline"
+        if build_dir.is_dir():
+            name = path.name + suffix
+            matches = [
+                cand for cand in build_dir.glob(f"*/out/{name}")
+                if cand.is_file() and os.access(cand, os.X_OK)
+            ]
+            if matches:
+                matches.sort(key=lambda item: item.stat().st_mtime_ns, reverse=True)
+                return matches[0].resolve(strict=True)
+    return path.resolve(strict=True)
+
+
 class ResourceSoak(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         configured = os.environ.get("PL_RESOURCE_SOAK_BINARY")
         if not configured:
             raise RuntimeError("build the example and set PL_RESOURCE_SOAK_BINARY; no skipped/fake pass")
-        cls.binary = Path(configured).resolve(strict=True)
+        cls.binary = resolve_example_binary(configured)
         cls.directory = Path(tempfile.mkdtemp(prefix="resource-soak-", dir=os.environ.get("PL_RESOURCE_SOAK_OUTPUT")))
         cls.nominal = cls.directory / "nominal"
         cls.call("--output", cls.nominal, "--binary", cls.binary, "--duration-ms", "1100")

@@ -9,8 +9,6 @@
 //! Note: Diagnostic defect cases A01-A05 remain in docs/audits/2026-09-21-consumer-probes.rs
 //! and will be promoted to this suite alongside their respective repairs in KL03-02 through KL03-06.
 #![expect(
-    clippy::unwrap_used,
-    clippy::expect_used,
     clippy::let_underscore_must_use,
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap,

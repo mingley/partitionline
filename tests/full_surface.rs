@@ -202,10 +202,6 @@ async fn fetch_uses_base_offset_plus_record_delta() {
     assert_eq!(consumer.positions(), vec![(TopicPartition::new("t", 0), 3)]);
 }
 
-#[expect(
-    clippy::panic,
-    reason = "test helper surfaces try_send errors like the in-test loops"
-)]
 async fn try_send_n(producer: &Producer, n: usize, value: &'static [u8]) {
     let mut queued = 0usize;
     let deadline = std::time::Instant::now() + Duration::from_secs(2);
@@ -2448,7 +2444,9 @@ async fn produce_reconnect_honors_backoff() {
 
 #[tokio::test]
 async fn fetch_reconnect_honors_backoff() {
-    let mock = common::Mock::start().await;
+    let mock = common::Mock::start_two_node().await;
+    mock.set_topic_partitions("t", 1);
+    mock.set_partition_leader("t", 0, 2);
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
     pcfg.linger = Duration::ZERO;
     let producer = Producer::new(pcfg).await.unwrap();
@@ -2465,7 +2463,7 @@ async fn fetch_reconnect_honors_backoff() {
     ccfg.reconnect_backoff_max = Duration::from_millis(50);
     let mut consumer = Consumer::new(ccfg).await.unwrap();
     consumer.assign("t", 0, 0).await.unwrap();
-    mock.refuse_connections(1);
+    mock.refuse_node_connections(2, 1);
     let start = Instant::now();
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs.len(), 1);
@@ -2593,12 +2591,13 @@ async fn group_coord_reconnects_when_connection_idle() {
 
 #[tokio::test]
 async fn admin_reconnect_honors_backoff() {
-    let mock = common::Mock::start().await;
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
     let mut acfg = AdminConfig::bootstrap([mock.addr.clone()]);
     acfg.reconnect_backoff = Duration::from_millis(50);
     acfg.reconnect_backoff_max = Duration::from_millis(50);
     let mut admin = Admin::new(acfg).await.unwrap();
-    mock.refuse_connections(1);
+    mock.refuse_node_connections(2, 1);
     let start = Instant::now();
     let results = admin
         .create_topics(&[NewTopic::new("reconnect-t", 1, 1)], 5_000, false)
@@ -3532,8 +3531,8 @@ async fn multi_leader_fetch_dials_overlap() {
         "leader dials ran one after another: {elapsed:?}"
     );
     assert!(
-        mock.api_versions_versions().len() == before + 1,
-        "the non-bootstrap leader should negotiate, saw {}",
+        mock.api_versions_versions().len() == before + 2,
+        "both dedicated leader sockets should negotiate in parallel, saw {}",
         mock.api_versions_versions().len() - before
     );
     assert_eq!(recs.len(), 2, "{recs:?}");
@@ -4086,6 +4085,7 @@ async fn offset_commit_negotiates_below_v9_when_broker_caps() {
     mock.set_api_max(OFFSET_COMMIT, 7);
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
+    ccfg.group_instance_id = Some("worker-oc7".into());
     let mut group = ConsumerGroup::join(ccfg, "oc7", "t").await.unwrap();
     group.commit().await.unwrap();
     assert_eq!(
@@ -4097,9 +4097,20 @@ async fn offset_commit_negotiates_below_v9_when_broker_caps() {
 
     let mock = common::Mock::start().await;
     mock.set_api_max(OFFSET_COMMIT, 6);
+    let mut static_ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    static_ccfg.max_wait_ms = 10;
+    static_ccfg.group_instance_id = Some("worker-oc6".into());
+    let mut static_group = ConsumerGroup::join(static_ccfg, "oc6-static", "t")
+        .await
+        .unwrap();
+    assert!(matches!(
+        static_group.commit().await,
+        Err(Error::Unsupported(_))
+    ));
+    static_group.leave().await.unwrap();
+
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
-    ccfg.group_instance_id = Some("worker-oc6".into());
     let mut group = ConsumerGroup::join(ccfg, "oc6", "t").await.unwrap();
     group.commit().await.unwrap();
     assert_eq!(

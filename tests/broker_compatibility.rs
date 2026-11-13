@@ -1,8 +1,4 @@
 //! KL01-10 exact histories on an explicitly selected fresh, digest-pinned broker.
-#![expect(
-    clippy::expect_used,
-    reason = "qualification helpers must fail the test on absent required fields or prerequisites"
-)]
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 

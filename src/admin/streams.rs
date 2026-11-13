@@ -92,9 +92,7 @@ async fn open_streams_describe_socket(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -148,9 +146,7 @@ async fn open_streams_describe_known(
     }
     .await;
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }

@@ -335,26 +335,36 @@ fn parse_events(tag: &str, stdout: &str) -> Result<Vec<Json>, String> {
 /// fail closed with the exact rebuild command when that prerequisite is missing.
 fn example_bin(name: &str) -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
-    let deps = exe
-        .parent()
-        .ok_or_else(|| "test executable has no parent dir".to_string())?;
-    let profile = deps
-        .parent()
-        .ok_or_else(|| "test executable has no profile dir".to_string())?;
     let file = if cfg!(windows) {
         format!("{name}.exe")
     } else {
         name.to_string()
     };
-    let bin = profile.join("examples").join(file);
-    if bin.is_file() {
-        Ok(bin)
-    } else {
-        Err(format!(
-            "missing example binary {}; run `cargo build --locked --examples` first",
-            bin.display()
-        ))
+    let mut first_candidate = None;
+    for ancestor in exe.ancestors().skip(1) {
+        let candidate = ancestor.join("examples").join(&file);
+        if candidate.is_file() {
+            return Ok(candidate);
+        }
+        if first_candidate.is_none()
+            && ancestor
+                .file_name()
+                .is_some_and(|dir| dir == "debug" || dir == "release")
+        {
+            first_candidate = Some(candidate);
+        }
     }
+    let fallback = first_candidate.unwrap_or_else(|| {
+        exe.parent()
+            .and_then(|deps| deps.parent())
+            .unwrap_or_else(|| std::path::Path::new("target/debug"))
+            .join("examples")
+            .join(&file)
+    });
+    Err(format!(
+        "missing example binary {}; run `cargo build --locked --examples` first",
+        fallback.display()
+    ))
 }
 
 /// One finished child run.

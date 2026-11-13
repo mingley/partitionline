@@ -2087,6 +2087,11 @@ pub(crate) struct LeaderDialFlight {
 }
 
 impl LeaderDialFlight {
+    /// Whether the spawned dial wave already completed.
+    pub(crate) fn is_ready(&self) -> bool {
+        self.ready.is_some()
+    }
+
     /// Keep finished sockets. A flight that is still dialing is aborted.
     pub(crate) fn store(mut self, consumer: &mut Consumer) {
         if let Some(opened) = self.ready.take() {
@@ -3018,7 +3023,7 @@ async fn record_session_forgotten(
     for (topic, id, partition) in items {
         remember_forgotten(forgotten, topic, id, partition);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -3422,7 +3427,7 @@ impl BrokerFetchSession {
                     }
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 2 * 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -4089,7 +4094,7 @@ impl Consumer {
                 (tp.topic, tp.partition, offset)
             })
             .collect();
-        self.assign_all(&triples).await
+        self.assign_all_opts(&triples, true, false).await
     }
 
     /// Replace the assignment (Java `assign(Collection)`).
@@ -4745,6 +4750,15 @@ impl Consumer {
     /// A failed refresh leaves the previous assignment, fetch epochs, and
     /// aborted-transaction cursors in place. An empty list still clears them.
     pub(crate) async fn assign_all(&mut self, starts: &[(String, i32, i64)]) -> Result<()> {
+        self.assign_all_opts(starts, false, false).await
+    }
+
+    pub(crate) async fn assign_all_opts(
+        &mut self,
+        starts: &[(String, i32, i64)],
+        force_refresh: bool,
+        preserve_retained_pending: bool,
+    ) -> Result<()> {
         self.reject_pending_wakeup()?;
         self.finish_inflight_fetches(self.cfg.request_timeout).await;
         if starts.len() > crate::protocol::group::OffsetLimits::default().array_elements {
@@ -4781,11 +4795,12 @@ impl Consumer {
             self.buffered_bytes = 0;
             return Ok(());
         }
-        // A join already loaded this topic set. Refresh only when a name is
-        // still stale, so assignment does not repeat that metadata request.
-        if !topics
-            .iter()
-            .all(|topic| self.cluster.topic_fresh(topic, self.cfg.metadata_max_age))
+        // A classic join already loaded this topic set. Refresh when forced
+        // (manual assign or UUID v10 identity verification) or when stale.
+        if force_refresh
+            || !topics
+                .iter()
+                .all(|topic| self.cluster.topic_fresh(topic, self.cfg.metadata_max_age))
         {
             if let Err(error) = self.refresh_metadata(Some(&topics)).await {
                 self.assigned = previous_assigned;
@@ -4817,7 +4832,16 @@ impl Consumer {
         let mut drop_parts = Vec::new();
         for (topic, part, offset) in starts {
             let metadata_id = self.name_to_id.get(topic.as_str()).copied();
-            let drop_pending = if let Some(&old_offset) = old_assigned.get(topic, *part) {
+            let effective_old = if preserve_retained_pending {
+                old_assigned.get(topic, *part).copied()
+            } else {
+                self.pending
+                    .partitions
+                    .get(topic.as_str(), *part)
+                    .and_then(|queue| queue.front().map(|rec| rec.offset))
+                    .or_else(|| old_assigned.get(topic, *part).copied())
+            };
+            let drop_pending = if let Some(old_offset) = effective_old {
                 old_offset != *offset
                     || old_ids
                         .get(topic.as_str())
@@ -4856,7 +4880,7 @@ impl Consumer {
                 let _ = live.insert(Arc::clone(topic), parts);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 2 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -6068,6 +6092,13 @@ impl Consumer {
         connected: &mut Vec<i32>,
     ) {
         self.keep_completed_fetch_dials(inflight, inflight_ids, connected);
+        for _ in 0..2 {
+            if inflight.is_empty() {
+                break;
+            }
+            tokio::task::yield_now().await;
+            self.keep_completed_fetch_dials(inflight, inflight_ids, connected);
+        }
         Self::finish_aborted_dial_set(inflight).await;
     }
 
@@ -6744,13 +6775,21 @@ impl Consumer {
     pub async fn close_timeout(mut self, timeout: Duration) -> Result<()> {
         self.cfg.interceptors.close();
         self.close_fetch_sessions(timeout).await;
+        self.close_open_sockets().await;
         // Dropping the remaining sockets only schedules their close. Yield so
         // the broker observes it before close returns.
         drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         Ok(())
+    }
+
+    pub(crate) async fn close_open_sockets(&mut self) {
+        for (_, mut conn) in self.conns.drain() {
+            conn.close();
+            conn.release_if_closed().await;
+        }
+        self.conn.close();
+        self.conn.release_if_closed().await;
     }
 
     /// Test hook: fetches whose replies have not been applied yet.
@@ -8655,9 +8694,15 @@ impl Consumer {
         } = body;
         let mut declared = 0usize;
         let mut saw_batch = false;
+        let mut walked_declared = 0usize;
         for batch in batches.iter().flatten().flatten() {
             saw_batch = true;
             declared = declared.saturating_add(batch.reserve_hint());
+            walked_declared = walked_declared.saturating_add(1);
+            if walked_declared == 2 * 1024 {
+                walked_declared = 0;
+                tokio::task::yield_now().await;
+            }
         }
         metadata.charge::<FetchedRecord>(out.capacity())?;
         reserve_fetch_records(
@@ -8934,12 +8979,23 @@ impl Consumer {
                 } else {
                     None
                 };
-                let has_txn_headers = part_batches
-                    .iter()
-                    .any(|b| b.is_transactional() || b.is_control_batch())
-                    || aborted
-                        .as_ref()
-                        .is_some_and(|state| !state.active.is_empty());
+                let mut has_txn_headers = aborted
+                    .as_ref()
+                    .is_some_and(|state| !state.active.is_empty());
+                if !has_txn_headers {
+                    let mut walked_txn = 0usize;
+                    for batch in &part_batches {
+                        if batch.is_transactional() || batch.is_control_batch() {
+                            has_txn_headers = true;
+                            break;
+                        }
+                        walked_txn = walked_txn.saturating_add(1);
+                        if walked_txn == 2 * 1024 {
+                            walked_txn = 0;
+                            tokio::task::yield_now().await;
+                        }
+                    }
+                }
 
                 if let Some(state) = aborted.as_deref_mut() {
                     state.extend(&part.aborted_transactions);
@@ -8956,7 +9012,7 @@ impl Consumer {
                 let mut batches_walked = 0usize;
                 while let Some(encoded) = encoded_iter.next() {
                     batches_walked = batches_walked.saturating_add(1);
-                    if batches_walked == 8 * 1024 {
+                    if batches_walked == 1024 {
                         batches_walked = 0;
                         tokio::task::yield_now().await;
                     }
@@ -9759,7 +9815,7 @@ impl Consumer {
 
     async fn pause_offset_leader(walked: &mut usize) {
         *walked = walked.saturating_add(1);
-        if *walked == 8 * 1024 {
+        if *walked == 2 * 1024 {
             *walked = 0;
             tokio::task::yield_now().await;
         }
@@ -9996,12 +10052,25 @@ impl Consumer {
         // The finished dial drops its socket while this call is still in the
         // same poll. Yield so the broker observes that close before the caller
         // continues.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Keep leader sockets that already finished before the rest of the wave is aborted.
+    async fn drain_completed_leader_dials(
+        inflight: &mut tokio::task::JoinSet<LeaderDialAttempt>,
+        opened: &mut Vec<OpenedLeaderDial>,
+    ) {
+        Self::keep_completed_leader_dials(inflight, opened);
+        if !inflight.is_empty() {
+            tokio::task::yield_now().await;
+            Self::keep_completed_leader_dials(inflight, opened);
+        }
+        if !inflight.is_empty() {
+            tokio::time::sleep(Duration::from_millis(2)).await;
+            Self::keep_completed_leader_dials(inflight, opened);
+        }
+    }
+
     fn keep_completed_leader_dials(
         inflight: &mut tokio::task::JoinSet<LeaderDialAttempt>,
         opened: &mut Vec<OpenedLeaderDial>,
@@ -10093,7 +10162,7 @@ impl Consumer {
         let mut watch_live = true;
         while !inflight.is_empty() {
             if wakeup.load(Ordering::SeqCst) || Instant::now() >= deadline {
-                Self::keep_completed_leader_dials(&mut inflight, &mut opened);
+                Self::drain_completed_leader_dials(&mut inflight, &mut opened).await;
                 Self::finish_aborted_dial_set(&mut inflight).await;
                 break;
             }
@@ -10119,7 +10188,7 @@ impl Consumer {
                     continue;
                 }
                 LeaderDialEvent::Wake | LeaderDialEvent::Timeout => {
-                    Self::keep_completed_leader_dials(&mut inflight, &mut opened);
+                    Self::drain_completed_leader_dials(&mut inflight, &mut opened).await;
                     Self::finish_aborted_dial_set(&mut inflight).await;
                     break;
                 }
@@ -14008,15 +14077,20 @@ mod tests {
         let mut slots = vec![None; queries.len()];
         let cluster = Cluster::default();
         let started = std::time::Instant::now();
-        tokio::select! {
-            _ = Consumer::group_offset_query_leaders(&cluster, &queries, &pending, &mut slots) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        {
+            let grouping =
+                Consumer::group_offset_query_leaders(&cluster, &queries, &pending, &mut slots);
+            tokio::pin!(grouping);
+            tokio::select! {
+                _ = &mut grouping => {}
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            assert!(
+                started.elapsed() < std::time::Duration::from_millis(80),
+                "grouping offset leaders held the caller for {:?}",
+                started.elapsed()
+            );
         }
-        assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "grouping offset leaders held the caller for {:?}",
-            started.elapsed()
-        );
         let mut known = Cluster::default();
         let mut image = MetadataResponse::blank();
         image.brokers = vec![crate::protocol::api::Broker::new(
@@ -14991,8 +15065,10 @@ mod tests {
             .map(|partition| (Arc::clone(&topic), partition, 0))
             .collect();
         let started = std::time::Instant::now();
+        let indexing = Consumer::index_live_partitions(&assigned);
+        tokio::pin!(indexing);
         tokio::select! {
-            live = Consumer::index_live_partitions(&assigned) => {
+            live = &mut indexing => {
                 assert_eq!(
                     live.get(topic.as_ref()).map(|parts| parts.len()),
                     Some(2_000_000)
@@ -15841,9 +15917,8 @@ mod tests {
         let mut need_offsets = Vec::new();
         let mut completed = PartitionMap::new();
         let mut budget_reached = false;
-        let started = std::time::Instant::now();
-        tokio::select! {
-            applied = consumer.apply_fetch_body(
+        let elapsed = {
+            let mut work = std::pin::pin!(consumer.apply_fetch_body(
                 1,
                 body,
                 &mut out,
@@ -15852,12 +15927,17 @@ mod tests {
                 &mut need_offsets,
                 &mut completed,
                 &mut budget_reached,
-            ) => {
-                let _applied = applied.unwrap_or(FetchRetry::None);
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                applied = &mut work => {
+                    let elapsed = started.elapsed();
+                    let _applied = applied.unwrap_or(FetchRetry::None);
+                    elapsed
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "applying one-record fetch batches held the caller for {elapsed:?}"
@@ -16547,6 +16627,36 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn wakeup_keeps_a_leader_dial_that_already_finished() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        async fn answer_versions(mut socket: tokio::net::TcpStream) -> tokio::net::TcpStream {
+            let size = socket.read_i32().await.unwrap();
+            let mut request = vec![0u8; usize::try_from(size).unwrap()];
+            let _read = socket.read_exact(&mut request).await.unwrap();
+            let versions = crate::protocol::api::ApiVersionsResponse {
+                error_code: 0,
+                api_keys: vec![ApiVersion {
+                    api_key: FETCH,
+                    min_version: 0,
+                    max_version: 4,
+                }],
+                throttle_time_ms: 0,
+                supported_features: Vec::new(),
+                finalized_features_epoch: None,
+                finalized_features: Vec::new(),
+                zk_migration_ready: false,
+            };
+            let mut body = bytes::BytesMut::new();
+            crate::protocol::api::encode_api_versions_response(&mut body, 4, &versions).unwrap();
+            socket
+                .write_i32(i32::try_from(4 + body.len()).unwrap())
+                .await
+                .unwrap();
+            socket.write_all(&request[4..8]).await.unwrap();
+            socket.write_all(&body).await.unwrap();
+            socket
+        }
+
         let listener_a = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let listener_b = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr_a = listener_a.local_addr().unwrap().to_string();
@@ -16554,10 +16664,14 @@ mod tests {
         let wakeup = Arc::new(AtomicBool::new(false));
         let flag = Arc::clone(&wakeup);
         let hold = tokio::spawn(async move {
-            let accepted = tokio::join!(listener_a.accept(), listener_b.accept());
+            let ((sock_a, _), (sock_b, _)) =
+                tokio::join!(async { listener_a.accept().await.unwrap() }, async {
+                    listener_b.accept().await.unwrap()
+                },);
+            let answered = tokio::join!(answer_versions(sock_a), answer_versions(sock_b));
             flag.store(true, Ordering::SeqCst);
             std::future::pending::<()>().await;
-            drop(accepted);
+            drop(answered);
         });
         let mut node_keys = HashMap::new();
         let learned = vec![ApiVersion {
@@ -18530,12 +18644,14 @@ mod tests {
             );
         }
         let _stored = session.partitions.insert(Arc::clone(&topic), parts);
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = session.prepare(&[], 12) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(session.prepare(&[], 12));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "dropping unprepared session partitions held the caller for {elapsed:?}"
@@ -18589,12 +18705,14 @@ mod tests {
             .map(|partition| (Arc::clone(&topic), [1u8; 16], partition))
             .collect();
         let mut forgotten = HashMap::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = record_session_forgotten(&mut forgotten, items) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let forgotten_elapsed = started.elapsed();
+        let forgotten_elapsed = {
+            let mut recording = std::pin::pin!(record_session_forgotten(&mut forgotten, items));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut recording => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             forgotten_elapsed < std::time::Duration::from_millis(80),
             "recording forgotten session partitions held the caller for {forgotten_elapsed:?}"

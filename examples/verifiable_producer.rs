@@ -361,6 +361,10 @@ async fn main() {
         i += 1;
     }
 
+    // Per-record delivery errors were already observed by `send().await` and
+    // emitted as `producer_send_error` events; drain the sticky worker status
+    // before checking clean producer shutdown.
+    let _reported = producer.flush().await;
     if let Err(e) = producer.close().await {
         eprintln!("verifiable_producer: error: close failed: {e}");
         std::process::exit(1);

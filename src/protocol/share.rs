@@ -2995,14 +2995,17 @@ async fn decode_share_fetch_endpoints_cooperative<B: Buf>(
     buf: &mut B,
 ) -> Result<Vec<NodeEndpoint>> {
     let count = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut endpoints = Vec::with_capacity(count);
+    let mut endpoints = Vec::with_capacity(count.min(1024));
     let mut walked = 0usize;
-    for _ in 0..count {
+    for index in 0..count {
         let node_id = buf::get_i32(buf)?;
         let host = buf::get_string(buf, true)?.unwrap_or_default();
         let port = buf::get_i32(buf)?;
         let rack = buf::get_string(buf, true)?;
         buf::skip_tagged_fields(buf)?;
+        if endpoints.len() == endpoints.capacity() {
+            endpoints.reserve(count.saturating_sub(index).min(1024));
+        }
         endpoints.push(NodeEndpoint {
             node_id,
             host,
@@ -3010,7 +3013,7 @@ async fn decode_share_fetch_endpoints_cooperative<B: Buf>(
             rack,
         });
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -4729,20 +4732,24 @@ mod tests {
         }
         buf::put_empty_tagged_fields(&mut body);
         let started = std::time::Instant::now();
-        tokio::select! {
-            _ = decode_share_fetch_response_reusing_cooperative(
+        {
+            let decoding = decode_share_fetch_response_reusing_cooperative(
                 &mut body,
                 1,
                 records::DEFAULT_MAX_RECORD_BATCH_DECODE_BYTES,
                 Vec::new(),
-            ) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            );
+            tokio::pin!(decoding);
+            tokio::select! {
+                _ = &mut decoding => {}
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            assert!(
+                started.elapsed() < std::time::Duration::from_millis(80),
+                "decoding share-fetch endpoints held the caller for {:?}",
+                started.elapsed()
+            );
         }
-        assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "decoding share-fetch endpoints held the caller for {:?}",
-            started.elapsed()
-        );
         let mut sample = BytesMut::new();
         sample.put_i32(0);
         sample.put_i16(0);
