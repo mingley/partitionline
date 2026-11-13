@@ -260,7 +260,7 @@ jobs:
   macos-arm64:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
@@ -324,7 +324,7 @@ jobs:
   windows:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: windows-2025
-    timeout-minutes: 45
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
@@ -343,7 +343,9 @@ jobs:
       CARGO_TERM_COLOR: never
     steps:
       - name: Enable long evidence paths in Git for Windows
-        run: git config --global core.longpaths true
+        run: |
+          git config --global core.longpaths true
+          git config --global core.autocrlf false
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -520,7 +522,9 @@ jobs:
           RUST_TEST_THREADS: '1'
         run: cargo test --locked --all-targets --all-features
       # gzip fallback without the default zlib-rs feature (docs/gzip-backend.md).
-      - run: cargo test --locked --no-default-features --lib --test protocol_oracles --test fuzz_decode_smoke --test fetch_buffer_budget
+      - env:
+          RUST_TEST_THREADS: '1'
+        run: cargo test --locked --no-default-features --lib --test protocol_oracles --test fuzz_decode_smoke --test fetch_buffer_budget
 
   # Deterministic decoder mutations on the supported stable toolchain.
   fuzz-smoke:

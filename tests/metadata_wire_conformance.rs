@@ -128,7 +128,7 @@ fn verify_corpus(text: &str) -> Result<String, Box<dyn Error>> {
 #[test]
 fn metadata_v13_committed_corpus() -> Result<(), Box<dyn Error>> {
     let input = include_str!("fixtures/metadata_wire/apache-pairs.txt");
-    let expected = include_str!("fixtures/metadata_wire/rust-pairs.txt");
+    let expected = include_str!("fixtures/metadata_wire/rust-pairs.txt").replace("\r\n", "\n");
     assert_eq!(verify_corpus(input)?, expected);
     Ok(())
 }
