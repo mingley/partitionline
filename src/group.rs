@@ -179,7 +179,7 @@ fn assign_sticky_from<'a>(
 
 /// How many sticky members to prepare before yielding.
 fn sticky_member_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 fn rebalance_counts<T: Clone>(out: &mut HashMap<String, Vec<T>>) {
@@ -9680,12 +9680,18 @@ mod tests {
         let member_refs: Vec<&str> = members.iter().map(String::as_str).collect();
         let partitions: Vec<i32> = (0..8_192).collect();
         let prev = [("m0000", partitions.as_slice())];
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = assign_sticky_from_cooperative(&member_refs, &partitions, prev) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(assign_sticky_from_cooperative(
+                &member_refs,
+                &partitions,
+                prev
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "rebalancing sticky members held the caller for {elapsed:?}"

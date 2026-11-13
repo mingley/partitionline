@@ -3246,7 +3246,11 @@ impl ShareGroup {
                     timeout,
                 );
                 let (refresh, rpc) = tokio::join!(refresh, rpc);
-                let (version, body) = rpc?;
+                let (version, body) = match rpc {
+                    Ok(pair) => pair,
+                    Err(Error::Timeout) if !first => return Ok(()),
+                    Err(error) => return Err(error),
+                };
                 (version, body, Some(refresh))
             } else {
                 let bootstrap_keys = self.consumer.copy_api_keys();
@@ -3258,7 +3262,7 @@ impl ShareGroup {
                     encode_share_group_heartbeat_request_cooperative(&mut encoded, version, &req)
                         .await?;
                 }
-                let (version, body) = coord_roundtrip_with_bootstrap(
+                let (version, body) = match coord_roundtrip_with_bootstrap(
                     &mut self.coord,
                     &self.cfg,
                     &self.group_id,
@@ -3277,7 +3281,12 @@ impl ShareGroup {
                     &mut self.prior_coords,
                     timeout,
                 )
-                .await?;
+                .await
+                {
+                    Ok(pair) => pair,
+                    Err(Error::Timeout) if !first => return Ok(()),
+                    Err(error) => return Err(error),
+                };
                 (version, body, None)
             };
 
@@ -3316,7 +3325,7 @@ impl ShareGroup {
                 .await;
             self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
             self.hb_err.store(0, Ordering::SeqCst);
-            if !self.assigned.is_empty() {
+            if !self.assigned.is_empty() || self.topics.is_empty() {
                 return Ok(());
             }
             // Join succeeded; poll waits for assignment (Java ShareConsumer).

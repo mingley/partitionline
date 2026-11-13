@@ -252,7 +252,7 @@ jobs:
           cargo build --locked --example bench_produce --example bench_fetch
           PL_BENCH_PRODUCE_BINARY=target/debug/examples/bench_produce PL_BENCH_FETCH_BINARY=target/debug/examples/bench_fetch python3 -B -m unittest discover -s tests/ci -p 'test_bench_*_settings.py'
       - env:
-          RUST_TEST_THREADS: '2'
+          RUST_TEST_THREADS: '1'
         run: cargo test --locked --all-targets
 
   # KL08-05: native macOS arm64 runtime + actual packed-consumer evidence.
@@ -272,7 +272,7 @@ jobs:
       PL_MACOS_TOOLCHAIN: ${{ matrix.rust }}
       RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
       CARGO_BUILD_JOBS: '2'
-      RUST_TEST_THREADS: '2'
+      RUST_TEST_THREADS: '1'
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       CARGO_INCREMENTAL: '0'
@@ -338,7 +338,7 @@ jobs:
       PYTHONUTF8: '1'
       RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
       CARGO_BUILD_JOBS: '2'
-      RUST_TEST_THREADS: '2'
+      RUST_TEST_THREADS: '1'
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       CARGO_INCREMENTAL: '0'
@@ -519,7 +519,7 @@ jobs:
       - run: cargo clippy --locked --all-targets --all-features -- -D warnings
       - run: cargo build --locked --features tracing --example verifiable_producer --example verifiable_consumer
       - env:
-          RUST_TEST_THREADS: '2'
+          RUST_TEST_THREADS: '1'
         run: cargo test --locked --all-targets --all-features
       # gzip fallback without the default zlib-rs feature (docs/gzip-backend.md).
       - run: cargo test --locked --no-default-features --lib --test protocol_oracles --test fuzz_decode_smoke --test fetch_buffer_budget

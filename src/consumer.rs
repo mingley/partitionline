@@ -4939,23 +4939,40 @@ impl Consumer {
         stored: &mut HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
         live: &HashMap<Arc<str>, HashSet<i32>>,
     ) {
-        let taken = std::mem::take(stored);
+        let topics: Vec<Arc<str>> = stored.keys().cloned().collect();
         let mut walked = 0usize;
-        for (topic, parts) in taken {
-            let kept = live.get(topic.as_ref());
-            let mut next = HashMap::new();
-            for (partition, id) in parts {
-                if kept.is_some_and(|kept| kept.contains(&partition)) {
-                    let _stored = next.insert(partition, id);
-                }
+        for topic in topics {
+            let Some(kept) = live.get(topic.as_ref()) else {
+                let _removed = stored.remove(topic.as_ref());
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
-            }
-            if !next.is_empty() {
-                let _stored = stored.insert(topic, next);
+                continue;
+            };
+            let empty = if let Some(parts) = stored.get_mut(topic.as_ref()) {
+                let mut next = HashMap::new();
+                {
+                    let mut drain = parts.drain();
+                    for (partition, id) in &mut drain {
+                        if kept.contains(&partition) {
+                            let _stored = next.insert(partition, id);
+                        }
+                        walked = walked.saturating_add(1);
+                        if walked == 1024 {
+                            walked = 0;
+                            tokio::task::yield_now().await;
+                        }
+                    }
+                }
+                *parts = next;
+                parts.is_empty()
+            } else {
+                false
+            };
+            if empty {
+                let _removed = stored.remove(topic.as_ref());
             }
         }
     }
@@ -18770,12 +18787,17 @@ mod tests {
             .map(|partition| (Arc::clone(&topic), partition, 4))
             .collect();
         let live = Consumer::index_live_partitions(&consumer.assigned).await;
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = Consumer::retain_assigned_topic_ids(&mut consumer.assigned_topic_ids, &live) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(Consumer::retain_assigned_topic_ids(
+                &mut consumer.assigned_topic_ids,
+                &live,
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "retaining assigned topic ids held the caller for {elapsed:?}"

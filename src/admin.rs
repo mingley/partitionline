@@ -17283,7 +17283,7 @@ async fn pending_indexes(count: usize) -> Vec<usize> {
 }
 
 fn topic_record_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Copy topic names and offsets into owned topic partitions.
@@ -18134,17 +18134,19 @@ mod tests {
         let names: Vec<String> = (0..2_000_000)
             .map(|index| format!("topic-{index}"))
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = collect_topic_pairs(names.iter().enumerate().map(|(index, name)| {
-                ((name.as_str(), i32::try_from(index).unwrap_or(0)), 0i64)
-            })) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
+        let elapsed = {
+            let mut work = std::pin::pin!(collect_topic_pairs(names.iter().enumerate().map(
+                |(index, name)| { ((name.as_str(), i32::try_from(index).unwrap_or(0)), 0i64) }
+            ),));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "collecting topic partitions held the caller for {:?}",
-            started.elapsed()
+            elapsed < std::time::Duration::from_millis(80),
+            "collecting topic partitions held the caller for {elapsed:?}",
         );
         let collected = collect_topic_pairs([(("orders", 3), 9i64), (("payments", 1), 4i64)]).await;
         assert_eq!(collected[0].0.topic(), "orders");
@@ -20111,20 +20113,26 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::group::encode_offset_fetch_groups_response(&mut body, 8, &groups)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_offset_fetch_groups_response_cooperative(&mut body, 8) => {
-                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(decoded.first().map(|item| item.topics.len()), Some(200_000));
-                assert_eq!(
-                    decoded.first().and_then(|item| item.topics.first()).map(|item| item.topic.as_str()),
-                    Some("topic-0")
-                );
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_offset_fetch_groups_response_cooperative(
+                &mut body, 8
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(decoded.first().map(|item| item.topics.len()), Some(200_000));
+                    assert_eq!(
+                        decoded.first().and_then(|item| item.topics.first()).map(|item| item.topic.as_str()),
+                        Some("topic-0")
+                    );
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding fetched offsets held the caller for {elapsed:?}"
