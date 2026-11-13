@@ -1232,7 +1232,7 @@ async fn validate_commit(request: &OffsetCommitRequestData) -> Result<()> {
             return Err(Error::protocol("duplicate offset commit topic"));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -1242,7 +1242,7 @@ async fn validate_commit(request: &OffsetCommitRequestData) -> Result<()> {
                 return Err(Error::protocol("duplicate offset commit partition"));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -1296,7 +1296,7 @@ async fn validate_commit_response(
         for partition in &topic.partitions {
             let _ = wanted.insert((&topic.identity, partition.partition_index));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -1317,7 +1317,7 @@ async fn validate_commit_response(
                 ));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -1403,7 +1403,7 @@ async fn validate_fetch_response(
                 for index in &expected.partition_indexes {
                     let _ = expected_indexes.insert(*index);
                     walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
+                    if walked == 1024 {
                         walked = 0;
                         tokio::task::yield_now().await;
                     }

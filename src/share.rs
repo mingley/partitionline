@@ -4164,8 +4164,12 @@ impl ShareGroup {
             }
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+        if resolved.is_err() {
+            crate::net::settle_closed_socket().await;
+        } else {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
         }
         resolved
     }

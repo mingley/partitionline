@@ -3219,7 +3219,7 @@ async fn listed_group_offsets(
                     .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
                 listed.push((tp.clone(), md));
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -3370,7 +3370,7 @@ async fn delete_records_topics<'a>(
             }
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -3399,7 +3399,7 @@ async fn describe_producers_topics<'a>(
             }
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -3584,7 +3584,7 @@ async fn take_coordinator_slots(
                 .ok_or_else(|| Error::protocol(format!("FindCoordinator missing {key}")))?,
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -3661,7 +3661,7 @@ where
             let _ = slot.insert(index);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -3826,9 +3826,7 @@ async fn dial_admin_socket(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -3881,9 +3879,7 @@ async fn dial_known_admin_socket(
     }
     .await;
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -4659,9 +4655,7 @@ impl Admin {
         // observes that close before the error returns. A successful dial keeps
         // the socket and does not wait.
         if opened.is_err() {
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
         }
         opened
     }
@@ -9516,8 +9510,12 @@ impl Admin {
             }
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+        if connected.is_err() {
+            crate::net::settle_closed_socket().await;
+        } else {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
         }
         connected
     }
@@ -9935,7 +9933,7 @@ impl Admin {
                 .ok_or_else(|| Error::protocol("missing DeleteRecords query"))?;
             order.push((i, tp.topic.as_str(), tp.partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -9960,7 +9958,7 @@ impl Admin {
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -10317,8 +10315,12 @@ impl Admin {
         // A finished dial drops its socket while this call is still in the
         // same poll. Yield so the broker observes that close before the
         // caller continues.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+        if opened.iter().any(|(_, r)| r.is_err()) {
+            crate::net::settle_closed_socket().await;
+        } else {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
         }
         opened
     }
@@ -10413,9 +10415,7 @@ impl Admin {
         }
         // A cancelled dial or RPC drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Dial one stalled leader and return once that handshake has stopped.
@@ -10778,7 +10778,7 @@ impl Admin {
                 .ok_or_else(|| Error::protocol("missing ListOffsets query"))?;
             order.push((i, tp.topic.as_str(), tp.partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -10811,7 +10811,7 @@ impl Admin {
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -11163,7 +11163,7 @@ impl Admin {
                 .ok_or_else(|| Error::protocol("missing DescribeProducers query"))?;
             order.push((i, tp.topic.as_str(), tp.partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -11187,7 +11187,7 @@ impl Admin {
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -11561,7 +11561,7 @@ impl Admin {
                 .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
             listed.push((tp, md));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -15784,7 +15784,7 @@ impl Admin {
                     return Err(Error::broker(err, (*k).to_owned()));
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -16364,7 +16364,7 @@ async fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<(
             groups.push((topic, vec![tp.partition]));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -16386,7 +16386,7 @@ pub(crate) async fn pop_listed_offsets(
                 .and_then(VecDeque::pop_front),
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -16406,7 +16406,7 @@ pub(crate) async fn index_listed_offsets(
             let index = partition.partition_index;
             parts.entry(index).or_default().push_back(partition);
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -16431,7 +16431,7 @@ async fn pop_deleted_records(
                 .and_then(VecDeque::pop_front),
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -16452,7 +16452,7 @@ async fn index_deleted_records(
                 .or_default()
                 .push_back((partition.low_watermark, partition.error_code));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -16476,7 +16476,7 @@ async fn pop_described_producers(
                 .and_then(|parts| parts.remove(partition)),
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -16503,7 +16503,7 @@ async fn index_described_producers(topics: Vec<DescribeProducersTopic>) -> Descr
                 }
             });
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -16527,7 +16527,7 @@ async fn flatten_list_reassignments(
                 removing_replicas: p.removing_replicas.clone(),
             });
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -16550,7 +16550,7 @@ async fn flatten_reassignment_results(
                 error_message: p.error_message.clone(),
             });
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -16575,7 +16575,7 @@ async fn offset_delete_named_topics(partitions: &[(String, i32)]) -> Vec<(&str, 
             groups.push((name, vec![*part]));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -16654,7 +16654,7 @@ async fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> Topi
                 partition,
             ));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -16719,7 +16719,7 @@ async fn topic_description_from_dtp(
                 offline_replicas: partition.offline_replicas.clone(),
             });
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -16747,7 +16747,7 @@ async fn own_list_offset_topics(
     for (name, partitions) in borrowed {
         topics.push(ListOffsetsTopicRequest::new(name, partitions));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -16788,7 +16788,7 @@ async fn list_offset_topic_requests<'a>(
             groups.push((topic, vec![part]));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -16804,7 +16804,7 @@ async fn index_requested_dtp_names<'a, T: AsRef<str>>(
     for name in names {
         let _inserted = requested.insert(name.as_ref());
         walked += 1;
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             #[cfg(test)]
             DTP_REQUESTED_INDEX_PROGRESS.with(|probe| {
@@ -16972,7 +16972,7 @@ async fn remaining_dtp_has_unnamed<'a>(
             return true;
         }
         walked += 1;
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -17041,7 +17041,7 @@ async fn discard_described_topics(topics: &mut [TopicDescription]) {
     for topic in topics {
         discard_described_partitions(&mut topic.partitions).await;
         walked += 1;
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -17147,7 +17147,7 @@ async fn extend_described_topics<S: BuildHasher>(
             break;
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -17158,7 +17158,7 @@ async fn extend_described_topics<S: BuildHasher>(
         for mut desc in incoming {
             discard_described_partitions(&mut desc.partitions).await;
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -17166,7 +17166,7 @@ async fn extend_described_topics<S: BuildHasher>(
         for desc in out.iter_mut() {
             discard_described_partitions(&mut desc.partitions).await;
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -17185,7 +17185,7 @@ async fn unique_in_order<'a>(keys: &[&'a str]) -> Vec<&'a str> {
             uniq.push(*key);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -17453,7 +17453,7 @@ async fn first_seen_i32(values: &[i32]) -> Vec<i32> {
             ids.push(*id);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -17482,7 +17482,7 @@ async fn replica_broker_ids(replicas: &[TopicPartitionReplica]) -> Vec<i32> {
             ids.push(replica.broker_id);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -17626,7 +17626,7 @@ async fn alter_replica_dirs_for_broker_cooperative<'a>(
             );
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -17664,7 +17664,7 @@ async fn index_alter_replica_errors_cooperative(
                 let _ = slot.insert(part.error_code);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -17702,7 +17702,7 @@ async fn record_alter_replica_errors_cooperative(
             let _ = errors.insert(replica.clone(), code);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -17778,7 +17778,7 @@ async fn describable_topics_for_broker_cooperative(
             );
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -17835,7 +17835,7 @@ async fn index_log_dirs_cooperative(
                     .or_insert_with(ReplicaLogDirInfo::unknown);
                 note_log_dir(info, dir, part);
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -17879,7 +17879,7 @@ async fn remember_replica_dirs_cooperative(
             store_replica_dir(infos, replica, info);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }

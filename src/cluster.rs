@@ -190,7 +190,7 @@ impl Cluster {
                 .is_some_and(|current| stored_address_matches(current, &b.host, b.port))
             {
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -200,7 +200,7 @@ impl Cluster {
                 let _prev = self.brokers.insert(b.node_id, address);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -286,7 +286,7 @@ impl Cluster {
                     max_idx = p.partition_index;
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -432,7 +432,7 @@ impl Cluster {
                     *slot = true;
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -449,7 +449,7 @@ impl Cluster {
                     *slot = RecordBatch::NO_PARTITION_LEADER_EPOCH;
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -691,7 +691,7 @@ impl Cluster {
         for endpoint in endpoints {
             self.apply_one_endpoint(endpoint);
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
