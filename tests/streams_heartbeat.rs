@@ -508,9 +508,10 @@ async fn timeout_and_cancellation_close_owned_sockets_without_background_members
         .unwrap();
         peer.script(1, [Reply::Body(response(0))]).await;
         assert_eq!(client.heartbeat(&req).await.unwrap().error_code, 0);
+        let elapsed = started.elapsed();
         drop(client);
         let frames = peer.close().await;
-        assert!(started.elapsed() < Duration::from_millis(500));
+        assert!(elapsed < Duration::from_millis(500), "elapsed: {elapsed:?}");
         assert_eq!(frames.iter().filter(|f| f.api == 88).count(), 2);
     }
 }
@@ -526,10 +527,11 @@ async fn repeated_delayed_retry_cannot_reset_budget_or_exceed_eight_attempts() {
         let result = client
             .heartbeat_timeout(&request(), Duration::from_millis(70))
             .await;
+        let elapsed = started.elapsed();
         drop(client);
         let frames = peer.close().await;
         assert!(result.is_err());
-        assert!(started.elapsed() < Duration::from_millis(500));
+        assert!(elapsed < Duration::from_millis(500), "elapsed: {elapsed:?}");
         let calls = frames.iter().filter(|f| f.api == 88).count();
         assert!((1..=8).contains(&calls));
         if delay.is_zero() {
