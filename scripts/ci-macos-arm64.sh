@@ -46,6 +46,11 @@ PYNAME
   fi
 }
 
+run_all_targets_tests() {
+  RUST_TEST_THREADS=1 cargo test --locked --lib "$@"
+  RUST_TEST_THREADS=2 cargo test --locked --bins --tests --examples --benches "$@"
+}
+
 run_phase() {
   case "$1" in
     capture)
@@ -55,11 +60,11 @@ run_phase() {
       ;;
     default)
       run_log build-default cargo build --locked --example verifiable_producer --example verifiable_consumer
-      run_log default-tests cargo test --locked --all-targets
+      run_log default-tests run_all_targets_tests
       ;;
     tracing)
       run_log build-tracing cargo build --locked --features tracing --example verifiable_producer --example verifiable_consumer
-      run_log tracing-tests cargo test --locked --all-targets --features tracing
+      run_log tracing-tests run_all_targets_tests --features tracing
       ;;
     clippy)
       if [[ "$toolchain" == stable ]]; then

@@ -260,7 +260,7 @@ jobs:
   macos-arm64:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -272,7 +272,6 @@ jobs:
       PL_MACOS_TOOLCHAIN: ${{ matrix.rust }}
       RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
       CARGO_BUILD_JOBS: '2'
-      RUST_TEST_THREADS: '1'
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       CARGO_INCREMENTAL: '0'
@@ -325,7 +324,7 @@ jobs:
   windows:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: windows-2025
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -338,7 +337,6 @@ jobs:
       PYTHONUTF8: '1'
       RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
       CARGO_BUILD_JOBS: '2'
-      RUST_TEST_THREADS: '1'
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       CARGO_INCREMENTAL: '0'

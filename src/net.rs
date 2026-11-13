@@ -239,7 +239,10 @@ pub(crate) async fn settle_closed_socket() {
     for _ in 0..8 {
         tokio::task::yield_now().await;
     }
+    #[cfg(not(windows))]
     tokio::time::sleep(Duration::from_millis(1)).await;
+    #[cfg(windows)]
+    std::thread::yield_now();
     for _ in 0..8 {
         tokio::task::yield_now().await;
     }

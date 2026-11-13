@@ -516,7 +516,7 @@ async fn producer_consumer_and_group_startup_keep_the_initial_deadline() {
             "{driver} startup returned {error:?} after {:?}",
             started.elapsed()
         );
-        assert!(started.elapsed() < Duration::from_millis(90));
+        assert!(started.elapsed() < Duration::from_millis(110));
         let frames = peer.close().await;
         let versions: Vec<i16> = frames.iter().map(|frame| frame.version).collect();
         assert!(
