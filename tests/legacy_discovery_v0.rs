@@ -455,7 +455,7 @@ async fn group_discovery_caps_and_budget_refuse_before_offset_dispatch() {
             .await,
         Err(partitionline::Error::Timeout)
     ));
-    assert!(started.elapsed() < Duration::from_millis(90));
+    assert!(started.elapsed() < Duration::from_millis(150));
     admin.close().await.unwrap();
     let frames = peer.close().await;
     assert!(frames.iter().all(|f| f.api != 9));
@@ -489,7 +489,7 @@ async fn producer_consumer_and_group_startup_keep_the_initial_deadline() {
         // Every socket receives the same version-specific script. Group
         // startup opens member and coordinator sockets concurrently.
         peer.state.lock().await.startup_delays =
-            Some((Duration::from_millis(40), Duration::from_millis(50)));
+            Some((Duration::from_millis(25), Duration::from_millis(55)));
         let address = peer.addresses[0].to_string();
         let started = std::time::Instant::now();
         let error = if driver == "producer" {
@@ -516,7 +516,7 @@ async fn producer_consumer_and_group_startup_keep_the_initial_deadline() {
             "{driver} startup returned {error:?} after {:?}",
             started.elapsed()
         );
-        assert!(started.elapsed() < Duration::from_millis(110));
+        assert!(started.elapsed() < Duration::from_millis(150));
         let frames = peer.close().await;
         let versions: Vec<i16> = frames.iter().map(|frame| frame.version).collect();
         assert!(

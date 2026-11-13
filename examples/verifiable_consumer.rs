@@ -479,8 +479,9 @@ async fn main() {
     // Signal task wakes the consumer so an in-flight poll returns Wakeup.
     let wakeup = group.wakeup_handle();
     drop(tokio::spawn(async move {
-        drop(tokio::signal::ctrl_c().await);
-        wakeup.wakeup();
+        if tokio::signal::ctrl_c().await.is_ok() {
+            wakeup.wakeup();
+        }
     }));
     #[cfg(unix)]
     {
@@ -509,6 +510,7 @@ async fn main() {
             }
         };
         if recs.is_empty() {
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
             continue;
         }
         let remaining = if max_messages >= 0 {

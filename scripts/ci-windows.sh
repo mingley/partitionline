@@ -41,8 +41,7 @@ PYNAME
   fi
 }
 run_all_targets_tests() {
-  RUST_TEST_THREADS=1 cargo test --locked --lib "$@"
-  RUST_TEST_THREADS=2 cargo test --locked --bins --tests --examples --benches "$@"
+  RUST_TEST_THREADS=1 cargo test --locked --all-targets "$@"
 }
 
 run_phase() {
