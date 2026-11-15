@@ -100,7 +100,7 @@ jobs:
       - name: Retain logs and results
         timeout-minutes: 15
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: producer-flush-controls-${{ github.sha }}-${{ github.run_id }}
           path: ${{ runner.temp }}/producer-flush-controls
