@@ -1213,7 +1213,7 @@ pub(crate) fn next_offsets_from<T>(
 /// milliseconds.
 async fn pause_scanned_record(walked: &mut usize) {
     *walked = walked.saturating_add(1);
-    if *walked == 8 * 1024 {
+    if *walked == 1024 {
         tokio::task::yield_now().await;
         *walked = 0;
     }
@@ -1466,12 +1466,15 @@ impl TopicPartition {
     /// Each name is copied. A repeated partition is copied again. Order stays
     /// the same.
     pub(crate) async fn list_from_cooperative(pairs: &[(String, i32)]) -> Vec<Self> {
-        let mut out = Vec::with_capacity(pairs.len());
+        let mut out = Vec::with_capacity(pairs.len().min(4096));
         let mut walked = 0usize;
-        for pair in pairs {
+        for (index, pair) in pairs.iter().enumerate() {
+            if out.len() == out.capacity() {
+                out.reserve(pairs.len().saturating_sub(index).min(4096));
+            }
             out.push(Self::from(pair));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2000,7 +2003,7 @@ impl<V> PartitionMap<V> {
 }
 
 fn preferred_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Preferred partitions and the leader epoch cached for each one.
@@ -2233,7 +2236,7 @@ impl PendingRecords {
                 for record in queue {
                     drop(record);
                     walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
+                    if walked == 1024 {
                         walked = 0;
                         tokio::task::yield_now().await;
                     }
@@ -2274,7 +2277,7 @@ impl PendingRecords {
                         .insert_owned(topic, rec.partition, VecDeque::from([rec]));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2293,7 +2296,7 @@ impl PendingRecords {
         while let Some(run) = staged.pop_back() {
             self.order.push_front(run);
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 2 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2360,7 +2363,7 @@ impl PendingRecords {
                         .insert_owned(topic, rec.partition, VecDeque::from([rec]));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2384,7 +2387,7 @@ impl PendingRecords {
             let topic = first.topic.clone();
             let mut end = index.saturating_add(1);
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2394,7 +2397,7 @@ impl PendingRecords {
             {
                 end = end.saturating_add(1);
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -2455,7 +2458,7 @@ impl PendingRecords {
             for record in queue {
                 removed_bytes = removed_bytes.saturating_add(record_bytes(&record));
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -2493,7 +2496,7 @@ impl PendingRecords {
                 self.order.push_back(run);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2520,7 +2523,7 @@ impl PendingRecords {
                     for record in records {
                         removed_bytes = removed_bytes.saturating_add(record_bytes(&record));
                         walked = walked.saturating_add(1);
-                        if walked == 8 * 1024 {
+                        if walked == 1024 {
                             walked = 0;
                             tokio::task::yield_now().await;
                         }
@@ -2560,7 +2563,7 @@ impl PendingRecords {
                 self.order.push_back(run);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2574,7 +2577,8 @@ impl PendingRecords {
         buffered_bytes: &mut usize,
     ) -> Vec<FetchedRecord> {
         let available = self.count_runnable(paused).await;
-        let mut out = Vec::with_capacity(available.min(cap));
+        let total = available.min(cap);
+        let mut out = Vec::with_capacity(total.min(4096));
         let mut index = 0;
         let mut walked = 0usize;
         let mut skipped = 0usize;
@@ -2585,7 +2589,7 @@ impl PendingRecords {
             if paused.contains(&run.topic, run.partition) {
                 index += 1;
                 skipped = skipped.saturating_add(1);
-                if skipped == 8 * 1024 {
+                if skipped == 1024 {
                     skipped = 0;
                     tokio::task::yield_now().await;
                 }
@@ -2604,10 +2608,13 @@ impl PendingRecords {
                     break;
                 };
                 *buffered_bytes = buffered_bytes.saturating_sub(record_bytes(&rec));
+                if out.len() == out.capacity() {
+                    out.reserve(total.saturating_sub(out.len()).min(4096));
+                }
                 out.push(rec);
                 taken = taken.saturating_add(1);
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     if let Some(run) = self.order.get_mut(index) {
                         run.count = run.count.saturating_sub(taken);
@@ -2643,7 +2650,7 @@ impl PendingRecords {
                 sum = sum.saturating_add(run.count);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -3104,7 +3111,7 @@ async fn copy_planned_fetch_topics(topics: &[PlannedFetch<'_>]) -> Vec<SessionFe
         for partition in topic.partitions {
             partitions.push(partition.clone());
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -3185,7 +3192,7 @@ impl BrokerFetchSession {
                     count = count.saturating_add(1);
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -3253,7 +3260,7 @@ impl BrokerFetchSession {
             if let Some(slot) = self.partitions.get_mut(topic.topic.as_ref()) {
                 for partition in topic.partitions {
                     walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
+                    if walked == 1024 {
                         walked = 0;
                         tokio::task::yield_now().await;
                     }
@@ -3450,7 +3457,7 @@ impl BrokerFetchSession {
             for stored in parts.values_mut() {
                 stored.stamp = 0;
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -3473,7 +3480,7 @@ impl BrokerFetchSession {
             for stored in parts.values() {
                 let _stored = self.id_names.insert(stored.id, Arc::clone(name));
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -3758,9 +3765,7 @@ impl Consumer {
         // observes that close before the error returns. A successful dial keeps
         // the socket and does not wait.
         if opened.is_err() {
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
         }
         opened
     }
@@ -4225,7 +4230,7 @@ impl Consumer {
         for (topic, partition, _) in &self.assigned {
             out.push(TopicPartition::new(topic.as_ref(), *partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -4239,7 +4244,7 @@ impl Consumer {
         for (topic, partition, _) in &self.assigned {
             out.push((topic.as_ref().to_owned(), *partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -4303,7 +4308,7 @@ impl Consumer {
                 out.push((Arc::clone(topic), *partition, position));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 cached_topic = None;
                 cached_name = None;
@@ -4351,7 +4356,7 @@ impl Consumer {
                 out.push(item);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 epochs = &[];
                 pending_parts = None;
@@ -4396,7 +4401,7 @@ impl Consumer {
         for (topic, partition) in parts {
             out.push(TopicPartition::new(topic.as_ref(), *partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -4413,7 +4418,7 @@ impl Consumer {
                 out.push((TopicPartition::new(t.as_ref(), *p), pos));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -4650,7 +4655,7 @@ impl Consumer {
                 .paused
                 .insert(&partition.topic, partition.partition, ());
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -4679,7 +4684,7 @@ impl Consumer {
             let partition = partition.into();
             let _removed = self.paused.remove(&partition.topic, partition.partition);
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -4709,7 +4714,7 @@ impl Consumer {
                 out.push(TopicPartition::new(topic.as_ref(), *partition));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -4855,7 +4860,7 @@ impl Consumer {
                 drop_parts.push((topic.as_str(), *part));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -4903,7 +4908,7 @@ impl Consumer {
                 captured.push((Arc::clone(topic), *partition, id));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -4917,7 +4922,7 @@ impl Consumer {
                 .entry(partition)
                 .or_insert(id);
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -4932,23 +4937,40 @@ impl Consumer {
         stored: &mut HashMap<Arc<str>, HashMap<i32, [u8; 16]>>,
         live: &HashMap<Arc<str>, HashSet<i32>>,
     ) {
-        let taken = std::mem::take(stored);
+        let topics: Vec<Arc<str>> = stored.keys().cloned().collect();
         let mut walked = 0usize;
-        for (topic, parts) in taken {
-            let kept = live.get(topic.as_ref());
-            let mut next = HashMap::new();
-            for (partition, id) in parts {
-                if kept.is_some_and(|kept| kept.contains(&partition)) {
-                    let _stored = next.insert(partition, id);
-                }
+        for topic in topics {
+            let Some(kept) = live.get(topic.as_ref()) else {
+                let _removed = stored.remove(topic.as_ref());
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
-            }
-            if !next.is_empty() {
-                let _stored = stored.insert(topic, next);
+                continue;
+            };
+            let empty = if let Some(parts) = stored.get_mut(topic.as_ref()) {
+                let mut next = HashMap::new();
+                {
+                    let mut drain = parts.drain();
+                    for (partition, id) in &mut drain {
+                        if kept.contains(&partition) {
+                            let _stored = next.insert(partition, id);
+                        }
+                        walked = walked.saturating_add(1);
+                        if walked == 1024 {
+                            walked = 0;
+                            tokio::task::yield_now().await;
+                        }
+                    }
+                }
+                *parts = next;
+                parts.is_empty()
+            } else {
+                false
+            };
+            if empty {
+                let _removed = stored.remove(topic.as_ref());
             }
         }
     }
@@ -5137,7 +5159,7 @@ impl Consumer {
             .await
         {
             Ok(b) => b,
-            Err(e) if e.is_retriable() => {
+            Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {
                 self.reconnect_bootstrap(deadline).await?;
                 version = self.metadata_version;
                 let allow = self.cfg.allow_auto_topic_creation || version < 4 && topics.is_none();
@@ -5526,8 +5548,12 @@ impl Consumer {
             }
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+        if connected.is_err() {
+            crate::net::settle_closed_socket().await;
+        } else {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
         }
         connected
     }
@@ -5610,9 +5636,7 @@ impl Consumer {
         // observes that close before the error returns. A successful dial keeps
         // the socket and does not wait.
         if opened.is_err() {
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
         }
         opened
     }
@@ -6869,9 +6893,7 @@ impl Consumer {
         }
         // A cancelled fetch drops its socket when the task is polled. The idle
         // watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Stop leader fetches that this round will not park.
@@ -6909,9 +6931,7 @@ impl Consumer {
         }
         // A cancelled fetch drops its socket when the task is polled. The idle
         // watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Cancel leader fetches and poll until they leave the runtime.
@@ -6955,9 +6975,7 @@ impl Consumer {
         }
         // A cancelled fetch drops its socket when the task is polled. The idle
         // watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     pub(crate) async fn close_fetch_sessions(&mut self, timeout: Duration) {
@@ -7329,7 +7347,7 @@ impl Consumer {
     }
 
     fn place_fetch_chunk() -> usize {
-        8 * 1024
+        1024
     }
 
     /// Plan one fetch for each assigned partition.
@@ -9339,7 +9357,7 @@ impl Consumer {
                                 .then_some(batch.partition_leader_epoch),
                         });
                         walked = walked.saturating_add(1);
-                        if walked == 8 * 1024 {
+                        if walked == 1024 {
                             walked = 0;
                             tokio::task::yield_now().await;
                         }
@@ -9757,7 +9775,7 @@ impl Consumer {
             };
             Self::remember_node(&mut known, &mut seen, node);
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -10572,7 +10590,7 @@ impl Consumer {
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -10704,7 +10722,7 @@ impl Consumer {
                 dropping.push((Arc::clone(assigned_name), *partition));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 self.drop_seek_batch(&mut dropping).await;
                 tokio::task::yield_now().await;
@@ -11132,7 +11150,7 @@ impl Consumer {
         for (topic, partition, offset) in assigned {
             let _previous = map.insert_shared(topic, *partition, value_of(*offset));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -11574,7 +11592,7 @@ async fn note_returned_totals(
 
 async fn pause_returned_totals(walked: &mut usize) {
     *walked = walked.saturating_add(1);
-    if *walked == 8 * 1024 {
+    if *walked == 1024 {
         *walked = 0;
         tokio::task::yield_now().await;
     }
@@ -11896,7 +11914,7 @@ async fn stamp_fetched_tail(
         }
         record.leader_epoch = epoch;
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -11931,7 +11949,7 @@ type NameIds = HashMap<Arc<str>, [u8; 16]>;
 type IdNames = HashMap<[u8; 16], Arc<str>>;
 
 fn identity_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Record each topic's id and the name for each id.
@@ -12186,7 +12204,7 @@ async fn drop_held_fetches(retained: &mut PartitionMap<HeldFetch>) {
             for batch in held.batches {
                 drop(batch);
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -12224,7 +12242,7 @@ async fn retain_held_topics(
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -12248,7 +12266,7 @@ async fn restore_kept_held(
         };
         let _previous = retained.insert_owned(name, partition, held);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -12352,7 +12370,7 @@ fn fill_reused_topics<'a>(topics: &mut Vec<String>, names: impl IntoIterator<Ite
 }
 
 fn reused_topic_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Store the first copy of each topic name, reusing existing string buffers.
@@ -12408,7 +12426,7 @@ impl Consumer {
 }
 
 fn metadata_fresh_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Whether every topic still has fresh metadata.
@@ -12436,7 +12454,7 @@ pub(crate) async fn topics_metadata_fresh<'a>(
 }
 
 fn assignment_fresh_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Whether any incomplete assignment needs a metadata refresh.
@@ -12503,7 +12521,7 @@ enum ListedPartitions {
 }
 
 fn metadata_name_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// List partition indexes for each requested topic.
@@ -12525,7 +12543,7 @@ async fn partition_indexes_for_names<'a>(
     topics: &[crate::protocol::api::TopicMetadata],
     names: impl IntoIterator<Item = &'a str>,
 ) -> Result<Vec<Vec<i32>>> {
-    let mut copies: HashMap<&str, Vec<usize>> = HashMap::with_capacity(topics.len());
+    let mut copies: HashMap<&str, Vec<usize>> = HashMap::with_capacity(topics.len().min(4096));
     let mut walked = 0usize;
     for (index, topic) in topics.iter().enumerate() {
         walked = walked.saturating_add(1);
@@ -12533,6 +12551,9 @@ async fn partition_indexes_for_names<'a>(
             if let Some(slots) = copies.get_mut(name) {
                 slots.push(index);
             } else {
+                if copies.len() == copies.capacity() {
+                    copies.reserve(topics.len().saturating_sub(index).min(4096));
+                }
                 let _ = copies.insert(name, vec![index]);
             }
         }
@@ -12609,7 +12630,7 @@ fn listed_partition_indexes<'a>(
 }
 
 fn recreated_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Partitions whose topic id changed since they were assigned.
@@ -12707,7 +12728,7 @@ async fn validate_topic_partitions(partitions: &[TopicPartition]) -> Result<()> 
     for partition in partitions {
         Topic::validate(&partition.topic)?;
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -12731,7 +12752,7 @@ async fn require_unique_offset_partitions_cooperative<'a>(
             return Err(Error::protocol("duplicate offset partition"));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -12861,7 +12882,7 @@ async fn list_offset_topic_groups<'a, T: AsRef<str>>(
             groups.push((topic, vec![part]));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -12891,7 +12912,7 @@ async fn sum_fetched_bytes(records: &[FetchedRecord]) -> usize {
     for record in records {
         sum = sum.saturating_add(record_bytes(record));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13016,7 +13037,7 @@ async fn session_response_is_unique(
             break;
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13140,7 +13161,7 @@ where
 
 async fn pause_fetch_topic_note(walked: &mut usize) {
     *walked = walked.saturating_add(1);
-    if *walked == 8 * 1024 {
+    if *walked == 1024 {
         *walked = 0;
         tokio::task::yield_now().await;
     }
@@ -13199,7 +13220,7 @@ async fn offset_for_leader_epoch_topics<'a>(
             let _ = slots.insert(*topic, slot);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13268,7 +13289,7 @@ async fn account_fetched_delivery(
         entry.0 = entry.0.saturating_add(1);
         entry.1 = entry.1.saturating_add(bytes);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13280,7 +13301,7 @@ async fn account_fetched_delivery(
             .or_insert_with(crate::metrics::FetchTopicTracker::new)
             .note_fetched(count, bytes, latency);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13656,7 +13677,7 @@ pub(crate) fn partition_infos_from_cooperative<'a>(
 
 async fn pause_partition_info(walked: &mut usize) {
     *walked = walked.saturating_add(1);
-    if *walked == 8 * 1024 {
+    if *walked == 1024 {
         *walked = 0;
         tokio::task::yield_now().await;
     }
@@ -13678,7 +13699,7 @@ async fn fetch_nodes_for(
             }
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13698,7 +13719,7 @@ async fn build_cursor_index(assigned: &[(Arc<str>, i32, i64)]) -> CursorIndex {
             let _ = built.insert(Arc::clone(topic), parts);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13708,7 +13729,7 @@ async fn build_cursor_index(assigned: &[(Arc<str>, i32, i64)]) -> CursorIndex {
     for (topic, parts) in built {
         let _ = index.insert(topic, Arc::new(parts));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13726,7 +13747,7 @@ async fn push_fetched_epochs(
     for (topic, partition) in parts {
         out.push(epoch_of(topic, *partition));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13788,7 +13809,7 @@ where
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -13803,7 +13824,7 @@ where
             retry.push((*topic, *partition));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13835,7 +13856,7 @@ where
             }
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -13909,12 +13930,14 @@ mod tests {
         let pairs: Vec<(String, i32)> = (0..2_000_000)
             .map(|partition| ("orders".to_string(), partition))
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = TopicPartition::list_from_cooperative(&pairs) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(TopicPartition::list_from_cooperative(&pairs));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "copying rebalance partitions held the caller for {elapsed:?}"
@@ -14674,12 +14697,14 @@ mod tests {
             })
             .collect();
         let mut pending = PendingRecords::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = pending.prepend_staged(staged) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(pending.prepend_staged(staged));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "prepending pending runs held the caller for {elapsed:?}"
@@ -14888,8 +14913,8 @@ mod tests {
                 .len()
         });
         tokio::time::sleep(std::time::Duration::from_millis(30)).await;
-        worker.abort();
         let elapsed = started.elapsed();
+        worker.abort();
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "draining fetched records held the caller for {elapsed:?}"
@@ -14911,8 +14936,8 @@ mod tests {
                 .unwrap_or(0)
         });
         tokio::time::sleep(std::time::Duration::from_millis(30)).await;
-        worker.abort();
         let elapsed = started.elapsed();
+        worker.abort();
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "prepending fetched records held the caller for {elapsed:?}"
@@ -14986,7 +15011,7 @@ mod tests {
                     leader_epoch: Some(4),
                 });
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -15019,7 +15044,7 @@ mod tests {
                         hits = hits.saturating_add(1);
                     }
                     walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
+                    if walked == 1024 {
                         walked = 0;
                         tokio::task::yield_now().await;
                     }
@@ -18197,15 +18222,17 @@ mod tests {
                 topic_authorized_operations: -1,
             })
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = partition_indexes_for_names(&topics, ["topic-0"]) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
+        let elapsed = {
+            let mut work = std::pin::pin!(partition_indexes_for_names(&topics, ["topic-0"]));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "indexing metadata names held the caller for {:?}",
-            started.elapsed()
+            elapsed < std::time::Duration::from_millis(80),
+            "indexing metadata names held the caller for {elapsed:?}",
         );
         let sample = [
             crate::protocol::api::TopicMetadata {
@@ -18572,12 +18599,14 @@ mod tests {
             );
         }
         let _stored = session.partitions.insert(topic, parts);
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = session.refresh_id_names() => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(session.refresh_id_names());
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "refreshing session topic ids held the caller for {elapsed:?}"
@@ -18752,12 +18781,17 @@ mod tests {
             .map(|partition| (Arc::clone(&topic), partition, 4))
             .collect();
         let live = Consumer::index_live_partitions(&consumer.assigned).await;
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = Consumer::retain_assigned_topic_ids(&mut consumer.assigned_topic_ids, &live) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(Consumer::retain_assigned_topic_ids(
+                &mut consumer.assigned_topic_ids,
+                &live,
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "retaining assigned topic ids held the caller for {elapsed:?}"

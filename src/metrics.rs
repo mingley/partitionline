@@ -737,7 +737,75 @@ impl Drop for ProduceTopicRestore<'_> {
     }
 }
 
-/// Topic rows for a produce snapshot, pausing every 8,192 topics.
+async fn merge_sorted_runs<T, K>(left: Vec<T>, right: Vec<T>, key: &impl Fn(&T) -> &K) -> Vec<T>
+where
+    K: Ord + ?Sized,
+{
+    let total = left.len().saturating_add(right.len());
+    let mut merged = Vec::with_capacity(total.min(4096));
+    let mut lhs = left.into_iter().peekable();
+    let mut rhs = right.into_iter().peekable();
+    let mut walked = 0usize;
+    loop {
+        let take_left = match (lhs.peek(), rhs.peek()) {
+            (Some(l), Some(r)) => key(l) <= key(r),
+            (Some(_), None) => true,
+            (None, Some(_)) => false,
+            (None, None) => break,
+        };
+        if merged.len() == merged.capacity() {
+            merged.reserve(total.saturating_sub(merged.len()).min(4096));
+        }
+        if take_left {
+            if let Some(item) = lhs.next() {
+                merged.push(item);
+            }
+        } else if let Some(item) = rhs.next() {
+            merged.push(item);
+        }
+        walked = walked.saturating_add(1);
+        if walked == 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    merged
+}
+
+async fn sort_by_key_cooperative<T, K>(mut items: Vec<T>, key: impl Fn(&T) -> &K) -> Vec<T>
+where
+    K: Ord + ?Sized,
+{
+    if items.len() <= 1024 {
+        items.sort_by(|a, b| key(a).cmp(key(b)));
+        return items;
+    }
+    let mut runs: std::collections::VecDeque<Vec<T>> = std::collections::VecDeque::new();
+    let mut drain = items.into_iter();
+    loop {
+        let mut chunk: Vec<T> = drain.by_ref().take(1024).collect();
+        if chunk.is_empty() {
+            break;
+        }
+        chunk.sort_by(|a, b| key(a).cmp(key(b)));
+        runs.push_back(chunk);
+        tokio::task::yield_now().await;
+    }
+    while runs.len() > 1 {
+        let Some(left) = runs.pop_front() else {
+            break;
+        };
+        let Some(right) = runs.pop_front() else {
+            runs.push_back(left);
+            break;
+        };
+        let merged = merge_sorted_runs(left, right, &key).await;
+        runs.push_back(merged);
+    }
+    runs.pop_front().unwrap_or_default()
+}
+
+/// Topic rows for a produce snapshot, pausing every 1,024 topics.
 ///
 /// Snapshotting 200,000 produce topics held the caller for 223 milliseconds.
 /// The topic map is put back if this snapshot is cancelled. Rows stay sorted
@@ -749,18 +817,23 @@ pub(crate) async fn snapshot_produce_topics_cooperative(
         map,
         taken: std::mem::take(&mut *map.lock()),
     };
-    let mut topics = Vec::with_capacity(restore.taken.len());
+    let total = restore.taken.len();
+    let mut topics = Vec::with_capacity(total.min(4096));
     let mut walked = 0usize;
     for (name, tracker) in &restore.taken {
+        if topics.len() == topics.capacity() {
+            topics.reserve(total.saturating_sub(topics.len()).min(4096));
+        }
         topics.push(tracker.snapshot(name.to_string()));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
     }
-    topics.sort_by(|a, b| a.topic.cmp(&b.topic));
-    topics
+    let sorted = sort_by_key_cooperative(topics, |t| t.topic.as_str()).await;
+    drop(restore);
+    sorted
 }
 
 pub(crate) fn snapshot_fetch_topics<K>(
@@ -777,29 +850,31 @@ where
     topics
 }
 
-/// Topic rows for a fetch snapshot, pausing every 8,192 topics.
+/// Topic rows for a fetch snapshot, pausing every 1,024 topics.
 ///
 /// Snapshotting 200,000 fetch topics held the caller for 247 milliseconds.
-/// Sorting those names held the caller for 14 milliseconds, so the pause is
-/// in the copy. Rows stay sorted by topic name.
+/// Rows stay sorted by topic name.
 pub(crate) async fn snapshot_fetch_topics_cooperative<K>(
     map: &HashMap<K, FetchTopicTracker>,
 ) -> Vec<TopicFetchMetrics>
 where
     K: AsRef<str>,
 {
-    let mut topics = Vec::with_capacity(map.len());
+    let total = map.len();
+    let mut topics = Vec::with_capacity(total.min(4096));
     let mut walked = 0usize;
     for (name, tracker) in map {
+        if topics.len() == topics.capacity() {
+            topics.reserve(total.saturating_sub(topics.len()).min(4096));
+        }
         topics.push(tracker.snapshot(name.as_ref().to_owned()));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
     }
-    topics.sort_by(|a, b| a.topic.cmp(&b.topic));
-    topics
+    sort_by_key_cooperative(topics, |t| t.topic.as_str()).await
 }
 
 #[cfg(test)]

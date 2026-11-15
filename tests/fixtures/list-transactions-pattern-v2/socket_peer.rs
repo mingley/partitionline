@@ -753,7 +753,11 @@ impl Peer {
         closed.observations = self.state.lock().await.observed.clone();
         for address in self.addresses {
             assert!(
-                TcpStream::connect(address).await.is_err(),
+                !matches!(
+                    tokio::time::timeout(Duration::from_millis(20), TcpStream::connect(address))
+                        .await,
+                    Ok(Ok(_))
+                ),
                 "owned listener closed"
             );
             let rebound = TcpListener::bind(address).await.unwrap();

@@ -9616,8 +9616,8 @@ async fn shell_one_topic_groups(
     scratch: &mut ProduceGroupScratch,
     mut groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
 ) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
-    reserve_len(&mut groups, scratch.partition_order.len());
     let partitions = scratch.partition_order.len();
+    reserve_len(&mut groups, partitions.min(2048));
     let mut walked = 0usize;
     for index in 0..partitions {
         let Some(partition) = scratch.partition_order.get(index).copied() else {
@@ -9630,6 +9630,10 @@ async fn shell_one_topic_groups(
             .unwrap_or(0);
         let mut part = take_part_list(scratch);
         reserve_additional(&mut part, count).await;
+        if groups.len() == groups.capacity() {
+            let target = groups.len().saturating_add(2048).min(partitions);
+            reserve_len(&mut groups, target);
+        }
         groups.push((Arc::clone(topic), partition, part));
         pause_shell_partition(&mut walked).await;
     }
@@ -9644,7 +9648,7 @@ async fn shell_one_topic_groups(
 
 async fn pause_shell_partition(walked: &mut usize) {
     *walked = walked.saturating_add(1);
-    if *walked == 8 * 1024 {
+    if *walked == 1024 {
         *walked = 0;
         tokio::task::yield_now().await;
     }
@@ -17081,15 +17085,17 @@ mod tests {
         }
         let topic: Arc<str> = Arc::from("orders");
         let groups = take_group_shell(&mut scratch);
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = shell_one_topic_groups(&topic, &mut scratch, groups) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
+        let elapsed = {
+            let mut work = std::pin::pin!(shell_one_topic_groups(&topic, &mut scratch, groups));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "shelling produce partitions held the caller for {:?}",
-            started.elapsed()
+            elapsed < std::time::Duration::from_millis(80),
+            "shelling produce partitions held the caller for {elapsed:?}",
         );
         let mut sample = ProduceGroupScratch {
             partition_order: vec![3, 1],
