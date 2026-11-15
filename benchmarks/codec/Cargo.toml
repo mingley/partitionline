@@ -6,7 +6,7 @@ rust-version = "1.99"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-partitionline = { version = "0.1.0", path = "../..", default-features = false }
+partitionline = { version = "0.2.0", path = "../..", default-features = false }
 bytes = "1"
 serde_json = "1"
 sha2 = "0.10"

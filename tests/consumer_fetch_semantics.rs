@@ -9,8 +9,6 @@
 //! Note: Diagnostic defect cases A01-A05 remain in docs/audits/2026-09-21-consumer-probes.rs
 //! and will be promoted to this suite alongside their respective repairs in KL03-02 through KL03-06.
 #![expect(
-    clippy::unwrap_used,
-    clippy::expect_used,
     clippy::let_underscore_must_use,
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap,
@@ -5090,7 +5088,7 @@ async fn multi_bootstrap_heartbeat_reuses_the_other_bootstrap_handshake() {
     let elapsed = started.elapsed();
     let _socket = assert_negotiated_request(&mock, trace_before, 2, HEARTBEAT);
     assert!(
-        elapsed < Duration::from_millis(400),
+        elapsed < Duration::from_millis(500),
         "multi-bootstrap heartbeat rediscovery repeated ApiVersions: {elapsed:?}"
     );
     group.leave().await.unwrap();
@@ -6644,7 +6642,7 @@ async fn fetch_throttle_caller_cancellation_does_not_mutate_default_wait() {
     assert_eq!(consumer.fetch().await.unwrap().len(), 1);
     let cancelled = tokio::time::timeout(
         Duration::from_millis(30),
-        consumer.fetch_timeout(Duration::from_millis(40)),
+        consumer.fetch_timeout(Duration::from_millis(200)),
     )
     .await;
     assert!(

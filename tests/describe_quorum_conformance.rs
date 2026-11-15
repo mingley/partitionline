@@ -2,7 +2,6 @@
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use partitionline::protocol::{admin::*, buf};
 
-#[expect(clippy::unwrap_used, reason = "finite malformed-wire test helper")]
 fn raw_request(topics: usize, partitions: usize, name: &str) -> Bytes {
     let mut wire = BytesMut::new();
     buf::put_array_len(&mut wire, true, Some(topics)).unwrap();

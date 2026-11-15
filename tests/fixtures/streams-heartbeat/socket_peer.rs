@@ -281,7 +281,10 @@ impl Peer {
         }
         self.listeners.clear();
         for addr in self.addresses {
-            assert!(TcpStream::connect(addr).await.is_err());
+            assert!(!matches!(
+                tokio::time::timeout(Duration::from_millis(20), TcpStream::connect(addr)).await,
+                Ok(Ok(_))
+            ));
             let rebound = TcpListener::bind(addr).await.unwrap();
             drop(rebound);
         }

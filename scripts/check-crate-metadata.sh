@@ -137,7 +137,9 @@ if cargo package --allow-dirty --no-verify --quiet 2>/dev/null; then
       ok "packed crate omits scripts/ and fuzz/"
     fi
     size_k=$(( $(wc -c <"$crate") / 1024 ))
-    if [[ "$size_k" -lt 5000 ]]; then
+    # Stay safely below crates.io's 10 MiB (10,240 KiB) upload cap while
+    # accommodating packaged codec/protocol test fixtures (~6.4 MiB).
+    if [[ "$size_k" -lt 8192 ]]; then
       ok "packed crate size ~${size_k}KiB"
     else
       bad "packed crate unexpectedly large (~${size_k}KiB)"

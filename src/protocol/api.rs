@@ -3465,10 +3465,16 @@ async fn read_metadata_partitions_cooperative<B: Buf>(
     flexible: bool,
     partitions: &mut Vec<PartitionMetadata>,
 ) -> Result<()> {
-    let part_count = begin_metadata_partitions(buf, flexible, partitions)?;
+    let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    if partitions.len() > part_count {
+        partitions.truncate(part_count);
+    }
     let mut next = 0usize;
     while next < part_count {
-        let end = next.saturating_add(8 * 1024).min(part_count);
+        let end = next.saturating_add(256).min(part_count);
+        if end > partitions.len() {
+            reserve_additional(partitions, end - partitions.len())?;
+        }
         next = pull_metadata_partitions(buf, version, flexible, partitions, next, end)?;
         if next < part_count {
             tokio::task::yield_now().await;
@@ -5851,10 +5857,10 @@ pub(crate) async fn decode_produce_acks_into_cooperative(
             Bytes::new()
         };
         let part_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        reserve_additional(acks, part_count)?;
         let mut next = 0usize;
         while next < part_count {
-            let end = next.saturating_add(8 * 1024).min(part_count);
+            let end = next.saturating_add(1024).min(part_count);
+            reserve_additional(acks, end - next)?;
             let mut pull = ProduceAckPull {
                 buf,
                 version,
@@ -5874,7 +5880,7 @@ pub(crate) async fn decode_produce_acks_into_cooperative(
             buf::skip_tagged_fields(buf)?;
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6718,15 +6724,19 @@ mod tests {
         let mut cursor: &[u8] = &body;
         let mut image = MetadataResponse::blank();
         let started = std::time::Instant::now();
-        tokio::select! {
-            _ = decode_metadata_response_into_cooperative(&mut cursor, 1, &mut image) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        {
+            let decoding = decode_metadata_response_into_cooperative(&mut cursor, 1, &mut image);
+            tokio::pin!(decoding);
+            tokio::select! {
+                _ = &mut decoding => {}
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            let elapsed = started.elapsed();
+            assert!(
+                elapsed < std::time::Duration::from_millis(80),
+                "decoding metadata partitions held the caller for {elapsed:?}"
+            );
         }
-        let elapsed = started.elapsed();
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "decoding metadata partitions held the caller for {elapsed:?}"
-        );
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -6804,12 +6814,18 @@ mod tests {
         body.put_i32(0);
         let mut cursor = body.freeze();
         let mut acks = Vec::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = decode_produce_acks_into_cooperative(&mut cursor, 3, &mut acks) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_produce_acks_into_cooperative(
+                &mut cursor,
+                3,
+                &mut acks
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding produce acks held the caller for {elapsed:?}"

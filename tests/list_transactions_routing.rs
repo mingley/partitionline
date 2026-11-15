@@ -1,11 +1,5 @@
 //! ListTransactions must query the broker membership, preserve origins and obey
 //! one caller deadline. Independently scripted peers do not import API66 codecs.
-#![expect(
-    clippy::unwrap_used,
-    clippy::panic,
-    clippy::indexing_slicing,
-    reason = "finite regression assertions and scripted schema peers"
-)]
 
 #[path = "fixtures/list-transactions-routing/socket_peer.rs"]
 mod socket_peer;

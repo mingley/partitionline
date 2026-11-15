@@ -3245,12 +3245,12 @@ where
 }
 
 fn pending_leader_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Group each pending partition under its cached leader.
 ///
-/// The walk pauses every 8,192 partitions. Without that pause, grouping
+/// The walk pauses every 1,024 partitions. Without that pause, grouping
 /// 4,000,000 partitions held the caller for 1.77 seconds.
 ///
 /// The first time a leader is seen, it stays first. A missing leader stops
@@ -3284,12 +3284,12 @@ async fn group_pending_by_leader<'a>(
 }
 
 fn missing_leader_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// List topics that do not have a cached leader.
 ///
-/// The walk pauses every 8,192 partitions. Without that pause, listing
+/// The walk pauses every 1,024 partitions. Without that pause, listing
 /// 4,000,000 partitions held the caller for 881 milliseconds.
 ///
 /// A topic is kept once, the first time it is missing. A topic that already
@@ -3316,12 +3316,12 @@ async fn topics_missing_leaders<'a>(
 }
 
 fn unique_name_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Keep the first copy of each topic name.
 ///
-/// The walk pauses every 8,192 names. Without that pause, collecting
+/// The walk pauses every 1,024 names. Without that pause, collecting
 /// 2,000,000 names held the caller for 1.55 seconds.
 ///
 /// Later copies of the same name are dropped. Order follows the first copy.
@@ -3595,9 +3595,12 @@ async fn take_coordinator_slots(
 async fn index_coordinators(
     coords: Vec<crate::protocol::group::CoordinatorResult>,
 ) -> HashMap<String, CoordinatorSlot> {
-    let mut by_key = HashMap::new();
+    let mut by_key = HashMap::with_capacity(coords.len().min(65_536));
     let mut walked = 0usize;
     for coordinator in coords {
+        if by_key.len() == by_key.capacity() {
+            by_key.reserve(65_536);
+        }
         let _previous = by_key.insert(
             coordinator.key,
             (
@@ -3608,7 +3611,7 @@ async fn index_coordinators(
             ),
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -3620,20 +3623,25 @@ async fn group_named<T>(
     items: impl IntoIterator<Item = T>,
     name: impl Fn(&T) -> &str,
 ) -> HashMap<String, VecDeque<T>> {
-    let mut grouped: HashMap<String, VecDeque<T>> = HashMap::new();
+    let iter = items.into_iter();
+    let mut grouped: HashMap<String, VecDeque<T>> =
+        HashMap::with_capacity(iter.size_hint().0.min(65_536));
     let mut walked = 0usize;
-    for item in items {
+    for item in iter {
         let key = name(&item);
         if let Some(queue) = grouped.get_mut(key) {
             queue.push_back(item);
         } else {
+            if grouped.len() == grouped.capacity() {
+                grouped.reserve(65_536);
+            }
             let owned = key.to_owned();
             let mut queue = VecDeque::new();
             queue.push_back(item);
             let _ = grouped.insert(owned, queue);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -3818,9 +3826,7 @@ async fn dial_admin_socket(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -3873,9 +3879,7 @@ async fn dial_known_admin_socket(
     }
     .await;
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -4651,9 +4655,7 @@ impl Admin {
         // observes that close before the error returns. A successful dial keeps
         // the socket and does not wait.
         if opened.is_err() {
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
         }
         opened
     }
@@ -4704,9 +4706,7 @@ impl Admin {
         }
         // A cancelled admin handshake drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     pub(crate) async fn finish_aborted_indexed_handshakes(
@@ -4738,9 +4738,7 @@ impl Admin {
         }
         // A cancelled indexed handshake drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Handshake every bootstrap together and keep the first full success.
@@ -5090,11 +5088,15 @@ impl Admin {
     ///
     /// Sockets are dropped before this returns. On a current-thread runtime
     /// the broker stays in its read until this caller yields.
-    pub async fn close(self) -> Result<()> {
-        drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+    pub async fn close(mut self) -> Result<()> {
+        for (_, mut entry) in self.conns.drain() {
+            entry.close();
+            entry.release_if_closed().await;
         }
+        self.conn.close();
+        self.conn.release_if_closed().await;
+        drop(self);
+        crate::net::settle_closed_socket().await;
         Ok(())
     }
 
@@ -9508,8 +9510,12 @@ impl Admin {
             }
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+        if connected.is_err() {
+            crate::net::settle_closed_socket().await;
+        } else {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
         }
         connected
     }
@@ -10185,12 +10191,12 @@ impl Admin {
     }
 
     fn known_leader_chunk() -> usize {
-        8 * 1024
+        1024
     }
 
     /// Return each cached leader once.
     ///
-    /// The walk pauses every 8,192 partitions. Without that pause, finding
+    /// The walk pauses every 1,024 partitions. Without that pause, finding
     /// leaders for 4,000,000 partitions held the caller for 246 milliseconds.
     ///
     /// A leader that is already in the result is not added again. A partition
@@ -10309,8 +10315,12 @@ impl Admin {
         // A finished dial drops its socket while this call is still in the
         // same poll. Yield so the broker observes that close before the
         // caller continues.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+        if opened.iter().any(|(_, r)| r.is_err()) {
+            crate::net::settle_closed_socket().await;
+        } else {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
         }
         opened
     }
@@ -10405,9 +10415,7 @@ impl Admin {
         }
         // A cancelled dial or RPC drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Dial one stalled leader and return once that handshake has stopped.
@@ -17207,12 +17215,12 @@ fn first_seen_missing_ids<'a, T: AsRef<str>>(
 }
 
 fn owned_string_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Copy each id into an owned string.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, copying 2,000,000
+/// The walk pauses every 1,024 ids. Without that pause, copying 2,000,000
 /// ids held the caller for 181 milliseconds.
 ///
 /// Each id is still copied.
@@ -17231,12 +17239,12 @@ async fn collect_strings<T: Into<String>>(items: impl IntoIterator<Item = T>) ->
 }
 
 fn result_slot_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Open one empty result slot per item.
 ///
-/// The walk pauses every 8,192 slots. Without that pause, opening 2,000,000
+/// The walk pauses every 1,024 slots. Without that pause, opening 2,000,000
 /// group results and their indexes held the caller for 229 milliseconds.
 ///
 /// Every slot starts empty.
@@ -17275,7 +17283,7 @@ async fn pending_indexes(count: usize) -> Vec<usize> {
 }
 
 fn topic_record_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Copy topic names and offsets into owned topic partitions.
@@ -17330,12 +17338,12 @@ where
 }
 
 fn known_coord_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Collect coordinators that are already cached.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, collecting
+/// The walk pauses every 1,024 ids. Without that pause, collecting
 /// 2,000,000 cached coordinators held the caller for 1.04 seconds.
 ///
 /// A coordinator is kept once, the first time it is seen. An id without a
@@ -17366,12 +17374,12 @@ async fn cached_coordinator_nodes<T: AsRef<str>>(
 }
 
 fn coordinator_group_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// File each id under its cached coordinator.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, grouping 2,000,000
+/// The walk pauses every 1,024 ids. Without that pause, grouping 2,000,000
 /// coordinators held the caller for 1.11 seconds.
 ///
 /// A missing id or a missing coordinator stops the walk and returns an error.
@@ -17402,12 +17410,12 @@ async fn group_ids_by_coordinator<T: AsRef<str>>(
 }
 
 fn missing_id_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// List ids that do not have a cached coordinator.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, listing 2,000,000
+/// The walk pauses every 1,024 ids. Without that pause, listing 2,000,000
 /// ids held the caller for 1.76 seconds.
 ///
 /// The first copy of an id is kept. A later copy, and an id that already has
@@ -17904,7 +17912,7 @@ async fn record_election_partitions(
             kept.push((index, partition));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -18126,17 +18134,19 @@ mod tests {
         let names: Vec<String> = (0..2_000_000)
             .map(|index| format!("topic-{index}"))
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = collect_topic_pairs(names.iter().enumerate().map(|(index, name)| {
-                ((name.as_str(), i32::try_from(index).unwrap_or(0)), 0i64)
-            })) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
+        let elapsed = {
+            let mut work = std::pin::pin!(collect_topic_pairs(names.iter().enumerate().map(
+                |(index, name)| { ((name.as_str(), i32::try_from(index).unwrap_or(0)), 0i64) }
+            ),));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "collecting topic partitions held the caller for {:?}",
-            started.elapsed()
+            elapsed < std::time::Duration::from_millis(80),
+            "collecting topic partitions held the caller for {elapsed:?}",
         );
         let collected = collect_topic_pairs([(("orders", 3), 9i64), (("payments", 1), 4i64)]).await;
         assert_eq!(collected[0].0.topic(), "orders");
@@ -19724,20 +19734,26 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::admin::encode_consumer_group_describe_response(&mut body, 1, &groups)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_consumer_group_describe_response_cooperative(&mut body, 1) => {
-                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
-                assert_eq!(
-                    decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
-                    Some("member-0")
-                );
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_consumer_group_describe_response_cooperative(
+                &mut body, 1
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
+                    assert_eq!(
+                        decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
+                        Some("member-0")
+                    );
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding consumer group members held the caller for {elapsed:?}"
@@ -19799,20 +19815,26 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::admin::encode_share_group_describe_response(&mut body, 1, &groups)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_share_group_describe_response_cooperative(&mut body, 1) => {
-                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
-                assert_eq!(
-                    decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
-                    Some("member-0")
-                );
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_share_group_describe_response_cooperative(
+                &mut body, 1
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
+                    assert_eq!(
+                        decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
+                        Some("member-0")
+                    );
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding share group members held the caller for {elapsed:?}"
@@ -20091,20 +20113,26 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::group::encode_offset_fetch_groups_response(&mut body, 8, &groups)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_offset_fetch_groups_response_cooperative(&mut body, 8) => {
-                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(decoded.first().map(|item| item.topics.len()), Some(200_000));
-                assert_eq!(
-                    decoded.first().and_then(|item| item.topics.first()).map(|item| item.topic.as_str()),
-                    Some("topic-0")
-                );
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_offset_fetch_groups_response_cooperative(
+                &mut body, 8
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(decoded.first().map(|item| item.topics.len()), Some(200_000));
+                    assert_eq!(
+                        decoded.first().and_then(|item| item.topics.first()).map(|item| item.topic.as_str()),
+                        Some("topic-0")
+                    );
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding fetched offsets held the caller for {elapsed:?}"
@@ -20287,20 +20315,24 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::acl::encode_describe_acls_response(&mut body, 3, &acls)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_describe_acls_response_cooperative(&mut body, 3) => {
-                let (decoded, throttle, message, error_code) =
-                    decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(error_code, 0);
-                assert_eq!(message, None);
-                assert_eq!(decoded.len(), 200_000);
-                assert_eq!(decoded.first().map(|item| item.resource_name.as_str()), Some("topic-0"));
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_describe_acls_response_cooperative(&mut body, 3));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle, message, error_code) =
+                        decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(error_code, 0);
+                    assert_eq!(message, None);
+                    assert_eq!(decoded.len(), 200_000);
+                    assert_eq!(decoded.first().map(|item| item.resource_name.as_str()), Some("topic-0"));
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding acls held the caller for {elapsed:?}"
@@ -20798,9 +20830,13 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::admin::encode_describe_delegation_token_response(&mut body, 3, &resp)
             .unwrap_or_else(|error| panic!("{error}"));
+        let mut work = std::pin::pin!(decode_describe_delegation_token_response_cooperative(
+            &mut body, 3
+        ));
         let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_describe_delegation_token_response_cooperative(&mut body, 3) => {
+        let elapsed = tokio::select! {
+            decoded = &mut work => {
+                let elapsed = started.elapsed();
                 let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
                 assert_eq!(decoded.error_code, 0);
                 assert_eq!(decoded.tokens.len(), 200_000);
@@ -20808,10 +20844,10 @@ mod tests {
                     decoded.tokens.first().map(|item| item.token_id.as_str()),
                     Some("token-0")
                 );
+                elapsed
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding delegation tokens held the caller for {elapsed:?}"
@@ -22096,15 +22132,19 @@ mod tests {
                 error_message: None,
             })
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            indexed = index_coordinators(coords) => {
-                assert_eq!(indexed.len(), 500_000);
-                assert_eq!(indexed.get("group-0").map(|slot| slot.1), Some(0));
+        let elapsed = {
+            let mut work = std::pin::pin!(index_coordinators(coords));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                indexed = &mut work => {
+                    let elapsed = started.elapsed();
+                    assert_eq!(indexed.len(), 500_000);
+                    assert_eq!(indexed.get("group-0").map(|slot| slot.1), Some(0));
+                    elapsed
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "indexing coordinators held the caller for {elapsed:?}"
@@ -22140,15 +22180,19 @@ mod tests {
     async fn grouping_many_named_results_does_not_hold_the_caller() {
         // 500_000 names: recording each one held the caller 572ms.
         let ids: Vec<String> = (0..500_000).map(|index| format!("group-{index}")).collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            grouped = group_named(ids, |id| id.as_str()) => {
-                assert_eq!(grouped.len(), 500_000);
-                assert!(grouped.contains_key("group-0"));
+        let elapsed = {
+            let mut work = std::pin::pin!(group_named(ids, |id| id.as_str()));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                grouped = &mut work => {
+                    let elapsed = started.elapsed();
+                    assert_eq!(grouped.len(), 500_000);
+                    assert!(grouped.contains_key("group-0"));
+                    elapsed
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "grouping named results held the caller for {elapsed:?}"
@@ -23965,12 +24009,14 @@ mod tests {
             .map(|index| TopicPartition::new(format!("topic-{index}"), 0))
             .collect();
         let mut selection = ElectionSelection::default();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = record_election_partitions(&mut selection, partitions) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(record_election_partitions(&mut selection, partitions));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "recording election topics held the caller for {elapsed:?}"
