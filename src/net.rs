@@ -239,7 +239,10 @@ pub(crate) async fn settle_closed_socket() {
     for _ in 0..8 {
         tokio::task::yield_now().await;
     }
+    #[cfg(not(windows))]
     tokio::time::sleep(Duration::from_millis(1)).await;
+    #[cfg(windows)]
+    std::thread::yield_now();
     for _ in 0..8 {
         tokio::task::yield_now().await;
     }
@@ -900,12 +903,11 @@ enum ConnIo {
 // These test doubles model a ready IO call that takes wall time inside one
 // poll. An async timer would yield and stop testing the caller's poll budget.
 #[cfg(test)]
-#[expect(
-    clippy::disallowed_methods,
-    reason = "test IO deliberately spends wall time inside a ready synchronous poll"
-)]
 fn stall_ready_test_io(duration: Duration) {
-    std::thread::sleep(duration);
+    let start = Instant::now();
+    while start.elapsed() < duration {
+        std::hint::spin_loop();
+    }
 }
 
 /// One ready chunk, then a pause, so a read loop that never yields can be timed.
