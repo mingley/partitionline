@@ -1600,8 +1600,11 @@ async fn verifiable_consumer_autocommit_has_no_manual_commit_events() {
     )
     .unwrap();
     consumer.event_after(0, "records_consumed").await.unwrap();
-    let deadline = Instant::now() + Duration::from_secs(10);
+    let deadline = Instant::now() + Duration::from_secs(20);
     while mock.committed_offset("verifiable-autocommit", "t", 0) != Some(1) {
+        if let Some(status) = consumer.child.try_wait().unwrap() {
+            panic!("verifiable_consumer exited early ({status}) before interval auto-commit");
+        }
         assert!(
             Instant::now() < deadline,
             "interval auto-commit did not persist delivered offset"

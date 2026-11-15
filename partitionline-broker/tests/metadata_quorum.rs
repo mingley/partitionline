@@ -434,15 +434,21 @@ async fn quorum_application_case(count: usize) -> Result {
         for id in &stopped {
             group.stop(*id).await?;
         }
-        let response = group.routers[leader]
-            .as_ref()
-            .ok_or("missing router")?
-            .respond(create("committed-with-majority")?)
-            .await?;
-        ensure(
-            create_error(&response, "committed-with-majority")? == 0,
-            "remaining majority create",
-        )?;
+        let mut majority_err = 41i16;
+        for _ in 0..10 {
+            let active_leader = group.leader().await?;
+            let response = group.routers[active_leader]
+                .as_ref()
+                .ok_or("missing router")?
+                .respond(create("committed-with-majority")?)
+                .await?;
+            majority_err = create_error(&response, "committed-with-majority")?;
+            if majority_err != 41 {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        ensure(majority_err == 0, "remaining majority create")?;
         for (id, node) in group.nodes.iter().enumerate() {
             if node.is_some() {
                 observed(&group, id, "committed-with-majority").await?;

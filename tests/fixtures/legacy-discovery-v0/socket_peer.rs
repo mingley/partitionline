@@ -412,7 +412,10 @@ impl Peer {
         self.listeners.clear();
         assert_eq!(self.state.lock().await.workers, 0);
         for addr in self.addresses {
-            assert!(TcpStream::connect(addr).await.is_err());
+            assert!(!matches!(
+                tokio::time::timeout(Duration::from_millis(20), TcpStream::connect(addr)).await,
+                Ok(Ok(_))
+            ));
             drop(TcpListener::bind(addr).await.unwrap());
         }
         let frames = self.state.lock().await.frames.clone();

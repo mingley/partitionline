@@ -7073,15 +7073,16 @@ async fn decode_fetched_offset_topics_cooperative<B: Buf>(
     flexible: bool,
 ) -> Result<Vec<FetchedOffsetTopic>> {
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(n);
+    let mut topics = Vec::with_capacity(n.min(1024));
     let mut walked = 0usize;
-    for _ in 0..n {
+    for topic_index in 0..n {
         let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(pn);
+        let mut partitions = Vec::with_capacity(pn.min(1024));
         let mut next = 0usize;
         while next < pn {
-            let end = next.saturating_add(8 * 1024).min(pn);
+            let end = next.saturating_add(1024).min(pn);
+            partitions.reserve(end - next);
             pull_fetched_offsets(buf, version, flexible, &mut partitions, end - next)?;
             next = end;
             if next < pn {
@@ -7091,9 +7092,12 @@ async fn decode_fetched_offset_topics_cooperative<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
+        if topics.len() == topics.capacity() {
+            topics.reserve(n.saturating_sub(topic_index).min(1024));
+        }
         topics.push(FetchedOffsetTopic { topic, partitions });
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }

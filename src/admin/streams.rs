@@ -608,9 +608,7 @@ impl Admin {
                 .collect()
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         finished
     }
 

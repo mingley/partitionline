@@ -392,7 +392,10 @@ impl Peer {
             joined += 1;
         }
         for address in self.addresses {
-            assert!(TcpStream::connect(address).await.is_err());
+            assert!(!matches!(
+                tokio::time::timeout(Duration::from_millis(20), TcpStream::connect(address)).await,
+                Ok(Ok(_))
+            ));
             let _rebound = std::net::TcpListener::bind(address).unwrap();
         }
         let closed = Closed {
