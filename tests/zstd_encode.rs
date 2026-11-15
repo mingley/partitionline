@@ -11,7 +11,6 @@ use std::{path::Path, time::Duration};
 
 #[expect(
     clippy::disallowed_methods,
-    clippy::expect_used,
     reason = "finite synchronous peer fixture I/O"
 )]
 fn fixture() -> Vec<u8> {
@@ -22,7 +21,6 @@ fn fixture() -> Vec<u8> {
 }
 #[expect(
     clippy::disallowed_methods,
-    clippy::expect_used,
     reason = "finite synchronous independent peer output"
 )]
 fn emit(name: &str, encoded: &[u8], expected: &[u8]) {

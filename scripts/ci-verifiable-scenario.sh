@@ -90,10 +90,22 @@ try:
                          '--partitions', '1', '--replication-factor', '1'],
         'create-topic.log', 'create-topic.stderr.log', 30)
     target = Path(os.environ.get('CARGO_TARGET_DIR', root / 'target')).resolve()
-    run('producer', [str(target / 'debug/examples/verifiable_producer'), '--bootstrap-server',
+    def resolve_example(example_name):
+        direct = target / 'debug/examples' / example_name
+        if direct.is_file() and os.access(direct, os.X_OK):
+            return str(direct)
+        matches = [
+            cand for cand in (target / 'debug/build/partitionline').glob(f'*/out/{example_name}')
+            if cand.is_file() and os.access(cand, os.X_OK)
+        ]
+        if matches:
+            matches.sort(key=lambda item: item.stat().st_mtime_ns, reverse=True)
+            return str(matches[0])
+        return str(direct)
+    run('producer', [resolve_example('verifiable_producer'), '--bootstrap-server',
                      bootstrap, '--topic', topic, '--max-messages', '25', '--acks', '-1'],
         'producer.jsonl', 'producer.stderr.log', 40)
-    run('consumer', [str(target / 'debug/examples/verifiable_consumer'), '--bootstrap-server',
+    run('consumer', [resolve_example('verifiable_consumer'), '--bootstrap-server',
                      bootstrap, '--topic', topic, '--group-id', group, '--max-messages', '25',
                      '--verbose'], 'consumer.jsonl', 'consumer.stderr.log', 40)
     run('java-records', ['docker', 'exec', name, '/opt/kafka/bin/kafka-console-consumer.sh',

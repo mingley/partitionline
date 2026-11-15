@@ -2,10 +2,6 @@
 //!
 //! A mock broker cannot prove that `false` returns after a local Raft append
 //! while `true` waits for a majority commit. That remains an open KL05-40 gate.
-#![expect(
-    clippy::unwrap_used,
-    reason = "finite wire and mock-broker regression assertions"
-)]
 
 mod common;
 

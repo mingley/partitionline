@@ -1,11 +1,8 @@
 # Operator guide
 
-Examples, configuration, recipes, and troubleshooting for the current client
-source. The published 0.1.0 release predates some APIs and features shown here;
-see the [README](../README.md) for installation options. The feature
-configuration examples use a checkout at `../partitionline` relative to the
-application; adjust that path as needed. See the [documentation index](index.md)
-for references.
+Examples, configuration, recipes, and troubleshooting for `partitionline` 0.2.
+See the [README](../README.md) for installation options and the
+[documentation index](index.md) for references.
 
 ## Read this first
 
@@ -25,10 +22,9 @@ Measure your own workload when choosing settings.
 
 This exercise produces one record, verifies application processing, commits
 its next offset, and leaves the group. It uses a freshly extracted `.crate`
-outside the checkout. The package built from this revision is **unpublished
-HEAD**, even when its manifest still says `0.1.0`; it is not proof that a
-crates.io release contains every HEAD feature. The recorded run used Apache
-Kafka 4.1.0 and Rust 1.98.1. Use the latest stable Rust.
+outside the checkout so you verify the exact packaged surface rather than
+workspace-only files. The recorded run used Apache Kafka 4.1.0 and Rust 1.98.1;
+build and validate with Rust `1.99` or newer (latest stable recommended).
 
 Prerequisites: Rust/Cargo, Bash, GNU `timeout`, Docker, a temporary directory,
 and an unused loopback port 9092. Start these commands in the clean repository
@@ -575,7 +571,7 @@ bound fits in both `max_request_size` and `buffer_memory`. That is Kafka's
 rule that the first oversized-looking batch must be able to make progress,
 so an empty producer does not stall on one legal record.
 
-The mock for this budget is `tests/buffer_ownership.rs`.
+Buffer ownership and overload (mock) coverage is in `tests/buffer_ownership.rs`.
 
 
 ### Process only the returned batch, then commit
@@ -813,7 +809,7 @@ and `concurrent_sends_during_close_do_not_hang_and_observe_closed`.
 
 
 
-### Consumer leave, close, and auto-commit
+### Consumer leave/close and auto-commit
 
 `enable_auto_commit` defaults to false. When it is on, offsets are stored
 only on the poll-interval path: records that were already delivered, after
@@ -972,6 +968,10 @@ Encoding supports levels 1 through 19 (default 3), selected with
 return `Error::Unsupported`. See
 [zstd-spike.md](zstd-spike.md) for the tested profile and limits.
 
+```toml
+partitionline = { version = "0.2", features = ["zstd"] }
+```
+
 ```sh
 cargo test --locked --features zstd --test zstd_decode
 ```
@@ -984,7 +984,7 @@ disable default features; gzip then uses miniz_oxide, which forbids `unsafe`
 and is slower:
 
 ```toml
-partitionline = { path = "../partitionline", default-features = false }
+partitionline = { version = "0.2", default-features = false }
 ```
 
 Both backends speak the same wire format. See
@@ -995,7 +995,7 @@ Both backends speak the same wire format. See
 Enable spans without changing default builds:
 
 ```toml
-partitionline = { path = "../partitionline", features = ["tracing"] }
+partitionline = { version = "0.2", features = ["tracing"] }
 ```
 
 Spans cover `Producer::send` (topic field), `Consumer::fetch`,

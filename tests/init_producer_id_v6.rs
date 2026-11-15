@@ -16,7 +16,6 @@ fn fixtures() -> PathBuf {
 }
 #[expect(
     clippy::disallowed_methods,
-    clippy::expect_used,
     reason = "finite synchronous fixture I/O outside async tests"
 )]
 fn read(p: &Path) -> Vec<u8> {
@@ -24,7 +23,6 @@ fn read(p: &Path) -> Vec<u8> {
 }
 #[expect(
     clippy::disallowed_methods,
-    clippy::expect_used,
     reason = "finite synchronous conformance output outside async tests"
 )]
 fn emit(release: &str, name: &str, bytes: &[u8]) {

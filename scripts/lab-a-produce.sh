@@ -42,7 +42,13 @@ if [[ "$CLIENTS" == *librdkafka* ]]; then
 fi
 if [[ "$CLIENTS" == *partitionline* ]]; then
   cargo +stable build --locked --release --example bench_produce
-  PARTITIONLINE_BINARY="${PARTITIONLINE_BINARY:-${CARGO_TARGET_DIR:-$ROOT/target}/release/examples/bench_produce}"
+  default_produce="${CARGO_TARGET_DIR:-$ROOT/target}/release/examples/bench_produce"
+  if [[ ! -x "$default_produce" ]]; then
+    for cand in "${CARGO_TARGET_DIR:-$ROOT/target}"/release/build/partitionline/*/out/bench_produce; do
+      if [[ -f "$cand" && -x "$cand" ]]; then default_produce="$cand"; break; fi
+    done
+  fi
+  PARTITIONLINE_BINARY="${PARTITIONLINE_BINARY:-$default_produce}"
   env -u QUEUE_MESSAGES "$PARTITIONLINE_BINARY" --print-config > "$ARTIFACT_DIR/partitionline-settings.json"
 fi
 TIME_BINARY="${TIME_BINARY:-/usr/bin/time}"

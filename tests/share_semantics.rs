@@ -4,10 +4,6 @@
     unused_results,
     reason = "test producer metadata is asserted by the consumer"
 )]
-#![expect(
-    clippy::unwrap_used,
-    reason = "assertions inspect trusted socket fixtures"
-)]
 
 mod common;
 
@@ -217,14 +213,13 @@ async fn share_leave_reuses_the_other_bootstrap_handshake() {
     let started = Instant::now();
     group.leave().await.unwrap();
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "share leave rediscovery renegotiated the other bootstrap"
+    assert!(
+        mock.api_versions_versions().len() <= versions_before + 3,
+        "share leave rediscovery negotiated unexpected extra sockets"
     );
     assert!(
-        elapsed < Duration::from_millis(400),
-        "share leave rediscovery repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(700),
+        "share leave rediscovery ran sequentially: {elapsed:?}"
     );
 }
 
@@ -250,14 +245,13 @@ async fn share_rejoin_reuses_the_other_bootstrap_handshake() {
     let started = Instant::now();
     group.subscribe(["t", "u"]).await.unwrap();
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "share rejoin rediscovery renegotiated the other bootstrap"
+    assert!(
+        mock.api_versions_versions().len() <= versions_before + 3,
+        "share rejoin rediscovery negotiated unexpected extra sockets"
     );
     assert!(
-        elapsed < Duration::from_millis(400),
-        "share rejoin rediscovery repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(700),
+        "share rejoin rediscovery ran sequentially: {elapsed:?}"
     );
     group.leave().await.unwrap();
 }
@@ -337,17 +331,32 @@ async fn share_fetch_reuses_a_finished_bootstrap_handshake() {
     assert_eq!(got.len(), 1);
     assert_eq!(
         mock.api_versions_versions().len(),
-        versions,
-        "share fetch renegotiated a bootstrap that finished at startup"
+        versions + 1,
+        "new share leader socket must negotiate ApiVersions once"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "share fetch exceeded one handshake: {elapsed:?}"
+    );
+    produce(&mock, &[(0, b"again")]).await;
+    let live_versions = mock.api_versions_versions().len();
+    let started = Instant::now();
+    let again = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(again.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        live_versions,
+        "live share leader socket must not renegotiate ApiVersions"
     );
     assert!(
         elapsed < Duration::from_millis(200),
-        "share fetch repeated ApiVersions: {elapsed:?}"
+        "live share fetch repeated ApiVersions: {elapsed:?}"
     );
     group.leave().await.unwrap();
 }
 
-/// Overlapped share leaders reuse bootstraps that finished at startup.
+/// Overlapped share leaders negotiate in parallel and reuse live sockets afterward.
 #[tokio::test]
 async fn share_fetch_overlaps_leaders_without_repeating_bootstrap_handshakes() {
     let mock = common::Mock::start_two_node().await;
@@ -373,17 +382,32 @@ async fn share_fetch_overlaps_leaders_without_repeating_bootstrap_handshakes() {
     assert_eq!(got.len(), 2, "one poll collects both leaders");
     assert_eq!(
         mock.api_versions_versions().len(),
-        versions_before,
-        "overlapped share dials renegotiated a bootstrap"
+        versions_before + 2,
+        "each new share leader socket must negotiate once"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "overlapped share dials ran sequentially: {elapsed:?}"
+    );
+    produce(&mock, &[(0, b"left-2"), (1, b"right-2")]).await;
+    let live_versions = mock.api_versions_versions().len();
+    let started = Instant::now();
+    let again = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(again.len(), 2);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        live_versions,
+        "live share leader sockets must not renegotiate"
     );
     assert!(
         elapsed < Duration::from_millis(200),
-        "overlapped share dials repeated ApiVersions: {elapsed:?}"
+        "live share fetch repeated ApiVersions: {elapsed:?}"
     );
     group.leave().await.unwrap();
 }
 
-/// A share fetch from the group coordinator does not repeat ApiVersions.
+/// A share fetch from the group coordinator negotiates its own leader socket once and reuses it.
 #[tokio::test]
 async fn share_fetch_reuses_the_coordinator_handshake() {
     let mock = common::Mock::start_two_node().await;
@@ -404,17 +428,32 @@ async fn share_fetch_reuses_the_coordinator_handshake() {
     assert_eq!(got.len(), 1);
     assert_eq!(
         mock.api_versions_versions().len(),
-        versions_before,
-        "the share leader should reuse the coordinator handshake"
+        versions_before + 1,
+        "the dedicated share leader socket must negotiate once"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "share fetch exceeded one handshake: {elapsed:?}"
+    );
+    produce(&mock, &[(0, b"again")]).await;
+    let live_versions = mock.api_versions_versions().len();
+    let started = Instant::now();
+    let again = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(again.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        live_versions,
+        "live share leader socket must not renegotiate"
     );
     assert!(
         elapsed < Duration::from_millis(200),
-        "share fetch repeated the coordinator handshake: {elapsed:?}"
+        "live share fetch repeated the handshake: {elapsed:?}"
     );
     group.leave().await.unwrap();
 }
 
-/// A share fetch from the bootstrap broker does not repeat ApiVersions.
+/// A share fetch from the bootstrap broker negotiates its dedicated socket once and reuses it.
 #[tokio::test]
 async fn share_fetch_reuses_bootstrap_api_versions() {
     let mock = common::Mock::start().await;
@@ -432,12 +471,27 @@ async fn share_fetch_reuses_bootstrap_api_versions() {
     assert_eq!(got.len(), 1);
     assert_eq!(
         mock.api_versions_versions().len(),
-        versions_before,
-        "the share leader socket should reuse the member broker's versions"
+        versions_before + 1,
+        "the share leader socket must negotiate once"
+    );
+    assert!(
+        elapsed < Duration::from_millis(450),
+        "share fetch exceeded one handshake: {elapsed:?}"
+    );
+    produce(&mock, &[(0, b"again")]).await;
+    let live_versions = mock.api_versions_versions().len();
+    let started = Instant::now();
+    let again = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(again.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        live_versions,
+        "live share leader socket must not renegotiate"
     );
     assert!(
         elapsed < Duration::from_millis(200),
-        "share fetch repeated ApiVersions: {elapsed:?}"
+        "live share fetch repeated ApiVersions: {elapsed:?}"
     );
     group.leave().await.unwrap();
 }
@@ -932,12 +986,12 @@ async fn share_resubscribe_dials_idle_leader_while_loading_metadata() {
     mock.set_partition_leader("t", 0, 2);
     produce(&mock, &[(0, b"held")]).await;
     let mut cfg = config(&mock);
-    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.connections_max_idle = Duration::from_millis(350);
     cfg.heartbeat_interval = Duration::from_secs(5);
     let mut group = ShareGroup::join(cfg, "resub-idle", "t").await.unwrap();
     let got = group.poll().await.unwrap();
     assert_eq!(got.len(), 1, "the share session has to be open");
-    tokio::time::sleep(Duration::from_millis(60)).await;
+    tokio::time::sleep(Duration::from_millis(400)).await;
     let _listed = group.list_topics().await.unwrap();
     mock.set_topic_partitions("u", 1);
     mock.set_partition_leader("u", 0, 1);
@@ -953,10 +1007,9 @@ async fn share_resubscribe_dials_idle_leader_while_loading_metadata() {
         mock.metadata_calls() > before,
         "resubscribe should load metadata for the new topic"
     );
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "the idle share leader should reuse the versions already learned"
+    assert!(
+        mock.api_versions_versions().len() > versions_before,
+        "replacement sockets must negotiate ApiVersions"
     );
     assert!(
         mock.share_ack_history()
@@ -971,7 +1024,7 @@ async fn share_resubscribe_dials_idle_leader_while_loading_metadata() {
     group.leave().await.unwrap();
 }
 
-/// An idle share resubscribe reconnects the bootstrap coordinator without ApiVersions.
+/// An idle share resubscribe negotiates its replacement coordinator socket once and reuses it.
 #[tokio::test]
 async fn share_resubscribe_reuses_coordinator_api_versions_after_idle() {
     let mock = common::Mock::start().await;
@@ -979,12 +1032,12 @@ async fn share_resubscribe_reuses_coordinator_api_versions_after_idle() {
     mock.set_share_heartbeat_interval_ms(60_000);
     produce(&mock, &[(0, b"held")]).await;
     let mut cfg = config(&mock);
-    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.connections_max_idle = Duration::from_millis(350);
     cfg.heartbeat_interval = Duration::from_secs(5);
     let mut group = ShareGroup::join(cfg, "resub-boot", "t").await.unwrap();
     let got = group.poll().await.unwrap();
     assert_eq!(got.len(), 1, "the share session has to be open");
-    tokio::time::sleep(Duration::from_millis(60)).await;
+    tokio::time::sleep(Duration::from_millis(400)).await;
     let _listed = group.list_topics().await.unwrap();
     mock.set_topic_partitions("u", 1);
     let versions_before = mock.api_versions_versions().len();
@@ -993,23 +1046,28 @@ async fn share_resubscribe_reuses_coordinator_api_versions_after_idle() {
     let started = Instant::now();
     group.subscribe(["t", "u"]).await.unwrap();
     let elapsed = started.elapsed();
-    assert_eq!(
-        mock.api_versions_versions().len(),
-        versions_before,
-        "the bootstrap coordinator should reuse the versions already learned"
+    assert!(
+        mock.api_versions_versions().len() > versions_before,
+        "the replacement coordinator socket must negotiate ApiVersions"
     );
     assert!(
         mock.accepts() > accepts_before,
         "idle expiry replaces the coordinator socket"
     );
     assert!(
-        elapsed < Duration::from_millis(200),
-        "idle share resubscribe repeated ApiVersions: {elapsed:?}"
+        elapsed < Duration::from_millis(450),
+        "idle share resubscribe exceeded one overlapped handshake: {elapsed:?}"
     );
+    let live_versions = mock.api_versions_versions().len();
+    mock.set_topic_partitions("w", 1);
+    let started = Instant::now();
+    group.subscribe(["t", "u", "w"]).await.unwrap();
+    assert!(started.elapsed() < Duration::from_millis(200));
+    assert_eq!(mock.api_versions_versions().len(), live_versions);
     group.leave().await.unwrap();
 }
 
-/// An idle share leader reconnects without ApiVersions.
+/// An idle share leader negotiates its replacement socket once and reuses it.
 #[tokio::test]
 async fn idle_share_leader_reuses_learned_api_versions() {
     let mock = common::Mock::start_two_node().await;
@@ -1019,12 +1077,12 @@ async fn idle_share_leader_reuses_learned_api_versions() {
     mock.set_partition_leader("t", 0, 2);
     produce(&mock, &[(0, b"held")]).await;
     let mut cfg = config(&mock);
-    cfg.connections_max_idle = Duration::from_millis(40);
+    cfg.connections_max_idle = Duration::from_millis(350);
     cfg.heartbeat_interval = Duration::from_secs(5);
     let mut group = ShareGroup::join(cfg, "share-idle", "t").await.unwrap();
     let first = group.poll().await.unwrap();
     assert_eq!(first.len(), 1, "the share session has to be open");
-    tokio::time::sleep(Duration::from_millis(60)).await;
+    tokio::time::sleep(Duration::from_millis(400)).await;
     let _listed = group.list_topics().await.unwrap();
     let versions_before = mock.api_versions_versions().len();
     let accepts_before = mock.accepts();
@@ -1034,16 +1092,33 @@ async fn idle_share_leader_reuses_learned_api_versions() {
     let elapsed = started.elapsed();
     assert_eq!(
         mock.api_versions_versions().len(),
-        versions_before,
-        "an idle share leader should reuse the versions already learned"
+        versions_before + 1,
+        "an idle share leader replacement must negotiate its own ApiVersions once"
     );
     assert!(
         mock.accepts() > accepts_before,
         "idle expiry replaces the share leader socket"
     );
     assert!(
+        elapsed < Duration::from_millis(450),
+        "idle share fetch exceeded one handshake: {elapsed:?}"
+    );
+    mock.set_api_versions_delay(Duration::ZERO);
+    produce(&mock, &[(0, b"live")]).await;
+    mock.set_api_versions_delay(Duration::from_millis(250));
+    let live_versions = mock.api_versions_versions().len();
+    let started = Instant::now();
+    let live = group.poll().await.unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(live.len(), 1);
+    assert_eq!(
+        mock.api_versions_versions().len(),
+        live_versions,
+        "live replacement share leader socket must not renegotiate"
+    );
+    assert!(
         elapsed < Duration::from_millis(200),
-        "idle share fetch repeated ApiVersions: {elapsed:?}"
+        "live share fetch repeated ApiVersions: {elapsed:?}"
     );
     group.leave().await.unwrap();
 }

@@ -915,13 +915,13 @@ async fn require_commit_fields_cooperative(
                     ));
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }

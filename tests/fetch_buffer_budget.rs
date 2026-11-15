@@ -11,8 +11,6 @@
 //! - No unsafe code. No new dependencies. Do not claim an RSS bound.
 
 #![expect(
-    clippy::unwrap_used,
-    clippy::expect_used,
     clippy::let_underscore_must_use,
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap,

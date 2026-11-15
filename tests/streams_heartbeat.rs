@@ -1,10 +1,4 @@
 //! Public Streams heartbeat routing, cancellation and response semantics.
-#![expect(
-    clippy::unwrap_used,
-    clippy::panic,
-    clippy::indexing_slicing,
-    reason = "finite independently scripted socket assertions"
-)]
 #[path = "fixtures/streams-heartbeat/socket_peer.rs"]
 mod socket_peer;
 
@@ -514,9 +508,10 @@ async fn timeout_and_cancellation_close_owned_sockets_without_background_members
         .unwrap();
         peer.script(1, [Reply::Body(response(0))]).await;
         assert_eq!(client.heartbeat(&req).await.unwrap().error_code, 0);
+        let elapsed = started.elapsed();
         drop(client);
         let frames = peer.close().await;
-        assert!(started.elapsed() < Duration::from_millis(500));
+        assert!(elapsed < Duration::from_millis(500), "elapsed: {elapsed:?}");
         assert_eq!(frames.iter().filter(|f| f.api == 88).count(), 2);
     }
 }
@@ -527,15 +522,24 @@ async fn repeated_delayed_retry_cannot_reset_budget_or_exceed_eight_attempts() {
         let peer = Peer::start().await;
         peer.script(1, (0..8).map(|_| Reply::Delay(delay, response(16))))
             .await;
-        let mut client = StreamsClient::new(peer.config()).unwrap();
+        let mut cfg = peer.config();
+        if delay.is_zero() {
+            cfg.connection.retry_backoff = Duration::ZERO;
+            cfg.connection.retry_backoff_max = Duration::ZERO;
+        }
+        let mut client = StreamsClient::new(cfg).unwrap();
+        let budget = if delay.is_zero() {
+            Duration::from_millis(300)
+        } else {
+            Duration::from_millis(70)
+        };
         let started = Instant::now();
-        let result = client
-            .heartbeat_timeout(&request(), Duration::from_millis(70))
-            .await;
+        let result = client.heartbeat_timeout(&request(), budget).await;
+        let elapsed = started.elapsed();
         drop(client);
         let frames = peer.close().await;
         assert!(result.is_err());
-        assert!(started.elapsed() < Duration::from_millis(500));
+        assert!(elapsed < Duration::from_millis(500), "elapsed: {elapsed:?}");
         let calls = frames.iter().filter(|f| f.api == 88).count();
         assert!((1..=8).contains(&calls));
         if delay.is_zero() {

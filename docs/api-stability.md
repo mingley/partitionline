@@ -44,8 +44,8 @@ Expect additive churn; renaming or removing requires a CHANGELOG note:
 - Native SASL backends in default features
 
 Supported broker and platform combinations are listed in [`support.md`](support.md).
-Current builds use the latest stable Rust. The 0.1.x support policy may change
-before 1.0.
+Current builds use the latest stable Rust (`rust-version = "1.99"`). The 0.x
+support policy may change before 1.0.
 
 ## Experimental
 

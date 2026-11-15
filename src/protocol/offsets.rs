@@ -1281,15 +1281,16 @@ pub(crate) async fn decode_list_offsets_topics_response_cooperative<B: Buf>(
     let flexible = list_offsets_flexible(version)?;
     let throttle_time_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(tn);
+    let mut topics = Vec::with_capacity(tn.min(1024));
     let mut walked = 0usize;
-    for _ in 0..tn {
+    for index in 0..tn {
         let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        let mut partitions = Vec::with_capacity(pn);
+        let mut partitions = Vec::with_capacity(pn.min(1024));
         let mut next = 0usize;
         while next < pn {
-            let end = next.saturating_add(8 * 1024).min(pn);
+            let end = next.saturating_add(2 * 1024).min(pn);
+            partitions.reserve(end - next);
             pull_list_offsets(buf, version, flexible, &mut partitions, end - next)?;
             next = end;
             if next < pn {
@@ -1299,9 +1300,12 @@ pub(crate) async fn decode_list_offsets_topics_response_cooperative<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
+        if topics.len() == topics.capacity() {
+            topics.reserve(tn.saturating_sub(index).min(1024));
+        }
         topics.push(ListOffsetsTopicResponse { name, partitions });
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -1404,17 +1408,21 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error}"));
         let mut cursor: &[u8] = &body;
         let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_list_offsets_topics_response_cooperative(&mut cursor, 4) => {
-                let _decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+        {
+            let decoding = decode_list_offsets_topics_response_cooperative(&mut cursor, 4);
+            tokio::pin!(decoding);
+            tokio::select! {
+                decoded = &mut decoding => {
+                    let _decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
             }
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            assert!(
+                started.elapsed() < std::time::Duration::from_millis(80),
+                "decoding list offset topics held the caller for {:?}",
+                started.elapsed()
+            );
         }
-        assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "decoding list offset topics held the caller for {:?}",
-            started.elapsed()
-        );
         let sample = [ListOffsetsTopicResponse::new(
             "orders",
             vec![ListOffsetsResponsePartition::error(0, 0)],

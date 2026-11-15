@@ -1,9 +1,4 @@
 //! TLS coordinators must retire an idle socket before replacing it.
-#![expect(
-    clippy::unwrap_used,
-    clippy::expect_used,
-    reason = "test setup and missing wire events must fail the test"
-)]
 mod common;
 
 use common::WireEventKind;
