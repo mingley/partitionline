@@ -19,7 +19,12 @@
 //! `Connection: close`, no keep-alive pooling, no redirect following, no
 //! request body. Responses may use `Content-Length`, `chunked`
 //! `Transfer-Encoding`, or close-delimited framing, all capped by
-//! [`RegistryClientConfig::max_body_bytes`].
+//! [`RegistryClientConfig::max_body_bytes`] after decoding. Response headers,
+//! each chunk-size line and the trailer section are capped at 64 KiB. Total
+//! chunk framing overhead is capped at five times the body limit plus 64 KiB.
+//! A continuously ready response reader yields to the executor after 1 MiB
+//! (64 KiB for chunked data) or 256 reads. This does not guarantee another task
+//! runs, and does not bound one read or synchronous JSON parsing.
 //!
 //! # TLS
 //!
@@ -48,6 +53,9 @@
 //!   is capped at `backoff_max`.
 //! * Never retried: 401/403/404, other 3xx/4xx/5xx statuses, TLS failures,
 //!   malformed or oversize responses, and configuration errors.
+//! * For `Retry-After`, only the first field is used. A nonnegative decimal
+//!   delay in seconds is supported; HTTP-date, malformed and overflowing
+//!   values fall back to exponential backoff.
 //! * Attempt counts are bounded by `max_attempts` (1 through 8).
 //!
 //! # Errors
@@ -1160,15 +1168,53 @@ async fn http_roundtrip<S: AsyncReadExt + AsyncWriteExt + Unpin>(
     read_http_response(stream, deadline, max_body).await
 }
 
+// Bound work on an always-ready stream without penalizing every short read.
+#[derive(Default)]
+struct ResponseReadBudget {
+    bytes: usize,
+    reads: usize,
+}
+
+const RESPONSE_READ_YIELD_BYTES: usize = 128 * READ_CHUNK;
+const CHUNKED_READ_YIELD_BYTES: usize = 8 * READ_CHUNK;
+
+impl ResponseReadBudget {
+    fn account(&mut self, bytes: usize, byte_limit: usize) -> bool {
+        self.bytes += bytes;
+        self.reads += 1;
+        if self.bytes >= byte_limit || self.reads >= 256 {
+            self.bytes = 0;
+            self.reads = 0;
+            true
+        } else {
+            false
+        }
+    }
+}
+
 async fn read_http_response<S: AsyncReadExt + Unpin>(
     stream: &mut S,
     deadline: Instant,
     max_body: usize,
 ) -> Result<HttpResponse, RegistryError> {
     let mut buf = Vec::new();
-    let end = loop {
-        if let Some(end) = find_header_end(&buf) {
-            break end;
+    let mut head_start = 0usize;
+    let mut search_from = 0usize;
+    let mut budget = ResponseReadBudget::default();
+    let (end, status) = loop {
+        if let Some(end) = find_header_end(&buf[search_from..]).map(|end| search_from + end) {
+            if end > MAX_HEADER_BYTES {
+                return Err(RegistryError::TooLarge {
+                    limit: MAX_HEADER_BYTES,
+                });
+            }
+            let status = parse_status(&buf[head_start..end])?;
+            if (100..200).contains(&status) && status != 101 {
+                head_start = end;
+                search_from = end;
+                continue;
+            }
+            break (end, status);
         }
         if buf.len() > MAX_HEADER_BYTES {
             return Err(RegistryError::TooLarge {
@@ -1176,6 +1222,7 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
             });
         }
         let left = time_left(deadline).ok_or(RegistryError::Timeout)?;
+        let previous_len = buf.len();
         let mut tmp = [0u8; READ_CHUNK];
         let n = match timeout(left, stream.read(&mut tmp)).await {
             Ok(Ok(0)) => {
@@ -1189,16 +1236,38 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
             .get(..n)
             .ok_or_else(|| RegistryError::malformed("short socket read"))?;
         buf.extend_from_slice(chunk);
+        search_from = previous_len.saturating_sub(3).max(head_start);
+        if budget.account(n, RESPONSE_READ_YIELD_BYTES) {
+            arm_yield().await;
+        }
     };
 
     let head = buf
-        .get(..end)
+        .get(head_start..end)
         .ok_or_else(|| RegistryError::malformed("truncated response headers"))?;
-    let status = parse_status(head)?;
     let retry_after_secs = parse_retry_after(head);
 
+    // Protocol switches and the 204/304 statuses have no HTTP message body.
+    // A peer may leave the connection open, so do not wait for an EOF.
+    if matches!(status, 101 | 204 | 304) {
+        return Ok(HttpResponse {
+            status,
+            retry_after_secs,
+            body: Vec::new(),
+        });
+    }
+
     if is_chunked(head)? {
-        return read_chunked_body(stream, &mut buf, end, status, deadline, max_body).await;
+        return read_chunked_body(
+            stream,
+            &mut buf,
+            end,
+            status,
+            retry_after_secs,
+            deadline,
+            max_body,
+        )
+        .await;
     }
     if let Some(content_len) = parse_content_length(head)? {
         if content_len > max_body {
@@ -1222,6 +1291,11 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
                 .get(..n)
                 .ok_or_else(|| RegistryError::malformed("short socket read"))?;
             buf.extend_from_slice(chunk);
+            if buf.len().saturating_sub(end) < content_len
+                && budget.account(n, RESPONSE_READ_YIELD_BYTES)
+            {
+                arm_yield().await;
+            }
         }
         let body_end = end.saturating_add(content_len);
         let body = buf
@@ -1252,6 +1326,9 @@ async fn read_http_response<S: AsyncReadExt + Unpin>(
             .get(..n)
             .ok_or_else(|| RegistryError::malformed("short socket read"))?;
         buf.extend_from_slice(chunk);
+        if budget.account(n, RESPONSE_READ_YIELD_BYTES) {
+            arm_yield().await;
+        }
     }
     let body = buf
         .get(end..)
@@ -1269,27 +1346,26 @@ async fn read_chunked_body<S: AsyncReadExt + Unpin>(
     buf: &mut Vec<u8>,
     end: usize,
     status: u16,
+    retry_after_secs: Option<u64>,
     deadline: Instant,
     max_body: usize,
 ) -> Result<HttpResponse, RegistryError> {
+    let mut decoder = ChunkedDecoder::new(max_body);
+    if decoder.feed(buf.get(end..).unwrap_or(&[]))? {
+        return Ok(HttpResponse {
+            status,
+            retry_after_secs,
+            body: decoder.body,
+        });
+    }
+    // The completed headers and first read are no longer needed.
+    buf.clear();
+    let mut budget = ResponseReadBudget::default();
     loop {
-        if buf.len() > max_body.saturating_add(MAX_HEADER_BYTES) {
-            return Err(RegistryError::TooLarge { limit: max_body });
-        }
-        let raw = buf.get(end..).unwrap_or(&[]);
-        if let Some(body) = try_decode_chunked_body(raw, max_body)? {
-            return Ok(HttpResponse {
-                status,
-                retry_after_secs: None,
-                body,
-            });
-        }
         let left = time_left(deadline).ok_or(RegistryError::Timeout)?;
         let mut tmp = [0u8; READ_CHUNK];
         let n = match timeout(left, stream.read(&mut tmp)).await {
-            Ok(Ok(0)) => {
-                return Err(RegistryError::malformed("truncated chunked body"));
-            }
+            Ok(Ok(0)) => return Err(RegistryError::malformed("truncated chunked body")),
             Ok(Ok(n)) => n,
             Ok(Err(err)) => return Err(RegistryError::transport(err)),
             Err(_) => return Err(RegistryError::Timeout),
@@ -1297,7 +1373,16 @@ async fn read_chunked_body<S: AsyncReadExt + Unpin>(
         let chunk = tmp
             .get(..n)
             .ok_or_else(|| RegistryError::malformed("short socket read"))?;
-        buf.extend_from_slice(chunk);
+        if decoder.feed(chunk)? {
+            return Ok(HttpResponse {
+                status,
+                retry_after_secs,
+                body: decoder.body,
+            });
+        }
+        if budget.account(n, CHUNKED_READ_YIELD_BYTES) {
+            arm_yield().await;
+        }
     }
 }
 
@@ -1357,28 +1442,32 @@ fn parse_content_length(head: &[u8]) -> Result<Option<usize>, RegistryError> {
 
 fn is_chunked(head: &[u8]) -> Result<bool, RegistryError> {
     let text = head_text(head)?;
-    for line in text.split("\r\n") {
+    let mut chunked = false;
+    for line in text.split("\r\n").skip(1) {
         let Some((key, value)) = line.split_once(':') else {
             continue;
         };
         if key.eq_ignore_ascii_case("transfer-encoding") {
-            for part in value.split(',') {
-                if part.trim().eq_ignore_ascii_case("chunked") {
-                    return Ok(true);
-                }
+            // The decoder implements only chunked. Reject coding lists,
+            // including duplicates and multiple fields, rather than silently
+            // ignoring a coding we cannot decode.
+            if chunked || !value.trim().eq_ignore_ascii_case("chunked") {
+                return Err(RegistryError::malformed("unsupported transfer-encoding"));
             }
-            return Err(RegistryError::malformed("unsupported transfer-encoding"));
+            chunked = true;
         }
     }
-    Ok(false)
+    Ok(chunked)
 }
 
 /// `Retry-After` delay-seconds; HTTP-date and bad values yield `None`
 /// (the caller falls back to exponential backoff).
 fn parse_retry_after(head: &[u8]) -> Option<u64> {
     let text = std::str::from_utf8(head).ok()?;
-    for line in text.split("\r\n") {
-        let (key, value) = line.split_once(':')?;
+    for line in text.split("\r\n").skip(1) {
+        let Some((key, value)) = line.split_once(':') else {
+            continue;
+        };
         if key.eq_ignore_ascii_case("retry-after") {
             let trimmed = value.trim();
             if trimmed.is_empty() || !trimmed.bytes().all(|b| b.is_ascii_digit()) {
@@ -1390,58 +1479,131 @@ fn parse_retry_after(head: &[u8]) -> Option<u64> {
     None
 }
 
-/// Decode one possibly-partial chunked body: `Ok(None)` means more bytes
-/// are needed. Mirrors the core crate's strict chunked reader.
-fn try_decode_chunked_body(raw: &[u8], max_body: usize) -> Result<Option<Vec<u8>>, RegistryError> {
-    let mut cursor = 0usize;
-    let mut decoded = Vec::new();
-    loop {
-        let remaining = raw.get(cursor..).unwrap_or(&[]);
-        let Some(pos) = remaining.windows(2).position(|w| w == b"\r\n") else {
-            return Ok(None);
-        };
-        let line = remaining.get(..pos).unwrap_or(&[]);
-        let line_str =
-            std::str::from_utf8(line).map_err(|_| RegistryError::malformed("bad chunk size"))?;
-        let size_str = match line_str.split_once(';') {
-            Some((size, _)) => size.trim(),
-            None => line_str.trim(),
-        };
-        if size_str.is_empty() || !size_str.bytes().all(|b| b.is_ascii_hexdigit()) {
-            return Err(RegistryError::malformed("bad chunk size"));
+// Incremental HTTP/1.1 chunk framing reader. Payload is retained only once;
+// line/trailer storage and total non-payload framing work have separate caps.
+#[derive(Clone, Copy)]
+enum ChunkState {
+    Size,
+    Data(usize),
+    DataCrlf(u8),
+    Trailer,
+    Done,
+}
+
+struct ChunkedDecoder {
+    state: ChunkState,
+    line: Vec<u8>,
+    body: Vec<u8>,
+    max_body: usize,
+    framing_bytes: usize,
+    framing_limit: usize,
+}
+
+impl ChunkedDecoder {
+    fn new(max_body: usize) -> Self {
+        Self {
+            state: ChunkState::Size,
+            line: Vec::new(),
+            body: Vec::new(),
+            max_body,
+            framing_bytes: 0,
+            framing_limit: max_body.saturating_mul(5).saturating_add(MAX_HEADER_BYTES),
         }
-        let chunk_size = usize::from_str_radix(size_str, 16)
-            .map_err(|_| RegistryError::malformed("bad chunk size"))?;
-        cursor = cursor.saturating_add(pos).saturating_add(2);
-        if chunk_size == 0 {
-            let trailer = raw.get(cursor..).unwrap_or(&[]);
-            if trailer.starts_with(b"\r\n") {
-                return Ok(Some(decoded));
+    }
+
+    fn framing_byte(&mut self) -> Result<(), RegistryError> {
+        self.framing_bytes = self.framing_bytes.saturating_add(1);
+        if self.framing_bytes > self.framing_limit {
+            return Err(RegistryError::TooLarge {
+                limit: self.framing_limit,
+            });
+        }
+        Ok(())
+    }
+
+    fn feed(&mut self, input: &[u8]) -> Result<bool, RegistryError> {
+        let mut position = 0;
+        while position < input.len() {
+            match self.state {
+                ChunkState::Size => {
+                    self.framing_byte()?;
+                    self.line.push(input[position]);
+                    position += 1;
+                    if self.line.len() > MAX_HEADER_BYTES {
+                        return Err(RegistryError::TooLarge {
+                            limit: MAX_HEADER_BYTES,
+                        });
+                    }
+                    if self.line.ends_with(b"\r\n") {
+                        let line = &self.line[..self.line.len() - 2];
+                        let line = std::str::from_utf8(line)
+                            .map_err(|_| RegistryError::malformed("bad chunk size"))?;
+                        let size = match line.split_once(';') {
+                            Some((size, _)) => size.trim(),
+                            None => line.trim(),
+                        };
+                        if size.is_empty() || !size.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+                            return Err(RegistryError::malformed("bad chunk size"));
+                        }
+                        let size = usize::from_str_radix(size, 16)
+                            .map_err(|_| RegistryError::malformed("bad chunk size"))?;
+                        self.line.clear();
+                        if size == 0 {
+                            self.state = ChunkState::Trailer;
+                        } else {
+                            if size > self.max_body.saturating_sub(self.body.len()) {
+                                return Err(RegistryError::TooLarge {
+                                    limit: self.max_body,
+                                });
+                            }
+                            self.state = ChunkState::Data(size);
+                        }
+                    }
+                }
+                ChunkState::Data(remaining) => {
+                    let count = remaining.min(input.len() - position);
+                    self.body
+                        .extend_from_slice(&input[position..position + count]);
+                    position += count;
+                    self.state = if count == remaining {
+                        ChunkState::DataCrlf(0)
+                    } else {
+                        ChunkState::Data(remaining - count)
+                    };
+                }
+                ChunkState::DataCrlf(matched) => {
+                    self.framing_byte()?;
+                    let expected = if matched == 0 { b'\r' } else { b'\n' };
+                    if input[position] != expected {
+                        return Err(RegistryError::malformed("bad chunk framing"));
+                    }
+                    position += 1;
+                    self.state = if matched == 0 {
+                        ChunkState::DataCrlf(1)
+                    } else {
+                        ChunkState::Size
+                    };
+                }
+                ChunkState::Trailer => {
+                    self.framing_byte()?;
+                    self.line.push(input[position]);
+                    position += 1;
+                    if self.line.len() > MAX_HEADER_BYTES {
+                        return Err(RegistryError::TooLarge {
+                            limit: MAX_HEADER_BYTES,
+                        });
+                    }
+                    if (self.line.len() == 2 && self.line == b"\r\n")
+                        || self.line.ends_with(b"\r\n\r\n")
+                    {
+                        self.state = ChunkState::Done;
+                        return Ok(true);
+                    }
+                }
+                ChunkState::Done => return Ok(true),
             }
-            if trailer.windows(4).any(|w| w == b"\r\n\r\n") {
-                return Ok(Some(decoded));
-            }
-            return Ok(None);
         }
-        if chunk_size > max_body || decoded.len().saturating_add(chunk_size) > max_body {
-            return Err(RegistryError::TooLarge { limit: max_body });
-        }
-        let chunk_end = cursor.saturating_add(chunk_size);
-        let crlf_end = chunk_end.saturating_add(2);
-        if raw.len() < crlf_end {
-            return Ok(None);
-        }
-        let data = raw
-            .get(cursor..chunk_end)
-            .ok_or_else(|| RegistryError::malformed("truncated chunk"))?;
-        let crlf = raw
-            .get(chunk_end..crlf_end)
-            .ok_or_else(|| RegistryError::malformed("truncated chunk"))?;
-        if crlf != b"\r\n" {
-            return Err(RegistryError::malformed("bad chunk framing"));
-        }
-        decoded.extend_from_slice(data);
-        cursor = crlf_end;
+        Ok(matches!(self.state, ChunkState::Done))
     }
 }
 
@@ -1471,6 +1633,138 @@ impl JsonValue {
             Self::Object(entries) => format!("object with {} keys", entries.len()),
         }
     }
+}
+
+// Keep a short linear suffix while progressively indexing the older keys.
+// This avoids an all-at-once index rebuild at the threshold. Tree slots are
+// positions in the original entries vector, so the index does not copy keys.
+const JSON_LINEAR_TAIL: usize = 64;
+const JSON_NO_SLOT: u32 = u32::MAX;
+
+#[derive(Clone, Copy)]
+struct JsonKeyNode {
+    left: u32,
+    right: u32,
+    height: u8,
+}
+
+struct JsonKeyIndex {
+    nodes: Vec<JsonKeyNode>,
+    root: u32,
+}
+
+impl JsonKeyIndex {
+    fn new() -> Self {
+        Self {
+            nodes: Vec::new(),
+            root: JSON_NO_SLOT,
+        }
+    }
+
+    fn contains(&self, entries: &[(String, JsonValue)], key: &str) -> bool {
+        let mut current = self.root;
+        while current != JSON_NO_SLOT {
+            let slot = current as usize;
+            match key.cmp(entries[slot].0.as_str()) {
+                std::cmp::Ordering::Equal => return true,
+                std::cmp::Ordering::Less => current = self.nodes[slot].left,
+                std::cmp::Ordering::Greater => current = self.nodes[slot].right,
+            }
+        }
+        false
+    }
+
+    fn insert_next(&mut self, entries: &[(String, JsonValue)]) -> Result<(), RegistryError> {
+        let slot = u32::try_from(self.nodes.len())
+            .ok()
+            .filter(|slot| *slot != JSON_NO_SLOT)
+            .ok_or_else(|| RegistryError::malformed("json object has too many keys"))?;
+        debug_assert!((slot as usize) < entries.len());
+        self.nodes.push(JsonKeyNode {
+            left: JSON_NO_SLOT,
+            right: JSON_NO_SLOT,
+            height: 1,
+        });
+        self.root = json_key_insert(&mut self.nodes, entries, self.root, slot)?;
+        Ok(())
+    }
+}
+
+fn json_key_height(nodes: &[JsonKeyNode], slot: u32) -> u8 {
+    if slot == JSON_NO_SLOT {
+        0
+    } else {
+        nodes[slot as usize].height
+    }
+}
+
+fn json_key_update_height(nodes: &mut [JsonKeyNode], slot: u32) {
+    let left = nodes[slot as usize].left;
+    let right = nodes[slot as usize].right;
+    nodes[slot as usize].height =
+        1 + json_key_height(nodes, left).max(json_key_height(nodes, right));
+}
+
+fn json_key_rotate_left(nodes: &mut [JsonKeyNode], root: u32) -> u32 {
+    let pivot = nodes[root as usize].right;
+    nodes[root as usize].right = nodes[pivot as usize].left;
+    nodes[pivot as usize].left = root;
+    json_key_update_height(nodes, root);
+    json_key_update_height(nodes, pivot);
+    pivot
+}
+
+fn json_key_rotate_right(nodes: &mut [JsonKeyNode], root: u32) -> u32 {
+    let pivot = nodes[root as usize].left;
+    nodes[root as usize].left = nodes[pivot as usize].right;
+    nodes[pivot as usize].right = root;
+    json_key_update_height(nodes, root);
+    json_key_update_height(nodes, pivot);
+    pivot
+}
+
+fn json_key_insert(
+    nodes: &mut [JsonKeyNode],
+    entries: &[(String, JsonValue)],
+    root: u32,
+    slot: u32,
+) -> Result<u32, RegistryError> {
+    if root == JSON_NO_SLOT {
+        return Ok(slot);
+    }
+    match entries[slot as usize].0.cmp(&entries[root as usize].0) {
+        std::cmp::Ordering::Equal => return Err(RegistryError::malformed("json duplicate key")),
+        std::cmp::Ordering::Less => {
+            let child = nodes[root as usize].left;
+            nodes[root as usize].left = json_key_insert(nodes, entries, child, slot)?;
+        }
+        std::cmp::Ordering::Greater => {
+            let child = nodes[root as usize].right;
+            nodes[root as usize].right = json_key_insert(nodes, entries, child, slot)?;
+        }
+    }
+    json_key_update_height(nodes, root);
+    let left = nodes[root as usize].left;
+    let right = nodes[root as usize].right;
+    let left_height = json_key_height(nodes, left);
+    let right_height = json_key_height(nodes, right);
+    if left_height > right_height.saturating_add(1) {
+        let left_left = nodes[left as usize].left;
+        let left_right = nodes[left as usize].right;
+        if json_key_height(nodes, left_right) > json_key_height(nodes, left_left) {
+            nodes[root as usize].left = json_key_rotate_left(nodes, left);
+        }
+        return Ok(json_key_rotate_right(nodes, root));
+    }
+    if right_height > left_height.saturating_add(1) {
+        let right_left = nodes[right as usize].left;
+        let right_right = nodes[right as usize].right;
+        if json_key_height(nodes, right_left) > json_key_height(nodes, right_right) {
+            nodes[root as usize].right = json_key_rotate_right(nodes, right);
+        }
+        return Ok(json_key_rotate_left(nodes, root));
+    }
+    Ok(root)
 }
 
 /// Strict small JSON reader: duplicate keys, trailing data, bad escapes,
@@ -1736,6 +2030,57 @@ impl<'a> JsonParser<'a> {
             match self.peek() {
                 Some(b',') => {
                     self.pos = self.pos.saturating_add(1);
+                    if entries.len() == JSON_LINEAR_TAIL {
+                        return self.parse_large_object(depth, entries);
+                    }
+                }
+                Some(b'}') => {
+                    self.pos = self.pos.saturating_add(1);
+                    return Ok(JsonValue::Object(entries));
+                }
+                _ => return Err(RegistryError::malformed("json bad object")),
+            }
+        }
+    }
+
+    // Isolate index state from the common small-object stack frame. The field
+    // parser and delimiter checks intentionally match parse_object.
+    #[inline(never)]
+    fn parse_large_object(
+        &mut self,
+        depth: usize,
+        mut entries: Vec<(String, JsonValue)>,
+    ) -> Result<JsonValue, RegistryError> {
+        let mut index = JsonKeyIndex::new();
+        loop {
+            self.skip_ws();
+            if self.peek() != Some(b'"') {
+                return Err(RegistryError::malformed("json object key not a string"));
+            }
+            let key = self.parse_string()?;
+            self.skip_ws();
+            if self.peek() != Some(b':') {
+                return Err(RegistryError::malformed("json object missing colon"));
+            }
+            self.pos = self.pos.saturating_add(1);
+            let value = self.parse_value(depth.saturating_add(1))?;
+            let duplicate = if index.nodes.is_empty() {
+                entries.iter().any(|(known, _)| known == &key)
+            } else {
+                index.contains(&entries, &key)
+                    || entries[index.nodes.len()..]
+                        .iter()
+                        .any(|(known, _)| known == &key)
+            };
+            if duplicate {
+                return Err(RegistryError::malformed("json duplicate key"));
+            }
+            entries.push((key, value));
+            index.insert_next(&entries)?;
+            self.skip_ws();
+            match self.peek() {
+                Some(b',') => {
+                    self.pos = self.pos.saturating_add(1);
                 }
                 Some(b'}') => {
                     self.pos = self.pos.saturating_add(1);
@@ -1944,6 +2289,770 @@ mod tests {
     use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
     use tokio::net::TcpListener;
     use tokio::sync::Mutex;
+
+    // BEGIN_JSON_INDEX_CONTROLS
+    #[test]
+    fn json_key_index_balances_ordered_reverse_and_shuffled_inputs() {
+        fn check_tree(
+            entries: &[(String, JsonValue)],
+            nodes: &[JsonKeyNode],
+            slot: u32,
+            low: Option<&str>,
+            high: Option<&str>,
+        ) -> (u8, usize) {
+            if slot == JSON_NO_SLOT {
+                return (0, 0);
+            }
+            let i = slot as usize;
+            let key = entries[i].0.as_str();
+            assert!(low.is_none_or(|bound| bound < key));
+            assert!(high.is_none_or(|bound| key < bound));
+            let (left_height, left_count) =
+                check_tree(entries, nodes, nodes[i].left, low, Some(key));
+            let (right_height, right_count) =
+                check_tree(entries, nodes, nodes[i].right, Some(key), high);
+            assert!(left_height.abs_diff(right_height) <= 1);
+            assert_eq!(nodes[i].height, 1 + left_height.max(right_height));
+            (nodes[i].height, left_count + right_count + 1)
+        }
+
+        for pattern in 0..3 {
+            let mut order: Vec<usize> = (0..8192).collect();
+            if pattern == 1 {
+                order.reverse();
+            } else if pattern == 2 {
+                let mut state = 0x93ed_4a2b_u64;
+                for i in (1..order.len()).rev() {
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
+                    order.swap(i, (state as usize) % (i + 1));
+                }
+            }
+            let mut entries = Vec::new();
+            let mut index = JsonKeyIndex::new();
+            for value in order {
+                let key = format!("field-{value:05}");
+                entries.push((key.clone(), JsonValue::Null));
+                index.insert_next(&entries).unwrap();
+                assert!(index.contains(&entries, &key));
+                if entries.len() <= 128 || entries.len() % 257 == 0 {
+                    let (_, seen) = check_tree(&entries, &index.nodes, index.root, None, None);
+                    assert_eq!(seen, entries.len());
+                }
+            }
+            let (_, seen) = check_tree(&entries, &index.nodes, index.root, None, None);
+            assert_eq!(seen, entries.len());
+            assert!(!index.contains(&entries, "not-a-field"));
+            if pattern == 0 {
+                println!(
+                    "PL_JSON_INDEX nodes={} capacity={} node_bytes={}",
+                    index.nodes.len(),
+                    index.nodes.capacity(),
+                    std::mem::size_of::<JsonKeyNode>()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn json_key_index_preserves_duplicate_scope_and_error_order() {
+        use std::fmt::Write as _;
+        for count in [
+            0usize, 1, 31, 32, 33, 34, 64, 65, 66, 80, 95, 96, 97, 128, 129, 512, 4096,
+        ] {
+            let mut body = String::from("{");
+            for i in 0..count {
+                if i != 0 {
+                    body.push(',');
+                }
+                write!(&mut body, r#""k{i:05}":{i}"#).unwrap();
+            }
+            body.push('}');
+            let JsonValue::Object(entries) = JsonParser::new(&body).parse().unwrap() else {
+                panic!("expected object");
+            };
+            assert_eq!(entries.len(), count);
+            for (i, (key, _)) in entries.iter().enumerate() {
+                assert_eq!(key, &format!("k{i:05}"));
+            }
+            if count != 0 {
+                if count >= 65 {
+                    let mut malformed = body[..body.len() - 1].to_owned();
+                    malformed.push_str(r#","k00000":tru}"#);
+                    let err = JsonParser::new(&malformed).parse().unwrap_err();
+                    assert_eq!(
+                        err,
+                        RegistryError::Malformed {
+                            what: "json bad literal".into()
+                        }
+                    );
+                }
+                if (64..=129).contains(&count) {
+                    for duplicate in [0, 1, count - 1] {
+                        let mut escaped_new = body[..body.len() - 1].to_owned();
+                        write!(&mut escaped_new, r#","\u006b{duplicate:05}":0}}"#).unwrap();
+                        assert_eq!(
+                            JsonParser::new(&escaped_new).parse().unwrap_err(),
+                            RegistryError::Malformed {
+                                what: "json duplicate key".into()
+                            }
+                        );
+
+                        let original = format!(r#""k{duplicate:05}""#);
+                        let escaped = format!(r#""\u006b{duplicate:05}""#);
+                        let escaped_old = body.replacen(&original, &escaped, 1);
+                        let mut duplicate_new = escaped_old[..escaped_old.len() - 1].to_owned();
+                        write!(&mut duplicate_new, r#","k{duplicate:05}":0}}"#).unwrap();
+                        assert_eq!(
+                            JsonParser::new(&duplicate_new).parse().unwrap_err(),
+                            RegistryError::Malformed {
+                                what: "json duplicate key".into()
+                            }
+                        );
+                    }
+                }
+                for duplicate in [0, count / 2, count - 1] {
+                    let mut bad = body[..body.len() - 1].to_owned();
+                    write!(&mut bad, r#","k{duplicate:05}":0}}"#).unwrap();
+                    let err = JsonParser::new(&bad).parse().unwrap_err();
+                    assert_eq!(
+                        err,
+                        RegistryError::Malformed {
+                            what: "json duplicate key".into()
+                        }
+                    );
+                }
+            }
+        }
+        for count in [31usize, 32, 33, 63, 64, 65] {
+            let mut prefix = String::from("{");
+            for i in 0..count {
+                if i != 0 {
+                    prefix.push(',');
+                }
+                write!(&mut prefix, r#""edge{i:05}":0"#).unwrap();
+            }
+            let trailing = format!("{prefix},}}");
+            assert_eq!(
+                JsonParser::new(&trailing).parse().unwrap_err(),
+                RegistryError::Malformed {
+                    what: "json object key not a string".into()
+                }
+            );
+            let missing_colon = format!(r#"{prefix},"bad" 1}}"#);
+            assert_eq!(
+                JsonParser::new(&missing_colon).parse().unwrap_err(),
+                RegistryError::Malformed {
+                    what: "json object missing colon".into()
+                }
+            );
+        }
+        for pattern in 0..3 {
+            let mut order: Vec<usize> = (0..512).collect();
+            if pattern == 1 {
+                order.reverse();
+            } else if pattern == 2 {
+                let mut state = 0x772a_31df_u64;
+                for i in (1..order.len()).rev() {
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
+                    order.swap(i, (state as usize) % (i + 1));
+                }
+            }
+            let mut body = String::from("{");
+            for (position, value) in order.iter().enumerate() {
+                if position != 0 {
+                    body.push(',');
+                }
+                write!(&mut body, r#""k{value:05}":0"#).unwrap();
+            }
+            let prefix = body;
+            let mut valid = prefix.clone();
+            valid.push('}');
+            let JsonValue::Object(entries) = JsonParser::new(&valid).parse().unwrap() else {
+                panic!("expected object");
+            };
+            for (position, (key, _)) in entries.iter().enumerate() {
+                assert_eq!(key, &format!("k{:05}", order[position]));
+            }
+            for position in [0, 256, 511] {
+                let mut duplicate = prefix.clone();
+                write!(&mut duplicate, r#","k{:05}":0}}"#, order[position]).unwrap();
+                assert_eq!(
+                    JsonParser::new(&duplicate).parse().unwrap_err(),
+                    RegistryError::Malformed {
+                        what: "json duplicate key".into()
+                    }
+                );
+            }
+        }
+        let err = JsonParser::new(r#"{"a":1,"\u0061":2}"#)
+            .parse()
+            .unwrap_err();
+        assert_eq!(
+            err,
+            RegistryError::Malformed {
+                what: "json duplicate key".into()
+            }
+        );
+        let err = JsonParser::new(r#"{"a":1,"a":tru}"#).parse().unwrap_err();
+        assert_eq!(
+            err,
+            RegistryError::Malformed {
+                what: "json bad literal".into()
+            }
+        );
+        assert!(JsonParser::new(r#"{"outer":{"same":1},"same":2}"#)
+            .parse()
+            .is_ok());
+    }
+
+    #[test]
+    fn json_key_index_nesting_and_fast_path_transition() {
+        use std::fmt::Write as _;
+
+        fn nested_objects(count: usize, width: usize) -> String {
+            let mut body = String::from("null");
+            for _ in 0..count {
+                let mut outer = String::from("{");
+                for i in 0..width {
+                    if i != 0 {
+                        outer.push(',');
+                    }
+                    write!(&mut outer, r#""f{i:05}":0"#).unwrap();
+                }
+                write!(&mut outer, r#","next":{body}}}"#).unwrap();
+                body = outer;
+            }
+            body
+        }
+
+        for width in [JSON_LINEAR_TAIL, 128] {
+            assert!(JsonParser::new(&nested_objects(MAX_JSON_DEPTH, width))
+                .parse()
+                .is_ok());
+            assert_eq!(
+                JsonParser::new(&nested_objects(MAX_JSON_DEPTH + 1, width))
+                    .parse()
+                    .unwrap_err(),
+                RegistryError::Malformed {
+                    what: "json nesting too deep".into()
+                }
+            );
+        }
+
+        let mut prefix = String::from("{");
+        for i in 0..JSON_LINEAR_TAIL {
+            if i != 0 {
+                prefix.push(',');
+            }
+            write!(&mut prefix, r#""f{i:05}":0"#).unwrap();
+        }
+        for position in [0, 1, JSON_LINEAR_TAIL - 1] {
+            let mut immediate = prefix.clone();
+            write!(&mut immediate, r#","f{position:05}":0}}"#).unwrap();
+            assert_eq!(
+                JsonParser::new(&immediate).parse().unwrap_err(),
+                RegistryError::Malformed {
+                    what: "json duplicate key".into()
+                }
+            );
+
+            let mut after_one = prefix.clone();
+            write!(&mut after_one, r#","fresh":1,"f{position:05}":0}}"#).unwrap();
+            assert_eq!(
+                JsonParser::new(&after_one).parse().unwrap_err(),
+                RegistryError::Malformed {
+                    what: "json duplicate key".into()
+                }
+            );
+        }
+
+        let malformed_value = format!(r#"{prefix},"f00000":tru}}"#);
+        assert_eq!(
+            JsonParser::new(&malformed_value).parse().unwrap_err(),
+            RegistryError::Malformed {
+                what: "json bad literal".into()
+            }
+        );
+        let missing_colon = format!(r#"{prefix},"fresh" 1}}"#);
+        assert_eq!(
+            JsonParser::new(&missing_colon).parse().unwrap_err(),
+            RegistryError::Malformed {
+                what: "json object missing colon".into()
+            }
+        );
+        let missing_comma = format!(r#"{prefix},"fresh":1 "next":0}}"#);
+        assert_eq!(
+            JsonParser::new(&missing_comma).parse().unwrap_err(),
+            RegistryError::Malformed {
+                what: "json bad object".into()
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn json_key_index_large_public_response_and_duplicate() {
+        use std::fmt::Write as _;
+        let mut body = String::from(r#"{"schema":"{}""#);
+        for i in 0..4096 {
+            write!(&mut body, r#","k{i:05}":0"#).unwrap();
+        }
+        let mut duplicate = body.clone();
+        duplicate.push_str(r#","k00000":1}"#);
+        body.push('}');
+
+        let server = start_mock(vec![MockResponse::json(200, &body)], None).await;
+        let schema = fast_client(&server).get_schema_by_id(7).await.unwrap();
+        assert_eq!(schema.schema, "{}");
+
+        let server = start_mock(vec![MockResponse::json(200, &duplicate)], None).await;
+        let err = fast_client(&server).get_schema_by_id(7).await.unwrap_err();
+        assert_eq!(
+            err,
+            RegistryError::Malformed {
+                what: "json duplicate key".into()
+            }
+        );
+    }
+
+    // END_JSON_INDEX_CONTROLS
+
+    struct FragmentedResponse<'a> {
+        bytes: &'a [u8],
+        position: usize,
+        max_read: usize,
+    }
+
+    impl AsyncRead for FragmentedResponse<'_> {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            out: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            let count = this
+                .max_read
+                .min(out.remaining())
+                .min(this.bytes.len() - this.position);
+            out.put_slice(&this.bytes[this.position..this.position + count]);
+            this.position += count;
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test]
+    async fn interim_response_fragmentation_preserves_final_framing_and_headers() {
+        let cases: [&[u8]; 3] = [
+            b"HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 103 Early Hints\r\nRetry-After: 99\r\n\r\nHTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\nContent-Length: 5\r\n\r\nabcde",
+            b"HTTP/1.1 103 Early Hints\r\n\r\nHTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nabcde\r\n0\r\n\r\n",
+            b"HTTP/1.1 103 Early Hints\r\n\r\nHTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\nConnection: close\r\n\r\nabcde",
+        ];
+        for wire in cases {
+            for width in [1, 2, 3, 7, 17, 8192] {
+                let mut stream = FragmentedResponse {
+                    bytes: wire,
+                    position: 0,
+                    max_read: width,
+                };
+                let response =
+                    read_http_response(&mut stream, Instant::now() + Duration::from_secs(3), 1024)
+                        .await
+                        .unwrap();
+                assert_eq!(response.status, 429, "width {width}");
+                assert_eq!(response.retry_after_secs, Some(7), "width {width}");
+                assert_eq!(response.body, b"abcde", "width {width}");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn interim_response_headers_share_the_header_limit() {
+        for extra in [0, 1] {
+            let early = b"HTTP/1.1 103 Early Hints\r\nX-Long: ";
+            let between = b"\r\n\r\n";
+            let final_head = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n";
+            let mut wire = early.to_vec();
+            wire.extend(std::iter::repeat_n(
+                b'a',
+                MAX_HEADER_BYTES + extra - early.len() - between.len() - final_head.len(),
+            ));
+            wire.extend_from_slice(between);
+            wire.extend_from_slice(final_head);
+            wire.extend_from_slice(b"{}");
+            let mut stream = wire.as_slice();
+            let result =
+                read_http_response(&mut stream, Instant::now() + Duration::from_secs(3), 1024)
+                    .await;
+            if extra == 0 {
+                assert_eq!(result.unwrap().body, b"{}");
+            } else {
+                assert!(matches!(
+                    result,
+                    Err(RegistryError::TooLarge {
+                        limit: MAX_HEADER_BYTES
+                    })
+                ));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn interim_response_requires_final_headers() {
+        let mut stream = &b"HTTP/1.1 103 Early Hints\r\n\r\n"[..];
+        let result =
+            read_http_response(&mut stream, Instant::now() + Duration::from_secs(3), 1024).await;
+        assert!(matches!(result, Err(RegistryError::Malformed { .. })));
+
+        let (mut writer, mut reader) = tokio::io::duplex(1024);
+        writer
+            .write_all(b"HTTP/1.1 100 Continue\r\n\r\n")
+            .await
+            .unwrap();
+        let result = read_http_response(
+            &mut reader,
+            Instant::now() + Duration::from_millis(50),
+            1024,
+        )
+        .await;
+        assert!(matches!(result, Err(RegistryError::Timeout)));
+        drop(writer);
+    }
+
+    #[tokio::test]
+    async fn bodyless_final_responses_do_not_wait_for_connection_close() {
+        for code in [101, 204, 304] {
+            let (mut writer, mut reader) = tokio::io::duplex(1024);
+            // A 304 Content-Length describes the selected representation,
+            // not a response body, and must not trigger the body-size limit.
+            let wire = if code == 304 {
+                format!("HTTP/1.1 {code} Status\r\nContent-Length: 99999\r\n\r\n")
+            } else {
+                format!("HTTP/1.1 {code} Status\r\n\r\n")
+            };
+            writer.write_all(wire.as_bytes()).await.unwrap();
+            let response = timeout(
+                Duration::from_millis(250),
+                read_http_response(&mut reader, Instant::now() + Duration::from_secs(3), 1024),
+            )
+            .await
+            .expect("bodyless status waited for connection close")
+            .unwrap();
+            assert_eq!(response.status, code);
+            assert!(response.body.is_empty());
+            drop(writer);
+        }
+    }
+
+    #[test]
+    fn transfer_encoding_requires_a_single_supported_coding() {
+        for head in [
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip, chunked\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked, gzip\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked, chunked\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: gzip\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: Chunked\r\n\r\n"
+                [..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip\r\nTransfer-Encoding: chunked\r\n\r\n"[..],
+            &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked,\r\n\r\n"[..],
+        ] {
+            assert!(matches!(
+                is_chunked(head),
+                Err(RegistryError::Malformed { .. })
+            ));
+        }
+        assert!(is_chunked(b"HTTP/1.1 200 OK\r\ntRaNsFeR-EnCoDiNg: \tCHUNKED \t\r\n\r\n").unwrap());
+        assert!(!is_chunked(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n").unwrap());
+    }
+
+    #[test]
+    fn chunked_decoder_handles_every_split_and_extensions() {
+        let wire = b"3;name=value\r\nabc\r\n2\r\nde\r\n0\r\nX-Test: ok\r\n\r\n";
+        for split in 0..=wire.len() {
+            let mut decoder = ChunkedDecoder::new(1024);
+            assert_eq!(decoder.feed(&wire[..split]).unwrap(), split == wire.len());
+            assert!(decoder.feed(&wire[split..]).unwrap());
+            assert_eq!(decoder.body, b"abcde");
+        }
+        for width in 1..=wire.len() {
+            let mut decoder = ChunkedDecoder::new(1024);
+            for part in wire.chunks(width) {
+                decoder.feed(part).unwrap();
+            }
+            assert!(matches!(decoder.state, ChunkState::Done));
+            assert_eq!(decoder.body, b"abcde");
+        }
+    }
+
+    #[test]
+    fn chunked_decoder_rejects_malformed_lengths_and_terminators() {
+        for wire in [
+            &b"z\r\n"[..],
+            &b"\r\n"[..],
+            &b"ffffffffffffffffffffffffffffffff\r\n"[..],
+            &b"1\r\nxNO"[..],
+            &b"1\r\nx\rX"[..],
+        ] {
+            let error = ChunkedDecoder::new(1024).feed(wire).unwrap_err();
+            assert!(matches!(error, RegistryError::Malformed { .. }));
+        }
+        let error = ChunkedDecoder::new(1024).feed(b"401\r\n").unwrap_err();
+        assert!(matches!(error, RegistryError::TooLarge { limit: 1024 }));
+    }
+
+    #[test]
+    fn chunked_decoder_enforces_line_trailer_and_total_framing_limits() {
+        let mut line = ChunkedDecoder::new(1024);
+        assert!(!line.feed(&vec![b'a'; MAX_HEADER_BYTES]).unwrap());
+        assert!(matches!(
+            line.feed(b"a"),
+            Err(RegistryError::TooLarge {
+                limit: MAX_HEADER_BYTES
+            })
+        ));
+
+        let mut trailer = ChunkedDecoder::new(1024);
+        assert!(!trailer.feed(b"0\r\n").unwrap());
+        assert!(!trailer.feed(&vec![b'a'; MAX_HEADER_BYTES]).unwrap());
+        assert!(matches!(
+            trailer.feed(b"a"),
+            Err(RegistryError::TooLarge {
+                limit: MAX_HEADER_BYTES
+            })
+        ));
+
+        let limit = MAX_HEADER_BYTES + 5 * 1024;
+        for extra in 0..=1 {
+            let extension = limit - 17 + extra;
+            let left = extension / 2;
+            let right = extension - left;
+            let mut wire = Vec::new();
+            for count in [left, right] {
+                wire.extend_from_slice(b"1;");
+                wire.extend(std::iter::repeat_n(b'a', count));
+                wire.extend_from_slice(b"\r\nx\r\n");
+            }
+            wire.extend_from_slice(b"0\r\n\r\n");
+            assert_eq!(wire.len() - 2, limit + extra);
+            let result = ChunkedDecoder::new(1024).feed(&wire);
+            if extra == 0 {
+                assert!(matches!(result, Ok(true)));
+            } else {
+                assert!(
+                    matches!(result, Err(RegistryError::TooLarge { limit: got }) if got == limit)
+                );
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn chunked_http_fragmented_headers_and_trailers_keep_retry_after() {
+        let wire = b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\nTransfer-Encoding: chunked\r\n\r\n3;name=value\r\nabc\r\n2\r\nde\r\n0\r\nX-Test: ok\r\n\r\n";
+        for width in [1, 2, 3, 7, 17, 8192] {
+            let mut stream = FragmentedResponse {
+                bytes: wire,
+                position: 0,
+                max_read: width,
+            };
+            let response =
+                read_http_response(&mut stream, Instant::now() + Duration::from_secs(3), 1024)
+                    .await
+                    .unwrap();
+            assert_eq!(response.status, 429);
+            assert_eq!(response.retry_after_secs, Some(7));
+            assert_eq!(response.body, b"abcde");
+        }
+    }
+
+    #[tokio::test]
+    async fn response_header_ending_past_limit_is_rejected() {
+        for extra in [0, 1] {
+            let prefix = b"HTTP/1.1 200 OK\r\nX-Long: ";
+            let suffix = b"\r\nContent-Length: 2\r\n\r\n";
+            let mut wire = prefix.to_vec();
+            wire.extend(std::iter::repeat_n(
+                b'a',
+                MAX_HEADER_BYTES + extra - prefix.len() - suffix.len(),
+            ));
+            wire.extend_from_slice(suffix);
+            wire.extend_from_slice(b"{}");
+            let mut stream = wire.as_slice();
+            let result =
+                read_http_response(&mut stream, Instant::now() + Duration::from_secs(3), 1024)
+                    .await;
+            if extra == 0 {
+                assert!(result.is_ok());
+            } else {
+                assert!(matches!(
+                    result,
+                    Err(RegistryError::TooLarge {
+                        limit: MAX_HEADER_BYTES
+                    })
+                ));
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn always_ready_fragmented_responses_offer_a_poll_boundary() {
+        use std::future::Future as _;
+        let mut long_header = b"HTTP/1.1 200 OK\r\nX-Long: ".to_vec();
+        long_header.extend(std::iter::repeat_n(b'a', 2048));
+        long_header.extend_from_slice(b"\r\nContent-Length: 2\r\n\r\n{}");
+
+        let mut fixed = b"HTTP/1.1 200 OK\r\nContent-Length: 1024\r\n\r\n".to_vec();
+        fixed.extend(std::iter::repeat_n(b'a', 1024));
+        let mut close = b"HTTP/1.1 200 OK\r\n\r\n".to_vec();
+        close.extend(std::iter::repeat_n(b'a', 1024));
+        let mut chunked = b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n400\r\n".to_vec();
+        chunked.extend(std::iter::repeat_n(b'a', 1024));
+        chunked.extend_from_slice(b"\r\n0\r\n\r\n");
+
+        for (name, wire) in [
+            ("header", &long_header),
+            ("fixed", &fixed),
+            ("close", &close),
+            ("chunked", &chunked),
+        ] {
+            let mut stream = FragmentedResponse {
+                bytes: wire,
+                position: 0,
+                max_read: 1,
+            };
+            let mut call = Box::pin(read_http_response(
+                &mut stream,
+                Instant::now() + Duration::from_secs(3),
+                2048,
+            ));
+            let first = poll_fn(|cx| Poll::Ready(call.as_mut().poll(cx))).await;
+            assert!(
+                matches!(first, Poll::Pending),
+                "{name} did not offer a poll boundary"
+            );
+            drop(call);
+            println!("PL_FIRST_POLL fragmented={name} bytes={}", stream.position);
+            assert!(
+                stream.position > 0 && stream.position <= 512,
+                "{name}: {}",
+                stream.position
+            );
+            let mut full = FragmentedResponse {
+                bytes: wire,
+                position: 0,
+                max_read: 1,
+            };
+            assert!(
+                read_http_response(&mut full, Instant::now() + Duration::from_secs(3), 2048)
+                    .await
+                    .is_ok()
+            );
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn always_ready_large_responses_offer_a_poll_boundary() {
+        use std::future::Future as _;
+        const SIZE: usize = 2 * 1024 * 1024;
+        let mut fixed = format!("HTTP/1.1 200 OK\r\nContent-Length: {SIZE}\r\n\r\n").into_bytes();
+        fixed.extend(std::iter::repeat_n(b'a', SIZE));
+        let mut close = b"HTTP/1.1 200 OK\r\n\r\n".to_vec();
+        close.extend(std::iter::repeat_n(b'a', SIZE));
+        let mut chunked =
+            format!("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n{SIZE:x}\r\n")
+                .into_bytes();
+        chunked.extend(std::iter::repeat_n(b'a', SIZE));
+        chunked.extend_from_slice(b"\r\n0\r\n\r\n");
+
+        for (name, wire) in [("fixed", &fixed), ("close", &close), ("chunked", &chunked)] {
+            let mut stream = FragmentedResponse {
+                bytes: wire,
+                position: 0,
+                max_read: READ_CHUNK,
+            };
+            let mut call = Box::pin(read_http_response(
+                &mut stream,
+                Instant::now() + Duration::from_secs(3),
+                4 * 1024 * 1024,
+            ));
+            let first = poll_fn(|cx| Poll::Ready(call.as_mut().poll(cx))).await;
+            assert!(
+                matches!(first, Poll::Pending),
+                "{name} did not offer a poll boundary"
+            );
+            drop(call);
+            println!("PL_FIRST_POLL large={name} bytes={}", stream.position);
+            let limit = if name == "chunked" {
+                CHUNKED_READ_YIELD_BYTES
+            } else {
+                RESPONSE_READ_YIELD_BYTES
+            };
+            assert!(
+                stream.position >= limit && stream.position <= limit + 2 * READ_CHUNK,
+                "{name}: {}",
+                stream.position
+            );
+            let mut full = FragmentedResponse {
+                bytes: wire,
+                position: 0,
+                max_read: READ_CHUNK,
+            };
+            assert_eq!(
+                read_http_response(
+                    &mut full,
+                    Instant::now() + Duration::from_secs(3),
+                    4 * 1024 * 1024
+                )
+                .await
+                .unwrap()
+                .body
+                .len(),
+                SIZE
+            );
+        }
+    }
+
+    struct SlowReadyResponse<'a> {
+        bytes: &'a [u8],
+        position: usize,
+    }
+
+    impl AsyncRead for SlowReadyResponse<'_> {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            _cx: &mut Context<'_>,
+            out: &mut ReadBuf<'_>,
+        ) -> Poll<std::io::Result<()>> {
+            let this = self.get_mut();
+            if this.position < this.bytes.len() && out.remaining() > 0 {
+                let start = Instant::now();
+                while start.elapsed() < Duration::from_millis(2) {}
+                out.put_slice(&this.bytes[this.position..this.position + 1]);
+                this.position += 1;
+            }
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn always_ready_fragmented_header_obeys_deadline() {
+        let mut wire = b"HTTP/1.1 200 OK\r\nX-Long: ".to_vec();
+        wire.extend(std::iter::repeat_n(b'a', 1024));
+        wire.extend_from_slice(b"\r\nContent-Length: 2\r\n\r\n{}");
+        let mut stream = SlowReadyResponse {
+            bytes: &wire,
+            position: 0,
+        };
+        let result = read_http_response(
+            &mut stream,
+            Instant::now() + Duration::from_millis(100),
+            1024,
+        )
+        .await;
+        assert!(matches!(result, Err(RegistryError::Timeout)));
+        assert!(stream.position > 0 && stream.position < wire.len());
+    }
 
     /// Accepts every offered byte and spends time in proportion to that copy.
     struct GreedyRegistry;
@@ -2754,6 +3863,181 @@ mod tests {
         let schema = fast_client(&server).get_schema_by_id(100).await.unwrap();
         assert_eq!(schema.id, 100);
         assert_eq!(server.hits().await, 2);
+    }
+
+    fn rate_limited_response(kind: u8, retry_after: &str) -> MockResponse {
+        let response =
+            MockResponse::json(429, r#"{"error_code":429}"#).header("Retry-After", retry_after);
+        match kind {
+            0 => response,
+            1 => response.chunked(),
+            2 => response.close_delimited(),
+            _ => panic!("unknown response framing"),
+        }
+    }
+
+    #[test]
+    fn retry_after_parser_handles_status_lines_and_invalid_values() {
+        let cases: &[(&[u8], Option<u64>)] = &[
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 7\r\n\r\n", Some(7)),
+            (b"HTTP/1.1 429 Too Many Requests\r\nrEtRy-AfTeR:\t0  \r\n\r\n", Some(0)),
+            (b"HTTP/1.1 429 reason: with colon\r\nX: a\r\nRetry-After: 12\r\n\r\n", Some(12)),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 1\r\nRetry-After: 2\r\n\r\n", Some(1)),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: bad\r\nRetry-After: 2\r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: \r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: -1\r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 1.5\r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 18446744073709551616\r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: Wed, 21 Oct 2015 07:28:00 GMT\r\n\r\n", None),
+            (b"HTTP/1.1 429 Too Many Requests\r\nX: a\r\n\r\n", None),
+        ];
+        for (head, expected) in cases {
+            assert_eq!(parse_retry_after(head), *expected, "header: {head:?}");
+        }
+    }
+
+    async fn public_retry_after_deadline_case(kind: u8) {
+        let server = start_mock(
+            vec![
+                rate_limited_response(kind, "3600"),
+                MockResponse::json(200, BY_ID_100),
+            ],
+            None,
+        )
+        .await;
+        let client = RegistryClient::new(
+            RegistryClientConfig::new(server.base_url.clone())
+                .max_attempts(2)
+                .retry_backoff(Duration::from_millis(5), Duration::from_secs(2))
+                .request_timeout(Duration::from_millis(700)),
+        )
+        .unwrap();
+        let result = client.get_schema_by_id(100).await;
+        assert!(
+            matches!(result, Err(RegistryError::Timeout)),
+            "expected Timeout before the capped Retry-After delay for framing {kind}, got {result:?}"
+        );
+        assert_eq!(
+            server.hits().await,
+            1,
+            "framing {kind} retried before the deadline"
+        );
+    }
+
+    #[tokio::test]
+    async fn retry_after_public_content_length_deadline() {
+        public_retry_after_deadline_case(0).await;
+    }
+
+    #[tokio::test]
+    async fn retry_after_public_chunked_deadline() {
+        public_retry_after_deadline_case(1).await;
+    }
+
+    #[tokio::test]
+    async fn retry_after_public_close_delimited_deadline() {
+        public_retry_after_deadline_case(2).await;
+    }
+
+    #[tokio::test]
+    async fn retry_after_uses_capped_delay_and_attempt_limit() {
+        let server = start_mock(vec![rate_limited_response(1, "3600")], None).await;
+        let delay = Duration::from_millis(30);
+        let client = RegistryClient::new(
+            RegistryClientConfig::new(server.base_url.clone())
+                .max_attempts(2)
+                .retry_backoff(Duration::from_millis(5), delay)
+                .request_timeout(Duration::from_secs(3)),
+        )
+        .unwrap();
+        let started = Instant::now();
+        let result = client.get_schema_by_id(100).await;
+        assert!(matches!(
+            result,
+            Err(RegistryError::RateLimited { attempts: 2 })
+        ));
+        assert!(
+            started.elapsed() >= delay,
+            "retry did not wait for the capped delay"
+        );
+        assert_eq!(server.hits().await, 2);
+    }
+
+    #[tokio::test]
+    async fn retry_after_invalid_and_zero_use_the_documented_paths() {
+        for value in [
+            "0",
+            "bad",
+            "18446744073709551616",
+            "Wed, 21 Oct 2015 07:28:00 GMT",
+        ] {
+            let server = start_mock(
+                vec![
+                    rate_limited_response(0, value),
+                    MockResponse::json(200, BY_ID_100),
+                ],
+                None,
+            )
+            .await;
+            let client = RegistryClient::new(
+                RegistryClientConfig::new(server.base_url.clone())
+                    .max_attempts(2)
+                    .retry_backoff(Duration::from_millis(5), Duration::from_secs(1))
+                    .request_timeout(Duration::from_secs(3)),
+            )
+            .unwrap();
+            let result = client.get_schema_by_id(100).await;
+            assert!(result.is_ok(), "value {value:?}: {result:?}");
+            assert_eq!(server.hits().await, 2);
+        }
+    }
+
+    #[tokio::test]
+    async fn retry_after_does_not_delay_final_attempt() {
+        let server = start_mock(vec![rate_limited_response(0, "3600")], None).await;
+        let client = RegistryClient::new(
+            RegistryClientConfig::new(server.base_url.clone())
+                .max_attempts(1)
+                .retry_backoff(Duration::from_millis(5), Duration::from_secs(3))
+                .request_timeout(Duration::from_secs(2)),
+        )
+        .unwrap();
+        let result = client.get_schema_by_id(100).await;
+        assert!(matches!(
+            result,
+            Err(RegistryError::RateLimited { attempts: 1 })
+        ));
+        assert_eq!(server.hits().await, 1);
+    }
+
+    #[tokio::test]
+    async fn retry_after_cancellation_does_not_issue_another_request() {
+        let server = start_mock(
+            vec![
+                rate_limited_response(0, "3600"),
+                MockResponse::json(200, BY_ID_100),
+            ],
+            None,
+        )
+        .await;
+        let client = RegistryClient::new(
+            RegistryClientConfig::new(server.base_url.clone())
+                .max_attempts(2)
+                .retry_backoff(Duration::from_millis(5), Duration::from_secs(1))
+                .request_timeout(Duration::from_secs(3)),
+        )
+        .unwrap();
+        let mut call = Box::pin(client.get_schema_by_id(100));
+        assert!(
+            tokio::time::timeout(Duration::from_millis(200), call.as_mut())
+                .await
+                .is_err(),
+            "lookup retried before the Retry-After delay"
+        );
+        assert_eq!(server.hits().await, 1);
+        drop(call);
+        tokio::time::sleep(Duration::from_millis(1100)).await;
+        assert_eq!(server.hits().await, 1, "canceled lookup retried");
     }
 
     #[tokio::test]

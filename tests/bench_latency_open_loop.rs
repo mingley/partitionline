@@ -1,10 +1,5 @@
 //! Open-loop regression coverage against deterministic virtual peers and a mock broker.
 
-#![expect(
-    clippy::unwrap_used,
-    reason = "test fixtures and assertions fail immediately on unexpected errors"
-)]
-
 mod common;
 
 #[path = "../examples/bench_latency.rs"]

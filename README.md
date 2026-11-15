@@ -2,8 +2,8 @@
 
 An asynchronous Apache Kafka client with producer, consumer, group, transaction,
 and Admin APIs. This repository also contains an experimental
-[broker](https://github.com/mingley/partitionline/blob/c025be19b7d19dfd17d85eea66b43de93288dffb/partitionline-broker/README.md) and a
-[Schema Registry companion](https://github.com/mingley/partitionline/blob/02ce806d7ea4970897d51604e71e6a1fa069ca4c/partitionline-schema/README.md).
+[broker](https://github.com/mingley/partitionline/blob/dfe179d7066e2c1afecb88df5ba76d2920308c46/partitionline-broker/README.md) and a
+[Schema Registry companion](https://github.com/mingley/partitionline/blob/a2d0af0a71a1364fefd3c2520dca4b7041d4a2dc/partitionline-schema/README.md).
 
 [![ci](https://github.com/mingley/partitionline/actions/workflows/ci.yml/badge.svg)](https://github.com/mingley/partitionline/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/partitionline.svg)](https://crates.io/crates/partitionline)
@@ -11,16 +11,29 @@ and Admin APIs. This repository also contains an experimental
 
 ```toml
 [dependencies]
-partitionline = "0.1"
+partitionline = "0.2"
 ```
 
-Version 0.1.0 is available on [crates.io](https://crates.io/crates/partitionline).
-The repository includes changes made after that release. See the
-[support matrix](docs/support.md) for tested versions and platforms and the
-[task registry](https://github.com/mingley/partitionline/blob/c025be19b7d19dfd17d85eea66b43de93288dffb/docs/plan/tasks.json) for remaining work. Production and
-performance qualification are ongoing.
+See [`CHANGELOG.md`](CHANGELOG.md) for what changed in `0.2.0` since
+[`0.1.0`](https://docs.rs/partitionline/0.1.0/partitionline/), and
+[`docs/RELEASE.md`](docs/RELEASE.md) for publication gates on
+[crates.io](https://crates.io/crates/partitionline). Until `0.2.0` finishes
+publishing—or when testing unreleased `main` commits—you can depend on a local
+checkout (adjust the relative path as needed):
 
-Use the latest stable Rust to build the current source.
+```toml
+[dependencies]
+partitionline = { path = "../partitionline" }
+```
+
+`partitionline` is an `0.x` crate under active qualification (Suite HOLD
+remains unsigned, and production rankings have not been established). See
+[current status](docs/STATUS.md) for validation results and open work, and the
+[support matrix](docs/support.md) for tested Kafka versions and platforms.
+
+Build with Rust `1.99` or newer (latest stable recommended). Building the TLS
+dependency `ring` requires a C toolchain. The examples assume a running Kafka
+broker and existing topics.
 
 ## Produce
 
@@ -154,11 +167,13 @@ let _iso = IsolationLevel::ReadCommitted;
 Use `TlsConfig` for TLS and optional client certificates. SASL supports PLAIN,
 SCRAM-SHA-256/512, OAUTHBEARER, and OIDC token acquisition. Automatic
 reauthentication on existing client connections is still in progress; see
-[token and session lifecycle](docs/auth-refresh.md). Compression supports
-gzip, snappy, and lz4. The default partitioner hashes keys with murmur2 and uses
-round-robin for records without keys. Current source also has an opt-in
-`StickyPartitioner`, selected with `ProducerConfig::partitioner`; its independent
-qualification is still in progress.
+[token and session lifecycle](docs/auth-refresh.md). Compression supports gzip
+(`zlib-rs` by default; see [gzip backends](docs/gzip-backend.md) for the
+`default-features = false` `miniz_oxide` fallback), snappy, lz4, and optional
+zstd (`features = ["zstd"]`). The default partitioner hashes keys with murmur2
+and uses round-robin for records without keys. Opt-in `StickyPartitioner` is
+available via `ProducerConfig::partitioner` while independent qualification
+continues.
 
 Defaults that differ from Java:
 
@@ -173,7 +188,7 @@ Defaults that differ from Java:
 Authoritative defaults reference: [operator guide](docs/guide.md#defaults-that-differ-from-java).
 
 See the [operator guide](docs/guide.md) for recipes and troubleshooting,
-[API docs](https://docs.rs/partitionline) for methods and options, and the
+[published API docs](https://docs.rs/partitionline) for methods and options, and the
 [migration guide](docs/migrate-from-rdkafka.md) for porting from rust-rdkafka.
 
 ## Capabilities
@@ -192,7 +207,7 @@ version ranges and remaining gaps.
 
 ## Examples
 
-Broker on `127.0.0.1:9092` (Docker `apache/kafka:3.9.1` is enough):
+With a broker on `127.0.0.1:9092` and an existing topic named `partitionline`:
 
 ```
 cargo run --release --example roundtrip
@@ -212,7 +227,7 @@ COUNT=100000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plbe
   cargo run --release --example bench_produce
 ```
 
-Use a dedicated topic and verify its record history before comparing results.
+Create a dedicated topic and verify its record history before comparing results.
 This local sample uses seeded 100-byte payloads, 16-byte ID keys, and no
 warmup. [Benchmark instructions and results](docs/benchmark.md) describe the
 settings and limits of recorded runs. They do not establish a fastest-client

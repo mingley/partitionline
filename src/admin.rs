@@ -8,12 +8,15 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::future::Future;
+use std::hash::BuildHasher;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 mod offsets;
 use offsets::AdminOffsetConn;
+#[cfg(test)]
+mod pagination_tests;
 mod streams;
 pub use streams::{DescribeStreamsGroupsOptions, StreamsGroupDescription};
 
@@ -3242,12 +3245,12 @@ where
 }
 
 fn pending_leader_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Group each pending partition under its cached leader.
 ///
-/// The walk pauses every 8,192 partitions. Without that pause, grouping
+/// The walk pauses every 1,024 partitions. Without that pause, grouping
 /// 4,000,000 partitions held the caller for 1.77 seconds.
 ///
 /// The first time a leader is seen, it stays first. A missing leader stops
@@ -3281,12 +3284,12 @@ async fn group_pending_by_leader<'a>(
 }
 
 fn missing_leader_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// List topics that do not have a cached leader.
 ///
-/// The walk pauses every 8,192 partitions. Without that pause, listing
+/// The walk pauses every 1,024 partitions. Without that pause, listing
 /// 4,000,000 partitions held the caller for 881 milliseconds.
 ///
 /// A topic is kept once, the first time it is missing. A topic that already
@@ -3313,12 +3316,12 @@ async fn topics_missing_leaders<'a>(
 }
 
 fn unique_name_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Keep the first copy of each topic name.
 ///
-/// The walk pauses every 8,192 names. Without that pause, collecting
+/// The walk pauses every 1,024 names. Without that pause, collecting
 /// 2,000,000 names held the caller for 1.55 seconds.
 ///
 /// Later copies of the same name are dropped. Order follows the first copy.
@@ -3592,9 +3595,12 @@ async fn take_coordinator_slots(
 async fn index_coordinators(
     coords: Vec<crate::protocol::group::CoordinatorResult>,
 ) -> HashMap<String, CoordinatorSlot> {
-    let mut by_key = HashMap::new();
+    let mut by_key = HashMap::with_capacity(coords.len().min(65_536));
     let mut walked = 0usize;
     for coordinator in coords {
+        if by_key.len() == by_key.capacity() {
+            by_key.reserve(65_536);
+        }
         let _previous = by_key.insert(
             coordinator.key,
             (
@@ -3605,7 +3611,7 @@ async fn index_coordinators(
             ),
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -3617,20 +3623,25 @@ async fn group_named<T>(
     items: impl IntoIterator<Item = T>,
     name: impl Fn(&T) -> &str,
 ) -> HashMap<String, VecDeque<T>> {
-    let mut grouped: HashMap<String, VecDeque<T>> = HashMap::new();
+    let iter = items.into_iter();
+    let mut grouped: HashMap<String, VecDeque<T>> =
+        HashMap::with_capacity(iter.size_hint().0.min(65_536));
     let mut walked = 0usize;
-    for item in items {
+    for item in iter {
         let key = name(&item);
         if let Some(queue) = grouped.get_mut(key) {
             queue.push_back(item);
         } else {
+            if grouped.len() == grouped.capacity() {
+                grouped.reserve(65_536);
+            }
             let owned = key.to_owned();
             let mut queue = VecDeque::new();
             queue.push_back(item);
             let _ = grouped.insert(owned, queue);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -3751,6 +3762,15 @@ fn partitions_from_new<'a>(
         .collect()
 }
 
+fn dtp_remaining(deadline: tokio::time::Instant) -> Result<Duration> {
+    let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+    if remaining.is_zero() {
+        Err(Error::Timeout)
+    } else {
+        Ok(remaining)
+    }
+}
+
 fn startup_remaining(deadline: Instant) -> Result<Duration> {
     let remaining = deadline.saturating_duration_since(Instant::now());
     if remaining.is_zero() {
@@ -3806,9 +3826,7 @@ async fn dial_admin_socket(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -3861,9 +3879,7 @@ async fn dial_known_admin_socket(
     }
     .await;
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -4639,9 +4655,7 @@ impl Admin {
         // observes that close before the error returns. A successful dial keeps
         // the socket and does not wait.
         if opened.is_err() {
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
         }
         opened
     }
@@ -4692,9 +4706,7 @@ impl Admin {
         }
         // A cancelled admin handshake drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     pub(crate) async fn finish_aborted_indexed_handshakes(
@@ -4726,9 +4738,7 @@ impl Admin {
         }
         // A cancelled indexed handshake drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Handshake every bootstrap together and keep the first full success.
@@ -5078,11 +5088,15 @@ impl Admin {
     ///
     /// Sockets are dropped before this returns. On a current-thread runtime
     /// the broker stays in its read until this caller yields.
-    pub async fn close(self) -> Result<()> {
-        drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+    pub async fn close(mut self) -> Result<()> {
+        for (_, mut entry) in self.conns.drain() {
+            entry.close();
+            entry.release_if_closed().await;
         }
+        self.conn.close();
+        self.conn.release_if_closed().await;
+        drop(self);
+        crate::net::settle_closed_socket().await;
         Ok(())
     }
 
@@ -5796,8 +5810,9 @@ impl Admin {
     /// `DescribeTopicsOptions.timeoutMs`.
     ///
     /// DescribeTopicPartitions and Metadata have no TimeoutMs; `timeout`
-    /// is the RPC deadline (and the DTP NextCursor loop budget).
-    /// `ResponsePartitionLimit` is 2000 (Java
+    /// is the RPC deadline. For DescribeTopicPartitions it also covers
+    /// cooperative page encoding, decoding and aggregation across the cursor
+    /// loop. `ResponsePartitionLimit` is 2000 (Java
     /// `DescribeTopicsOptions.partitionSizeLimitPerResponse` default).
     /// For a custom limit, use
     /// [`Self::describe_topics_with_partition_limit_timeout`].
@@ -5850,7 +5865,40 @@ impl Admin {
     /// `DescribeTopicsOptions.timeoutMs`.
     ///
     /// DescribeTopicPartitions and Metadata have no TimeoutMs; `timeout`
-    /// is the RPC deadline (and the DTP NextCursor loop budget).
+    /// is the RPC deadline. For DescribeTopicPartitions it also covers
+    /// cooperative page encoding, decoding and aggregation across the cursor
+    /// loop. DescribeTopicPartitions descriptions follow their first appearance
+    /// in broker responses, which may differ from request order. A returned
+    /// topic description keeps its first reported error and has no partitions
+    /// on error. A global error, such as a timeout or a detected repeated
+    /// cursor, can fail the call before descriptions are returned.
+    ///
+    /// Until a topic error is retained, successful pages with differing nonzero
+    /// IDs return [`Error::Protocol`] for the entire call. This can happen if a
+    /// topic is recreated. [`Error::is_retriable`] returns false for this
+    /// error; a caller may retry the whole read after the topic stabilizes. A
+    /// zero ID is unknown and cannot establish that page's identity. The
+    /// returned ID of a successful description stays that of its first page.
+    /// Pages need not be a snapshot.
+    ///
+    /// A null DescribeTopicPartitions name cannot be associated with a
+    /// requested name. This aggregate reports [`Error::Unsupported`] unless a
+    /// global error takes precedence. It treats a response topic or next cursor
+    /// outside the requested names as a client-side [`Error::Protocol`].
+    /// This is a client consistency policy: a detected transient repeat is
+    /// rejected even if a later page might have progressed. Its
+    /// [`Error::Protocol`] is not retriable according to [`Error::is_retriable`].
+    /// Detected repeated cursors are checked before these name checks. A fixed
+    /// recent window and one cycle
+    /// checkpoint bound additional cursor state; they do not retain all prior
+    /// cursors, so nonperiodic repeats outside that state can pass. Periodic
+    /// cycles can require more pages to detect, and the deadline may expire
+    /// first. Within a page, any null name takes
+    /// precedence over an unrequested topic, which takes precedence over an
+    /// unrequested cursor. These checks precede page ID-conflict detection.
+    /// Large, out-of-order responses can require an index whose memory grows
+    /// with distinct requested names. For raw pages, use
+    /// [`Self::describe_topic_partitions_timeout`], which preserves the response.
     pub async fn describe_topics_with_partition_limit_timeout<'a, S>(
         &mut self,
         topics: impl IntoIterator<Item = &'a S>,
@@ -9462,8 +9510,12 @@ impl Admin {
             }
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+        if connected.is_err() {
+            crate::net::settle_closed_socket().await;
+        } else {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
         }
         connected
     }
@@ -10139,12 +10191,12 @@ impl Admin {
     }
 
     fn known_leader_chunk() -> usize {
-        8 * 1024
+        1024
     }
 
     /// Return each cached leader once.
     ///
-    /// The walk pauses every 8,192 partitions. Without that pause, finding
+    /// The walk pauses every 1,024 partitions. Without that pause, finding
     /// leaders for 4,000,000 partitions held the caller for 246 milliseconds.
     ///
     /// A leader that is already in the result is not added again. A partition
@@ -10263,8 +10315,12 @@ impl Admin {
         // A finished dial drops its socket while this call is still in the
         // same poll. Yield so the broker observes that close before the
         // caller continues.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+        if opened.iter().any(|(_, r)| r.is_err()) {
+            crate::net::settle_closed_socket().await;
+        } else {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
         }
         opened
     }
@@ -10359,9 +10415,7 @@ impl Admin {
         }
         // A cancelled dial or RPC drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Dial one stalled leader and return once that handshake has stopped.
@@ -13999,10 +14053,10 @@ impl Admin {
 
     /// [`Self::describe_topic_partitions`] with a one-shot RPC deadline.
     ///
-    /// DescribeTopicPartitions has no TimeoutMs; `timeout` is the RPC
-    /// deadline. Java `Admin.describeTopics` uses
-    /// [`Self::describe_topics_timeout`]. This overload is the crate-first
-    /// raw DescribeTopicPartitions (api 75) path.
+    /// DescribeTopicPartitions has no TimeoutMs; `timeout` bounds request
+    /// encoding, the RPC and response decoding. Java `Admin.describeTopics`
+    /// uses [`Self::describe_topics_timeout`]. This overload returns one raw
+    /// DescribeTopicPartitions (api 75) page, including its next cursor.
     pub async fn describe_topic_partitions_timeout(
         &mut self,
         topics: &[&str],
@@ -14024,6 +14078,32 @@ impl Admin {
         let version = self.describe_topic_partitions_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeTopicPartitions".into())
         })?;
+        let deadline = tokio::time::Instant::now()
+            .checked_add(timeout)
+            .ok_or(Error::Timeout)?;
+        tokio::time::timeout_at(
+            deadline,
+            self.describe_topic_partitions_until(
+                names,
+                response_partition_limit,
+                cursor,
+                version,
+                deadline,
+            ),
+        )
+        .await
+        .map_err(|_| Error::Timeout)?
+    }
+
+    async fn describe_topic_partitions_until<T: AsRef<str> + Sync>(
+        &mut self,
+        names: &[T],
+        response_partition_limit: i32,
+        cursor: Option<&TopicPartitionCursor>,
+        version: i16,
+        deadline: tokio::time::Instant,
+    ) -> Result<DescribeTopicPartitionsResponse> {
+        let _remaining = dtp_remaining(deadline)?;
         let mut encoded = BytesMut::new();
         encode_describe_topic_partitions_names_cooperative(
             &mut encoded,
@@ -14040,10 +14120,13 @@ impl Admin {
                     buf.extend_from_slice(&encoded);
                     Ok(())
                 },
-                timeout,
+                dtp_remaining(deadline)?,
             )
             .await?;
-        decode_describe_topic_partitions_response_cooperative(&mut body.clone()).await
+        let response =
+            decode_describe_topic_partitions_response_cooperative(&mut body.clone()).await?;
+        let _remaining = dtp_remaining(deadline)?;
+        Ok(response)
     }
 
     async fn describe_topics_dtp<T: AsRef<str> + Sync>(
@@ -14053,33 +14136,99 @@ impl Admin {
         response_partition_limit: i32,
         timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
-        let deadline = Instant::now() + timeout;
-        let mut cursor: Option<TopicPartitionCursor> = None;
-        let mut out: Vec<TopicDescription> = Vec::new();
-        let mut described: HashMap<String, usize> = HashMap::new();
-        loop {
-            if Instant::now() >= deadline {
-                return Err(Error::Timeout);
-            }
-            let resp = self
-                .describe_topic_partitions_once(
-                    names,
-                    response_partition_limit,
-                    cursor.as_ref(),
-                    timeout,
+        let version = self.describe_topic_partitions_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeTopicPartitions".into())
+        })?;
+        let deadline = tokio::time::Instant::now()
+            .checked_add(timeout)
+            .ok_or(Error::Timeout)?;
+        tokio::time::timeout_at(deadline, async {
+            let _remaining = dtp_remaining(deadline)?;
+            let mut requested_names = RequestedDtpNames::new(names);
+            let mut cursor: Option<TopicPartitionCursor> = None;
+            let mut cursor_history = DtpCursorHistory::new();
+            let mut out: Vec<TopicDescription> = Vec::new();
+            let mut described = DescribedTopicIndex::new();
+            let mut converted_rows = 0usize;
+            loop {
+                let resp = self
+                    .describe_topic_partitions_until(
+                        names,
+                        response_partition_limit,
+                        cursor.as_ref(),
+                        version,
+                        deadline,
+                    )
+                    .await?;
+                if resp.next_cursor.is_some() && resp.next_cursor.as_ref() == cursor.as_ref() {
+                    return Err(Error::protocol("repeated DescribeTopicPartitions cursor"));
+                }
+                if resp
+                    .next_cursor
+                    .as_ref()
+                    .is_some_and(|next| cursor_history.contains(next))
+                {
+                    let _remaining = dtp_remaining(deadline)?;
+                    return Err(Error::protocol("repeated DescribeTopicPartitions cursor"));
+                }
+                let mut page = Vec::with_capacity(resp.topics.len());
+                if let Some(unrequested) = convert_described_topic_page(
+                    &resp.topics,
+                    &mut requested_names,
+                    include_authorized_operations,
+                    &mut page,
+                    &mut out,
+                    deadline,
+                    &mut converted_rows,
                 )
-                .await?;
-            let mut page = Vec::with_capacity(resp.topics.len());
-            for topic in &resp.topics {
-                page.push(topic_description_from_dtp(topic, include_authorized_operations).await);
+                .await?
+                {
+                    if remaining_dtp_has_unnamed(resp.topics.iter().skip(unrequested + 1)).await {
+                        return Err(
+                            reject_unnamed_described_topic(&mut page, &mut out, deadline).await,
+                        );
+                    }
+                    return Err(reject_unrequested_described_topic(
+                        &mut page,
+                        &mut out,
+                        deadline,
+                        "DescribeTopicPartitions returned an unrequested topic",
+                    )
+                    .await);
+                }
+                let next_name = if let Some(next) = resp.next_cursor.as_ref() {
+                    let Some(name) = requested_names.canonical(next.topic_name.as_str()).await
+                    else {
+                        return Err(reject_unrequested_described_topic(
+                            &mut page,
+                            &mut out,
+                            deadline,
+                            "DescribeTopicPartitions returned an unrequested cursor topic",
+                        )
+                        .await);
+                    };
+                    Some(name)
+                } else {
+                    None
+                };
+                if let Err(error) = extend_described_topics(&mut out, &mut described, page).await {
+                    let _remaining = dtp_remaining(deadline)?;
+                    return Err(error);
+                }
+                if let (Some(next), Some(name)) = (resp.next_cursor.as_ref(), next_name) {
+                    cursor_history.remember(name, next.partition_index);
+                }
+                match resp.next_cursor {
+                    Some(next) => cursor = Some(next),
+                    None => {
+                        let _remaining = dtp_remaining(deadline)?;
+                        return Ok(out);
+                    }
+                }
             }
-            extend_described_topics(&mut out, &mut described, page).await;
-            match resp.next_cursor {
-                Some(next) if cursor.as_ref() != Some(&next) => cursor = Some(next),
-                _ => break,
-            }
-        }
-        Ok(out)
+        })
+        .await
+        .map_err(|_| Error::Timeout)?
     }
 
     async fn describe_topics_metadata<T: AsRef<str> + Sync>(
@@ -16335,6 +16484,11 @@ async fn pop_described_producers(
     out
 }
 
+#[cfg(test)]
+std::thread_local! {
+    static PRODUCER_INDEX_PROGRESS: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+
 async fn index_described_producers(topics: Vec<DescribeProducersTopic>) -> DescribedProducerIndex {
     let mut by_tp: DescribedProducerIndex = HashMap::new();
     let mut walked = 0usize;
@@ -16342,6 +16496,12 @@ async fn index_described_producers(topics: Vec<DescribeProducersTopic>) -> Descr
         let parts = by_tp.entry(topic.name).or_default();
         for part in topic.partitions {
             let _ = parts.insert(part.partition_index, part);
+            #[cfg(test)]
+            PRODUCER_INDEX_PROGRESS.with(|probe| {
+                if let Some(count) = probe.get() {
+                    probe.set(Some(count.saturating_add(1)));
+                }
+            });
             walked = walked.saturating_add(1);
             if walked == 8 * 1024 {
                 walked = 0;
@@ -16510,6 +16670,35 @@ async fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> Topi
     }
 }
 
+// Carry the row budget across pages so a stream of immediately ready, small
+// pages does not bypass the checkpoint. A completed 8,192nd row yields even
+// when it is the last row in a page.
+async fn convert_described_topic_page<T: AsRef<str> + Sync>(
+    topics: &[DescribedTopicPartitions],
+    requested_names: &mut RequestedDtpNames<'_, T>,
+    include_authorized_operations: bool,
+    page: &mut Vec<TopicDescription>,
+    out: &mut [TopicDescription],
+    deadline: tokio::time::Instant,
+    converted_rows: &mut usize,
+) -> Result<Option<usize>> {
+    for (index, topic) in topics.iter().enumerate() {
+        let Some(name) = topic.name.as_deref() else {
+            return Err(reject_unnamed_described_topic(page, out, deadline).await);
+        };
+        if !requested_names.contains(name).await {
+            return Ok(Some(index));
+        }
+        page.push(topic_description_from_dtp(topic, include_authorized_operations).await);
+        *converted_rows += 1;
+        if *converted_rows == 8 * 1024 {
+            *converted_rows = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    Ok(None)
+}
+
 async fn topic_description_from_dtp(
     t: &DescribedTopicPartitions,
     include_authorized_operations: bool,
@@ -16607,36 +16796,384 @@ async fn list_offset_topic_requests<'a>(
     groups
 }
 
-fn place_described_topic(
-    out: &mut Vec<TopicDescription>,
-    index: &mut HashMap<String, usize>,
-    desc: TopicDescription,
-) {
-    if let Some(&slot) = index.get(desc.name.as_str()) {
-        if let Some(existing) = out.get_mut(slot) {
-            existing.partitions.extend(desc.partitions);
-        }
-        return;
-    }
-    let slot = out.len();
-    let _previous = index.insert(desc.name.clone(), slot);
-    out.push(desc);
-}
-
-async fn extend_described_topics(
-    out: &mut Vec<TopicDescription>,
-    index: &mut HashMap<String, usize>,
-    incoming: Vec<TopicDescription>,
+async fn index_requested_dtp_names<'a, T: AsRef<str>>(
+    names: &'a [T],
+    requested: &mut HashSet<&'a str>,
 ) {
     let mut walked = 0usize;
-    for desc in incoming {
-        place_described_topic(out, index, desc);
+    for name in names {
+        let _inserted = requested.insert(name.as_ref());
+        walked += 1;
+        if walked == 8 * 1024 {
+            walked = 0;
+            #[cfg(test)]
+            DTP_REQUESTED_INDEX_PROGRESS.with(|probe| {
+                if let Some((before, after)) = probe.get() {
+                    probe.set(Some((before.saturating_add(1), after)));
+                }
+            });
+            tokio::task::yield_now().await;
+            #[cfg(test)]
+            DTP_REQUESTED_INDEX_PROGRESS.with(|probe| {
+                if let Some((before, after)) = probe.get() {
+                    probe.set(Some((before, after.saturating_add(1))));
+                }
+            });
+        }
+    }
+}
+
+// A fixed recent window and a Brent checkpoint for cursor cycles. Names are
+// borrowed from requested inputs, so broker-controlled cursors cannot grow
+// this state. A nonperiodic repeat outside both retained sets can still pass.
+struct DtpCursorHistory<'a> {
+    recent: [Option<(&'a str, i32)>; 16],
+    next_slot: usize,
+    checkpoint: Option<(&'a str, i32)>,
+    power: usize,
+    distance: usize,
+}
+
+impl<'a> DtpCursorHistory<'a> {
+    fn new() -> Self {
+        Self {
+            recent: [None; 16],
+            next_slot: 0,
+            checkpoint: None,
+            power: 1,
+            distance: 0,
+        }
+    }
+
+    fn contains(&self, cursor: &TopicPartitionCursor) -> bool {
+        let same = |(name, partition): (&str, i32)| {
+            partition == cursor.partition_index && name == cursor.topic_name
+        };
+        self.recent.iter().flatten().copied().any(same) || self.checkpoint.is_some_and(same)
+    }
+
+    fn remember(&mut self, name: &'a str, partition: i32) {
+        if let Some(slot) = self.recent.get_mut(self.next_slot) {
+            *slot = Some((name, partition));
+        }
+        self.next_slot = (self.next_slot + 1) % self.recent.len();
+        if self.checkpoint.is_none() {
+            self.checkpoint = Some((name, partition));
+            return;
+        }
+        self.distance = self.distance.saturating_add(1);
+        if self.distance == self.power {
+            self.checkpoint = Some((name, partition));
+            self.power = self.power.saturating_mul(2);
+            self.distance = 0;
+        }
+    }
+}
+
+struct RequestedDtpNames<'a, T> {
+    names: &'a [T],
+    index: Option<HashSet<&'a str>>,
+    hint: usize,
+}
+
+impl<'a, T: AsRef<str>> RequestedDtpNames<'a, T> {
+    fn new(names: &'a [T]) -> Self {
+        Self {
+            names,
+            index: None,
+            hint: 0,
+        }
+    }
+
+    async fn contains(&mut self, name: &str) -> bool {
+        if let Some(index) = &self.index {
+            return index.contains(name);
+        }
+        if self
+            .names
+            .get(self.hint)
+            .is_some_and(|candidate| candidate.as_ref() == name)
+        {
+            return true;
+        }
+        if self
+            .names
+            .get(self.hint + 1)
+            .is_some_and(|candidate| candidate.as_ref() == name)
+        {
+            self.hint += 1;
+            return true;
+        }
+        if self.names.len() <= 8 {
+            return self
+                .names
+                .iter()
+                .any(|candidate| candidate.as_ref() == name);
+        }
+        let mut index = HashSet::with_capacity(self.names.len().min(32));
+        index_requested_dtp_names(self.names, &mut index).await;
+        let contains = index.contains(name);
+        self.index = Some(index);
+        contains
+    }
+
+    // Match with the same hint/index rules as contains while returning a name
+    // borrowed from the caller's input, never from a broker response.
+    async fn canonical(&mut self, name: &str) -> Option<&'a str> {
+        if let Some(index) = &self.index {
+            return index.get(name).copied();
+        }
+        if let Some(candidate) = self.names.get(self.hint) {
+            let candidate = candidate.as_ref();
+            if candidate == name {
+                return Some(candidate);
+            }
+        }
+        if let Some(candidate) = self.names.get(self.hint + 1) {
+            let candidate = candidate.as_ref();
+            if candidate == name {
+                self.hint += 1;
+                return Some(candidate);
+            }
+        }
+        if self.names.len() <= 8 {
+            return self
+                .names
+                .iter()
+                .map(|candidate| candidate.as_ref())
+                .find(|candidate| *candidate == name);
+        }
+        let mut index = HashSet::with_capacity(self.names.len().min(32));
+        index_requested_dtp_names(self.names, &mut index).await;
+        let matched = index.get(name).copied();
+        self.index = Some(index);
+        matched
+    }
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static DTP_REMAINING_SCAN_PROGRESS: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+    static DTP_REQUESTED_INDEX_PROGRESS: std::cell::Cell<Option<(usize, usize)>> = const { std::cell::Cell::new(None) };
+}
+
+async fn remaining_dtp_has_unnamed<'a>(
+    topics: impl Iterator<Item = &'a DescribedTopicPartitions>,
+) -> bool {
+    let mut walked = 0usize;
+    for topic in topics {
+        #[cfg(test)]
+        DTP_REMAINING_SCAN_PROGRESS.with(|probe| {
+            if let Some(count) = probe.get() {
+                probe.set(Some(count.saturating_add(1)));
+            }
+        });
+        if topic.name.is_none() {
+            return true;
+        }
+        walked += 1;
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    false
+}
+
+// Topic names live in the output vector. Slots stay valid when the vector
+// reallocates and replacement descriptions have the same name. Keep the
+// hash so table growth does not need to rehash those names. A zero topic ID
+// means the broker did not supply an identity; keep the first nonzero ID
+// separately from the public first-page description.
+struct DescribedTopicEntry {
+    hash: u64,
+    slot: usize,
+    known_id: [u8; 16],
+}
+
+struct DescribedTopicIndex<S = std::collections::hash_map::RandomState> {
+    table: hashbrown::HashTable<DescribedTopicEntry>,
+    hash_builder: S,
+}
+
+impl DescribedTopicIndex {
+    fn new() -> Self {
+        Self::with_hasher(std::collections::hash_map::RandomState::new())
+    }
+}
+
+impl<S: BuildHasher> DescribedTopicIndex<S> {
+    fn with_hasher(hash_builder: S) -> Self {
+        Self {
+            table: hashbrown::HashTable::new(),
+            hash_builder,
+        }
+    }
+
+    fn hash(&self, name: &str) -> u64 {
+        self.hash_builder.hash_one(name)
+    }
+
+    fn insert_hashed(&mut self, hash: u64, slot: usize, known_id: [u8; 16]) {
+        let _entry = self.table.insert_unique(
+            hash,
+            DescribedTopicEntry {
+                hash,
+                slot,
+                known_id,
+            },
+            |entry| entry.hash,
+        );
+    }
+}
+
+async fn discard_described_partitions(partitions: &mut Vec<crate::PartitionInfo>) {
+    const CHUNK: usize = 8 * 1024;
+    while partitions.len() > CHUNK {
+        partitions.truncate(partitions.len() - CHUNK);
+        tokio::task::yield_now().await;
+    }
+    partitions.clear();
+}
+
+async fn discard_described_topics(topics: &mut [TopicDescription]) {
+    let mut walked = 0usize;
+    for topic in topics {
+        discard_described_partitions(&mut topic.partitions).await;
+        walked += 1;
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+}
+
+async fn reject_unnamed_described_topic(
+    page: &mut [TopicDescription],
+    out: &mut [TopicDescription],
+    deadline: tokio::time::Instant,
+) -> Error {
+    discard_described_topics(page).await;
+    discard_described_topics(out).await;
+    match dtp_remaining(deadline) {
+        Ok(_) => Error::Unsupported(
+            "cannot aggregate DescribeTopicPartitions without a topic name".into(),
+        ),
+        Err(error) => error,
+    }
+}
+
+async fn reject_unrequested_described_topic(
+    page: &mut [TopicDescription],
+    out: &mut [TopicDescription],
+    deadline: tokio::time::Instant,
+    message: &'static str,
+) -> Error {
+    discard_described_topics(page).await;
+    discard_described_topics(out).await;
+    match dtp_remaining(deadline) {
+        Ok(_) => Error::protocol(message),
+        Err(error) => error,
+    }
+}
+
+async fn place_described_topic<S: BuildHasher>(
+    out: &mut Vec<TopicDescription>,
+    index: &mut DescribedTopicIndex<S>,
+    mut desc: TopicDescription,
+) -> Result<()> {
+    let hash = index.hash(desc.name.as_str());
+    let mut missing_slot = false;
+    let found = index.table.find_mut(hash, |entry| {
+        if entry.hash != hash {
+            return false;
+        }
+        match out.get(entry.slot) {
+            Some(existing) => existing.name == desc.name,
+            None => {
+                missing_slot = true;
+                false
+            }
+        }
+    });
+    if missing_slot {
+        return Err(Error::protocol(
+            "DescribeTopicPartitions index references a missing topic",
+        ));
+    }
+    if let Some(entry) = found {
+        let Some(existing) = out.get_mut(entry.slot) else {
+            return Err(Error::protocol(
+                "DescribeTopicPartitions index references a missing topic",
+            ));
+        };
+        if existing.error_code != 0 {
+            discard_described_partitions(&mut desc.partitions).await;
+        } else if desc.error_code != 0 {
+            discard_described_partitions(&mut existing.partitions).await;
+            *existing = desc;
+        } else {
+            if desc.topic_id != [0; 16] {
+                if entry.known_id == [0; 16] {
+                    entry.known_id = desc.topic_id;
+                } else if entry.known_id != desc.topic_id {
+                    discard_described_partitions(&mut desc.partitions).await;
+                    return Err(Error::protocol(
+                        "DescribeTopicPartitions returned different topic IDs for the same topic",
+                    ));
+                }
+            }
+            existing.partitions.extend(desc.partitions);
+        }
+        return Ok(());
+    }
+    let slot = out.len();
+    index.insert_hashed(hash, slot, desc.topic_id);
+    out.push(desc);
+    Ok(())
+}
+
+async fn extend_described_topics<S: BuildHasher>(
+    out: &mut Vec<TopicDescription>,
+    index: &mut DescribedTopicIndex<S>,
+    incoming: Vec<TopicDescription>,
+) -> Result<()> {
+    let mut walked = 0usize;
+    let mut incoming = incoming.into_iter();
+    let mut failure = None;
+    for desc in incoming.by_ref() {
+        if let Err(error) = place_described_topic(out, index, desc).await {
+            failure = Some(error);
+            break;
+        }
         walked = walked.saturating_add(1);
         if walked == 8 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
     }
+    if let Some(error) = failure {
+        // This call returns no descriptions on an identity conflict. Release
+        // nested partition allocations cooperatively before returning it.
+        for mut desc in incoming {
+            discard_described_partitions(&mut desc.partitions).await;
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        for desc in out.iter_mut() {
+            discard_described_partitions(&mut desc.partitions).await;
+            walked = walked.saturating_add(1);
+            if walked == 8 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+        }
+        return Err(error);
+    }
+    Ok(())
 }
 
 async fn unique_in_order<'a>(keys: &[&'a str]) -> Vec<&'a str> {
@@ -16678,12 +17215,12 @@ fn first_seen_missing_ids<'a, T: AsRef<str>>(
 }
 
 fn owned_string_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Copy each id into an owned string.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, copying 2,000,000
+/// The walk pauses every 1,024 ids. Without that pause, copying 2,000,000
 /// ids held the caller for 181 milliseconds.
 ///
 /// Each id is still copied.
@@ -16702,12 +17239,12 @@ async fn collect_strings<T: Into<String>>(items: impl IntoIterator<Item = T>) ->
 }
 
 fn result_slot_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Open one empty result slot per item.
 ///
-/// The walk pauses every 8,192 slots. Without that pause, opening 2,000,000
+/// The walk pauses every 1,024 slots. Without that pause, opening 2,000,000
 /// group results and their indexes held the caller for 229 milliseconds.
 ///
 /// Every slot starts empty.
@@ -16746,7 +17283,7 @@ async fn pending_indexes(count: usize) -> Vec<usize> {
 }
 
 fn topic_record_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Copy topic names and offsets into owned topic partitions.
@@ -16801,12 +17338,12 @@ where
 }
 
 fn known_coord_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Collect coordinators that are already cached.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, collecting
+/// The walk pauses every 1,024 ids. Without that pause, collecting
 /// 2,000,000 cached coordinators held the caller for 1.04 seconds.
 ///
 /// A coordinator is kept once, the first time it is seen. An id without a
@@ -16837,12 +17374,12 @@ async fn cached_coordinator_nodes<T: AsRef<str>>(
 }
 
 fn coordinator_group_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// File each id under its cached coordinator.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, grouping 2,000,000
+/// The walk pauses every 1,024 ids. Without that pause, grouping 2,000,000
 /// coordinators held the caller for 1.11 seconds.
 ///
 /// A missing id or a missing coordinator stops the walk and returns an error.
@@ -16873,12 +17410,12 @@ async fn group_ids_by_coordinator<T: AsRef<str>>(
 }
 
 fn missing_id_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// List ids that do not have a cached coordinator.
 ///
-/// The walk pauses every 8,192 ids. Without that pause, listing 2,000,000
+/// The walk pauses every 1,024 ids. Without that pause, listing 2,000,000
 /// ids held the caller for 1.76 seconds.
 ///
 /// The first copy of an id is kept. A later copy, and an id that already has
@@ -17375,7 +17912,7 @@ async fn record_election_partitions(
             kept.push((index, partition));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -17474,6 +18011,60 @@ mod tests {
     };
     use bytes::BytesMut;
 
+    struct ObservedWake(std::sync::atomic::AtomicUsize);
+
+    impl std::task::Wake for ObservedWake {
+        fn wake(self: std::sync::Arc<Self>) {
+            let _previous = self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
+
+        fn wake_by_ref(self: &std::sync::Arc<Self>) {
+            let _previous = self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+
+    fn observed_poll<F: std::future::Future>(
+        future: std::pin::Pin<&mut F>,
+    ) -> (std::task::Poll<F::Output>, usize) {
+        let count = std::sync::Arc::new(ObservedWake(std::sync::atomic::AtomicUsize::new(0)));
+        let waker = std::task::Waker::from(std::sync::Arc::clone(&count));
+        let mut context = std::task::Context::from_waker(&waker);
+        let result = future.poll(&mut context);
+        (result, count.0.load(std::sync::atomic::Ordering::SeqCst))
+    }
+
+    fn finish_observed<F: std::future::Future>(mut future: std::pin::Pin<&mut F>) -> F::Output {
+        for _ in 0..8 {
+            let (state, wakes) = observed_poll(future.as_mut());
+            match state {
+                std::task::Poll::Ready(value) => return value,
+                std::task::Poll::Pending => assert!(wakes > 0, "pending future did not wake"),
+            }
+        }
+        panic!("future did not complete within the poll limit")
+    }
+
+    struct ProducerIndexProgress(Option<usize>);
+
+    impl ProducerIndexProgress {
+        fn start() -> Self {
+            Self(PRODUCER_INDEX_PROGRESS.with(|probe| probe.replace(Some(0))))
+        }
+
+        fn count(&self) -> usize {
+            PRODUCER_INDEX_PROGRESS.with(|probe| match probe.get() {
+                Some(count) => count,
+                None => panic!("producer index progress probe is not active"),
+            })
+        }
+    }
+
+    impl Drop for ProducerIndexProgress {
+        fn drop(&mut self) {
+            PRODUCER_INDEX_PROGRESS.with(|probe| probe.set(self.0));
+        }
+    }
+
     #[tokio::test(flavor = "current_thread")]
     async fn listing_many_missing_leaders_does_not_hold_the_caller() {
         let cluster = Cluster::default();
@@ -17543,17 +18134,19 @@ mod tests {
         let names: Vec<String> = (0..2_000_000)
             .map(|index| format!("topic-{index}"))
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = collect_topic_pairs(names.iter().enumerate().map(|(index, name)| {
-                ((name.as_str(), i32::try_from(index).unwrap_or(0)), 0i64)
-            })) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
+        let elapsed = {
+            let mut work = std::pin::pin!(collect_topic_pairs(names.iter().enumerate().map(
+                |(index, name)| { ((name.as_str(), i32::try_from(index).unwrap_or(0)), 0i64) }
+            ),));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "collecting topic partitions held the caller for {:?}",
-            started.elapsed()
+            elapsed < std::time::Duration::from_millis(80),
+            "collecting topic partitions held the caller for {elapsed:?}",
         );
         let collected = collect_topic_pairs([(("orders", 3), 9i64), (("payments", 1), 4i64)]).await;
         assert_eq!(collected[0].0.topic(), "orders");
@@ -17920,28 +18513,83 @@ mod tests {
         );
     }
 
-    #[tokio::test(flavor = "current_thread")]
-    async fn extending_many_described_topics_does_not_hold_the_caller() {
-        // Scanning earlier descriptions is the same name scan that held assignment
-        // grouping for 1.2s. Indexing 1_000_000 topics without a pause held the
-        // caller 1.2s.
-        let incoming: Vec<TopicDescription> = (0..1_000_000)
-            .map(|index| {
-                TopicDescription::new(format!("topic-{index}"), [0; 16], false, 0, Vec::new())
-            })
-            .collect();
+    #[test]
+    fn extending_described_topics_yields_and_completes() {
+        let lookup = |index: &DescribedTopicIndex, out: &[TopicDescription], name: &str| {
+            let hash = index.hash(name);
+            index
+                .table
+                .find(hash, |entry| {
+                    entry.hash == hash
+                        && out.get(entry.slot).is_some_and(|topic| topic.name == name)
+                })
+                .map(|entry| (entry.slot, entry.known_id))
+        };
+        let small = vec![TopicDescription::new(
+            "small",
+            [0; 16],
+            false,
+            0,
+            Vec::new(),
+        )];
         let mut out = Vec::new();
-        let mut index = std::collections::HashMap::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = extend_described_topics(&mut out, &mut index, incoming) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        let mut index = DescribedTopicIndex::new();
+        let mut short = Box::pin(extend_described_topics(&mut out, &mut index, small));
+        let (state, wakes) = observed_poll(short.as_mut());
+        assert!(matches!(state, std::task::Poll::Ready(Ok(()))));
+        assert_eq!(wakes, 0);
+        drop(short);
+        assert_eq!(out.len(), 1);
+        assert_eq!(lookup(&index, &out, "small"), Some((0, [0; 16])));
+
+        let make_topics = || -> Vec<TopicDescription> {
+            (0..20_000)
+                .map(|item| {
+                    TopicDescription::new(format!("topic-{item}"), [0; 16], false, 0, Vec::new())
+                })
+                .collect()
+        };
+        let mut previous = 0;
+        for required_polls in 1..=2 {
+            let mut partial = Vec::new();
+            let mut partial_index = DescribedTopicIndex::new();
+            let mut future = Box::pin(extend_described_topics(
+                &mut partial,
+                &mut partial_index,
+                make_topics(),
+            ));
+            for poll in 0..required_polls {
+                let (state, wakes) = observed_poll(future.as_mut());
+                assert!(state.is_pending(), "poll {poll} finished without yielding");
+                assert!(wakes > 0, "poll {poll} did not schedule another poll");
+            }
+            drop(future);
+            assert!(
+                partial.len() > previous,
+                "poll {required_polls} made no progress"
+            );
+            assert!(partial.len() < 20_000, "partial poll consumed every topic");
+            assert_eq!(partial_index.table.len(), partial.len());
+            previous = partial.len();
         }
-        let elapsed = started.elapsed();
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "extending described topics held the caller for {elapsed:?}"
-        );
+
+        let incoming = make_topics();
+        let mut out = Vec::new();
+        let mut index = DescribedTopicIndex::new();
+        let mut long = Box::pin(extend_described_topics(&mut out, &mut index, incoming));
+        for poll in 0..2 {
+            let (state, wakes) = observed_poll(long.as_mut());
+            assert!(state.is_pending(), "poll {poll} finished without yielding");
+            assert!(wakes > 0, "poll {poll} did not schedule another poll");
+        }
+        finish_observed(long.as_mut()).unwrap();
+        drop(long);
+        assert_eq!(out.len(), 20_000);
+        assert_eq!(index.table.len(), 20_000);
+        assert_eq!(out.first().map(TopicDescription::name), Some("topic-0"));
+        assert_eq!(out.last().map(TopicDescription::name), Some("topic-19999"));
+        assert_eq!(lookup(&index, &out, "topic-0"), Some((0, [0; 16])));
+        assert_eq!(lookup(&index, &out, "topic-19999"), Some((19_999, [0; 16])));
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -17978,8 +18626,10 @@ mod tests {
         );
         let other = TopicDescription::new("payments", [2; 16], false, 0, Vec::new());
         let mut out = Vec::new();
-        let mut index = std::collections::HashMap::new();
-        extend_described_topics(&mut out, &mut index, vec![first, other, again]).await;
+        let mut index = DescribedTopicIndex::new();
+        extend_described_topics(&mut out, &mut index, vec![first, other, again])
+            .await
+            .unwrap();
         assert_eq!(out.len(), 2);
         assert_eq!(out.first().map(|topic| topic.name.as_str()), Some("orders"));
         assert_eq!(
@@ -19084,20 +19734,26 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::admin::encode_consumer_group_describe_response(&mut body, 1, &groups)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_consumer_group_describe_response_cooperative(&mut body, 1) => {
-                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
-                assert_eq!(
-                    decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
-                    Some("member-0")
-                );
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_consumer_group_describe_response_cooperative(
+                &mut body, 1
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
+                    assert_eq!(
+                        decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
+                        Some("member-0")
+                    );
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding consumer group members held the caller for {elapsed:?}"
@@ -19159,20 +19815,26 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::admin::encode_share_group_describe_response(&mut body, 1, &groups)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_share_group_describe_response_cooperative(&mut body, 1) => {
-                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
-                assert_eq!(
-                    decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
-                    Some("member-0")
-                );
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_share_group_describe_response_cooperative(
+                &mut body, 1
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(decoded.first().map(|item| item.members.len()), Some(200_000));
+                    assert_eq!(
+                        decoded.first().and_then(|item| item.members.first()).map(|item| item.member_id.as_str()),
+                        Some("member-0")
+                    );
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding share group members held the caller for {elapsed:?}"
@@ -19451,20 +20113,26 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::group::encode_offset_fetch_groups_response(&mut body, 8, &groups)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_offset_fetch_groups_response_cooperative(&mut body, 8) => {
-                let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(decoded.first().map(|item| item.topics.len()), Some(200_000));
-                assert_eq!(
-                    decoded.first().and_then(|item| item.topics.first()).map(|item| item.topic.as_str()),
-                    Some("topic-0")
-                );
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_offset_fetch_groups_response_cooperative(
+                &mut body, 8
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(decoded.first().map(|item| item.topics.len()), Some(200_000));
+                    assert_eq!(
+                        decoded.first().and_then(|item| item.topics.first()).map(|item| item.topic.as_str()),
+                        Some("topic-0")
+                    );
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding fetched offsets held the caller for {elapsed:?}"
@@ -19647,20 +20315,24 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::acl::encode_describe_acls_response(&mut body, 3, &acls)
             .unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_describe_acls_response_cooperative(&mut body, 3) => {
-                let (decoded, throttle, message, error_code) =
-                    decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(throttle, 0);
-                assert_eq!(error_code, 0);
-                assert_eq!(message, None);
-                assert_eq!(decoded.len(), 200_000);
-                assert_eq!(decoded.first().map(|item| item.resource_name.as_str()), Some("topic-0"));
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_describe_acls_response_cooperative(&mut body, 3));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, throttle, message, error_code) =
+                        decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(throttle, 0);
+                    assert_eq!(error_code, 0);
+                    assert_eq!(message, None);
+                    assert_eq!(decoded.len(), 200_000);
+                    assert_eq!(decoded.first().map(|item| item.resource_name.as_str()), Some("topic-0"));
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding acls held the caller for {elapsed:?}"
@@ -20158,9 +20830,13 @@ mod tests {
         let mut body = bytes::BytesMut::new();
         crate::protocol::admin::encode_describe_delegation_token_response(&mut body, 3, &resp)
             .unwrap_or_else(|error| panic!("{error}"));
+        let mut work = std::pin::pin!(decode_describe_delegation_token_response_cooperative(
+            &mut body, 3
+        ));
         let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_describe_delegation_token_response_cooperative(&mut body, 3) => {
+        let elapsed = tokio::select! {
+            decoded = &mut work => {
+                let elapsed = started.elapsed();
                 let decoded = decoded.unwrap_or_else(|error| panic!("{error}"));
                 assert_eq!(decoded.error_code, 0);
                 assert_eq!(decoded.tokens.len(), 200_000);
@@ -20168,10 +20844,10 @@ mod tests {
                     decoded.tokens.first().map(|item| item.token_id.as_str()),
                     Some("token-0")
                 );
+                elapsed
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding delegation tokens held the caller for {elapsed:?}"
@@ -21456,15 +22132,19 @@ mod tests {
                 error_message: None,
             })
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            indexed = index_coordinators(coords) => {
-                assert_eq!(indexed.len(), 500_000);
-                assert_eq!(indexed.get("group-0").map(|slot| slot.1), Some(0));
+        let elapsed = {
+            let mut work = std::pin::pin!(index_coordinators(coords));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                indexed = &mut work => {
+                    let elapsed = started.elapsed();
+                    assert_eq!(indexed.len(), 500_000);
+                    assert_eq!(indexed.get("group-0").map(|slot| slot.1), Some(0));
+                    elapsed
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "indexing coordinators held the caller for {elapsed:?}"
@@ -21500,15 +22180,19 @@ mod tests {
     async fn grouping_many_named_results_does_not_hold_the_caller() {
         // 500_000 names: recording each one held the caller 572ms.
         let ids: Vec<String> = (0..500_000).map(|index| format!("group-{index}")).collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            grouped = group_named(ids, |id| id.as_str()) => {
-                assert_eq!(grouped.len(), 500_000);
-                assert!(grouped.contains_key("group-0"));
+        let elapsed = {
+            let mut work = std::pin::pin!(group_named(ids, |id| id.as_str()));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                grouped = &mut work => {
+                    let elapsed = started.elapsed();
+                    assert_eq!(grouped.len(), 500_000);
+                    assert!(grouped.contains_key("group-0"));
+                    elapsed
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "grouping named results held the caller for {elapsed:?}"
@@ -23325,12 +24009,14 @@ mod tests {
             .map(|index| TopicPartition::new(format!("topic-{index}"), 0))
             .collect();
         let mut selection = ElectionSelection::default();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = record_election_partitions(&mut selection, partitions) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(record_election_partitions(&mut selection, partitions));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "recording election topics held the caller for {elapsed:?}"
@@ -23714,26 +24400,42 @@ mod tests {
         assert!(popped[2].is_none());
     }
 
-    #[tokio::test(flavor = "current_thread")]
-    async fn indexing_many_described_producers_does_not_hold_the_caller() {
-        // 2_000_000 partitions: recording each producer result held the caller 1.37s.
-        let partitions: Vec<DescribeProducersPartition> = (0..2_000_000)
-            .map(|index| DescribeProducersPartition::error(index, 0))
+    #[test]
+    fn indexing_described_producers_yields_and_completes() {
+        let partitions: Vec<DescribeProducersPartition> = (0..20_000)
+            .map(|item| DescribeProducersPartition::error(item, 0))
             .collect();
         let topics = vec![DescribeProducersTopic::new("orders", partitions)];
-        let started = std::time::Instant::now();
-        tokio::select! {
-            indexed = index_described_producers(topics) => {
-                assert_eq!(indexed.get("orders").map(std::collections::HashMap::len), Some(2_000_000));
-                assert_eq!(indexed.get("orders").and_then(|parts| parts.get(&0)).map(|part| part.partition_index), Some(0));
-            }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        let probe = ProducerIndexProgress::start();
+        let mut long = Box::pin(index_described_producers(topics));
+        let mut previous = 0;
+        for poll in 0..2 {
+            let (state, wakes) = observed_poll(long.as_mut());
+            assert!(state.is_pending(), "poll {poll} finished without yielding");
+            assert!(wakes > 0, "poll {poll} did not schedule another poll");
+            let count = probe.count();
+            assert!(count > previous, "poll {poll} made no progress");
+            assert!(count < 20_000, "partial poll consumed every partition");
+            previous = count;
         }
-        let elapsed = started.elapsed();
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "indexing described producers held the caller for {elapsed:?}"
+        let indexed = finish_observed(long.as_mut());
+        assert_eq!(probe.count(), 20_000);
+        assert_eq!(indexed.get("orders").map(HashMap::len), Some(20_000));
+        assert_eq!(
+            indexed
+                .get("orders")
+                .and_then(|parts| parts.get(&0))
+                .map(|part| part.partition_index),
+            Some(0)
         );
+        assert_eq!(
+            indexed
+                .get("orders")
+                .and_then(|parts| parts.get(&19_999))
+                .map(|part| part.partition_index),
+            Some(19_999)
+        );
+
         let repeated = vec![
             DescribeProducersTopic::new(
                 "orders",
@@ -23744,7 +24446,12 @@ mod tests {
             ),
             DescribeProducersTopic::new("payments", vec![DescribeProducersPartition::error(4, 0)]),
         ];
-        let indexed = index_described_producers(repeated).await;
+        let mut short = Box::pin(index_described_producers(repeated));
+        let (state, wakes) = observed_poll(short.as_mut());
+        let std::task::Poll::Ready(indexed) = state else {
+            panic!("small producer index did not complete on its first poll");
+        };
+        assert_eq!(wakes, 0);
         assert_eq!(
             indexed
                 .get("orders")

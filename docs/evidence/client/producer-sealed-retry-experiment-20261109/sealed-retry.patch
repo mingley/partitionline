@@ -1,0 +1,608 @@
+diff --git a/src/producer.rs b/src/producer.rs
+index 251eeec..27df35a 100644
+--- a/src/producer.rs
++++ b/src/producer.rs
+@@ -951,6 +951,7 @@ struct WorkerHandle {
+     id: Arc<()>,
+     admission: Arc<WorkerAdmission>,
+     data: mpsc::Sender<Pending>,
++    sealed_batch_tx: Option<mpsc::Sender<Vec<Pending>>>,
+     ctrl: mpsc::Sender<Ctrl>,
+     task: Arc<WorkerTask>,
+ }
+@@ -1059,6 +1060,7 @@ impl WorkerHandle {
+             id,
+             admission,
+             data,
++            sealed_batch_tx: None,
+             ctrl,
+             task,
+         }
+@@ -1288,6 +1290,8 @@ struct Shared {
+     meta_tx: mpsc::Sender<Arc<str>>,
+     connect_tx: mpsc::Sender<(i32, usize)>,
+     retry_tx: mpsc::Sender<Pending>,
++    sealed_retry_tx: mpsc::Sender<Vec<Pending>>,
++    sealed_retry_task: parking_lot::Mutex<Option<Arc<tokio::task::JoinHandle<()>>>>,
+     retry_admission: WorkerAdmission,
+     meta_task: parking_lot::Mutex<Option<Arc<tokio::task::JoinHandle<()>>>>,
+     connect_task: parking_lot::Mutex<Option<Arc<tokio::task::JoinHandle<()>>>>,
+@@ -1377,6 +1381,9 @@ impl Drop for Inner {
+         if let Some(h) = self.shared.retry_task.lock().take() {
+             h.abort();
+         }
++        if let Some(h) = self.shared.sealed_retry_task.lock().take() {
++            h.abort();
++        }
+         for task in self.shared.metadata_refreshes.lock().drain(..) {
+             task.abort();
+         }
+@@ -1477,6 +1484,17 @@ impl Shared {
+         self.retry_tx.try_send(pending)
+     }
+ 
++    fn try_sealed_retry(
++        &self,
++        batch: Vec<Pending>,
++    ) -> std::result::Result<(), mpsc::error::TrySendError<Vec<Pending>>> {
++        let _commit = self.retry_admission.commit.lock();
++        if self.closed.load(Ordering::SeqCst) || !self.retry_admission.is_accepting() {
++            return Err(mpsc::error::TrySendError::Closed(batch));
++        }
++        self.sealed_retry_tx.try_send(batch)
++    }
++
+     fn clear_sticky(&self) {
+         if let Some(state) = &self.sticky {
+             state.lock().clear();
+@@ -2448,6 +2466,7 @@ impl Producer {
+         let (meta_tx, meta_rx) = mpsc::channel(8);
+         let (connect_tx, connect_rx) = mpsc::channel(16);
+         let (retry_tx, retry_rx) = mpsc::channel(cap.max(1024));
++        let (sealed_retry_tx, sealed_retry_rx) = mpsc::channel(cap.max(1024));
+         let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
+         let mut seeded_keys = HashMap::new();
+         if let Some(coord) = txn.as_ref() {
+@@ -2505,6 +2524,8 @@ impl Producer {
+             meta_tx,
+             connect_tx,
+             retry_tx,
++            sealed_retry_tx,
++            sealed_retry_task: parking_lot::Mutex::new(None),
+             retry_admission: WorkerAdmission::new(),
+             meta_task: parking_lot::Mutex::new(None),
+             connect_task: parking_lot::Mutex::new(None),
+@@ -2588,7 +2609,10 @@ impl Producer {
+         });
+         let weak = Arc::downgrade(&shared);
+         let retry_handle = tokio::spawn(retry_loop(weak, retry_rx));
++        let weak = Arc::downgrade(&shared);
++        let sealed_retry_handle = tokio::spawn(sealed_retry_loop(weak, sealed_retry_rx));
+ 
++        *shared.sealed_retry_task.lock() = Some(Arc::new(sealed_retry_handle));
+         *shared.meta_task.lock() = Some(Arc::new(meta_handle));
+         *shared.connect_task.lock() = Some(Arc::new(connect_handle));
+         *shared.retry_task.lock() = Some(Arc::new(retry_handle));
+@@ -4534,6 +4558,9 @@ impl Producer {
+             if let Some(task) = self.inner.shared.retry_task.lock().take() {
+                 tasks.push(task);
+             }
++            if let Some(task) = self.inner.shared.sealed_retry_task.lock().take() {
++                tasks.push(task);
++            }
+             tasks
+         };
+         for task in control_tasks {
+@@ -6822,6 +6849,7 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
+     let (meta_tx, _meta_rx) = mpsc::channel(1);
+     let (connect_tx, _connect_rx) = mpsc::channel(1);
+     let (retry_tx, _retry_rx) = mpsc::channel(1);
++    let (sealed_retry_tx, _sealed_retry_rx) = mpsc::channel(1);
+     let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
+     Arc::new(Shared {
+         cfg: cfg.clone(),
+@@ -6864,6 +6892,8 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
+         meta_tx,
+         connect_tx,
+         retry_tx,
++        sealed_retry_tx,
++        sealed_retry_task: parking_lot::Mutex::new(None),
+         retry_admission: WorkerAdmission::new(),
+         meta_task: parking_lot::Mutex::new(None),
+         connect_task: parking_lot::Mutex::new(None),
+@@ -6918,6 +6948,7 @@ async fn spawn_slot_worker(
+         return Err(Error::Closed);
+     }
+     let (data_tx, data_rx) = mpsc::channel(cap);
++    let (sealed_batch_tx, sealed_batch_rx) = mpsc::channel(cap.max(1));
+     let (ctrl_tx, ctrl_rx) = mpsc::channel(16);
+     // KL09-33: compress scratch caps track the effective batch byte cap so
+     // retained buffers stay proportional to the batches being encoded.
+@@ -6936,6 +6967,10 @@ async fn spawn_slot_worker(
+         throttle: shared.broker_throttle(node),
+         conn,
+         data: data_rx,
++        sealed_batch_rx: Some(sealed_batch_rx),
++        sealed_batches: std::collections::VecDeque::new(),
++        deferred_pending: None,
++        sealed_active: false,
+         ctrl: ctrl_rx,
+         shared: shared.clone(),
+         write_buf: BytesMut::with_capacity(2 * 1024 * 1024),
+@@ -6956,13 +6991,153 @@ async fn spawn_slot_worker(
+         _live: WorkerLease::register(shared),
+     };
+     let handle = tokio::spawn(worker.run());
+-    Ok(WorkerHandle::new(
+-        id,
+-        admission,
+-        data_tx,
+-        ctrl_tx,
+-        Arc::new(handle),
+-    ))
++    let mut worker = WorkerHandle::new(id, admission, data_tx, ctrl_tx, Arc::new(handle));
++    worker.sealed_batch_tx = Some(sealed_batch_tx);
++    Ok(worker)
++}
++
++fn valid_sealed_retry(batch: &[Pending]) -> bool {
++    let Some(first) = batch.first() else {
++        return false;
++    };
++    let (Some(base), Some(partition)) = (first.batch_base_seq, first.rec.partition) else {
++        return false;
++    };
++    if base < 0 || first.batch_len != batch.len() {
++        return false;
++    }
++    batch.iter().enumerate().all(|(index, pending)| {
++        let Ok(offset) = i32::try_from(index) else {
++            return false;
++        };
++        pending.is_rooted()
++            && pending.rec.topic == first.rec.topic
++            && pending.rec.partition == Some(partition)
++            && pending.epoch_gen == first.epoch_gen
++            && pending.batch_base_seq == Some(base)
++            && pending.batch_len == batch.len()
++            && pending.seq == Some(RecordBatch::increment_sequence(base, offset))
++    })
++}
++
++// An already-sequenced partition group travels through this actor as one
++// message. This experimental path still lacks a partition/write identity fence.
++struct SealedRetryReceiver {
++    weak: std::sync::Weak<Shared>,
++    rx: mpsc::Receiver<Vec<Pending>>,
++}
++
++impl Drop for SealedRetryReceiver {
++    fn drop(&mut self) {
++        self.rx.close();
++        while let Ok(batch) = self.rx.try_recv() {
++            if let Some(shared) = self.weak.upgrade() {
++                let _count = RetryCountGuard {
++                    shared: &shared,
++                    count: batch.len(),
++                };
++                // Rooted leases return to the owner supervisor on drop.
++                drop(batch);
++            }
++        }
++    }
++}
++
++fn sealed_retry_loop(
++    weak: std::sync::Weak<Shared>,
++    rx: mpsc::Receiver<Vec<Pending>>,
++) -> impl std::future::Future<Output = ()> + Send {
++    let receiver = SealedRetryReceiver { weak, rx };
++    async move {
++        let mut receiver = receiver;
++        while let Some(batch) = receiver.rx.recv().await {
++            let Some(shared) = receiver.weak.upgrade() else {
++                break;
++            };
++            let _count = RetryCountGuard {
++                shared: &shared,
++                count: batch.len(),
++            };
++            retry_sealed_batch(&shared, batch).await;
++        }
++    }
++}
++
++async fn retry_sealed_batch(shared: &Arc<Shared>, mut batch: Vec<Pending>) {
++    let Some(first) = batch.first() else {
++        return;
++    };
++    let deadline = batch.iter().map(|pending| pending.deadline).min().unwrap_or(first.deadline);
++    let retry_after = batch.iter().map(|pending| pending.retry_after).max().unwrap_or(first.retry_after);
++    let topic = Arc::clone(&first.rec.topic);
++    let Some(partition) = first.rec.partition else {
++        return;
++    };
++    if shared.sticky.is_some() {
++        // Cohort rebind is not integrated yet. Dropping rooted leases closes
++        // admission and leaves terminal handling to the owner supervisor.
++        return;
++    }
++    if Instant::now() < retry_after {
++        tokio::time::sleep(retry_after.saturating_duration_since(Instant::now())).await;
++    }
++    if shared.closed.load(Ordering::SeqCst) || Instant::now() >= deadline {
++        return;
++    }
++    if !batch.iter().all(|pending| pending.skip_meta_refresh) {
++        invalidate_cached_topic(shared, topic.as_ref());
++        let rest = deadline.saturating_duration_since(Instant::now());
++        if rest.is_zero()
++            || partitions_for_timeout(shared, &topic, shared.cfg.request_timeout.min(rest))
++                .await
++                .is_err()
++        {
++            return;
++        }
++    }
++    for pending in &mut batch {
++        pending.skip_meta_refresh = false;
++    }
++    loop {
++        if shared.closed.load(Ordering::SeqCst) || Instant::now() >= deadline {
++            return;
++        }
++        let node = shared.cluster.lock().leader_id(topic.as_ref(), partition).ok();
++        if let Some(node) = node {
++            let slot = usize::try_from(partition).unwrap_or(0) % shared.cfg.connections.max(1);
++            try_nudge_slot(&shared.connect_tx, node, slot);
++            let worker = shared
++                .nodes
++                .lock()
++                .get(&node)
++                .and_then(|slots| slots.get(slot).cloned().flatten());
++            if let Some(worker) = worker {
++                if let Some(sender) = &worker.sealed_batch_tx {
++                    let rest = deadline.saturating_duration_since(Instant::now());
++                    match tokio::time::timeout(rest, sender.reserve()).await {
++                        Ok(Ok(permit)) => {
++                            let _commit = worker.admission.commit.lock();
++                            if worker.admission.is_accepting() {
++                                permit.send(batch);
++                                return;
++                            }
++                        }
++                        Ok(Err(_)) => {
++                            retire_closed_worker(shared, node, slot, &worker.id);
++                        }
++                        Err(_) => return,
++                    }
++                }
++            }
++        }
++        let notified = shared.cache_nudge.notified();
++        tokio::pin!(notified);
++        let rest = deadline.saturating_duration_since(Instant::now());
++        tokio::select! {
++            _ = notified => {}
++            _ = tokio::time::sleep(rest.min(Duration::from_millis(10))) => {}
++        }
++    }
+ }
+ 
+ struct RetryReceiver {
+@@ -7466,6 +7641,10 @@ struct Worker {
+     throttle: Arc<BrokerThrottle>,
+     conn: BrokerConn,
+     data: mpsc::Receiver<Pending>,
++    sealed_batch_rx: Option<mpsc::Receiver<Vec<Pending>>>,
++    sealed_batches: VecDeque<Vec<Pending>>,
++    deferred_pending: Option<Vec<Pending>>,
++    sealed_active: bool,
+     ctrl: mpsc::Receiver<Ctrl>,
+     shared: Arc<Shared>,
+     write_buf: BytesMut,
+@@ -7736,10 +7915,35 @@ impl Drop for InFlightGuard {
+     }
+ }
+ 
++async fn recv_sealed_batch(
++    receiver: &mut Option<mpsc::Receiver<Vec<Pending>>>,
++) -> Option<Vec<Pending>> {
++    match receiver {
++        Some(receiver) => receiver.recv().await,
++        None => std::future::pending().await,
++    }
++}
++
+ impl Drop for Worker {
+     fn drop(&mut self) {
+         self.admission.close();
+         self.data.close();
++        if let Some(receiver) = self.sealed_batch_rx.as_mut() {
++            receiver.close();
++            while let Ok(batch) = receiver.try_recv() {
++                self.sealed_batches.push_back(batch);
++            }
++        }
++        while let Some(batch) = self.sealed_batches.pop_front() {
++            if self.shared.closed.load(Ordering::SeqCst) {
++                drop(batch);
++            } else {
++                self.queue_sealed_retry(batch);
++            }
++        }
++        if let Some(mut deferred) = self.deferred_pending.take() {
++            self.pending.append(&mut deferred);
++        }
+         while let Ok(p) = self.data.try_recv() {
+             self.pending.push(p);
+         }
+@@ -7801,11 +8005,52 @@ impl Worker {
+     }
+ 
+     fn pull_ready(&mut self) {
++        if let Some(receiver) = self.sealed_batch_rx.as_mut() {
++            while let Ok(batch) = receiver.try_recv() {
++                self.sealed_batches.push_back(batch);
++                self.shared.cache_nudge.notify_waiters();
++            }
++        }
++        if !self.sealed_active {
++            if let Some(batch) = self.sealed_batches.pop_front() {
++                if !self.pending.is_empty() {
++                    let mut pending = std::mem::take(&mut self.pending);
++                    if let Some(deferred) = &mut self.deferred_pending {
++                        deferred.append(&mut pending);
++                    } else {
++                        self.deferred_pending = Some(pending);
++                    }
++                }
++                self.pending = batch;
++                self.sealed_active = true;
++                self.recompute_pending_sync();
++            } else if self.pending.is_empty() {
++                if let Some(deferred) = self.deferred_pending.take() {
++                    self.pending = deferred;
++                    self.recompute_pending_sync();
++                }
++            }
++        }
++        if self.sealed_active {
++            return;
++        }
+         while let Ok(p) = self.data.try_recv() {
+             self.push_pending(p);
+         }
+     }
+ 
++    fn recompute_pending_sync(&mut self) {
++        self.pending_estimate = 0;
++        self.earliest_deadline = None;
++        for pending in &self.pending {
++            self.pending_estimate = self.pending_estimate.saturating_add(estimate(pending));
++            self.earliest_deadline = Some(self.earliest_deadline.map_or(
++                pending.deadline,
++                |current| current.min(pending.deadline),
++            ));
++        }
++    }
++
+     fn note_deadline(&mut self, deadline: Instant) {
+         self.earliest_deadline = Some(match self.earliest_deadline {
+             Some(current) if current <= deadline => current,
+@@ -7829,6 +8074,7 @@ impl Worker {
+     }
+ 
+     fn take_all_pending(&mut self) -> Vec<Pending> {
++        self.sealed_active = false;
+         self.pending_estimate = 0;
+         self.earliest_deadline = None;
+         std::mem::take(&mut self.pending)
+@@ -7902,6 +8148,9 @@ impl Worker {
+     }
+ 
+     async fn requeue_displaced_sticky(&mut self) {
++        if self.sealed_active {
++            return;
++        }
+         let shared = Arc::clone(&self.shared);
+         let Some(policy) = &shared.sticky else {
+             return;
+@@ -8044,6 +8293,14 @@ impl Worker {
+         let Some(first) = self.first_expired_pending(now).await else {
+             return;
+         };
++        if self.sealed_active {
++            if let Some(owner) = &self.shared.owned_records {
++                owner.seal();
++            }
++            let batch = self.take_all_pending();
++            self.fail_kept_batch(batch, Error::Timeout).await;
++            return;
++        }
+         // One pass from the first expired record. Survivors stay in order.
+         let mut expired = Vec::new();
+         let mut walked = 0usize;
+@@ -8140,6 +8397,9 @@ impl Worker {
+         {
+             return false;
+         }
++        if self.sealed_active {
++            return true;
++        }
+         if !self.sticky_complete() {
+             return false;
+         }
+@@ -8258,7 +8518,16 @@ impl Worker {
+                 biased;
+                 () = retired.as_mut() => break,
+                 _ = wake_shared.cache_nudge.notified(), if wake_shared.sticky.is_some() => {}
+-                n = self.data.recv_many(&mut self.pending, room) => {
++                batch = recv_sealed_batch(&mut self.sealed_batch_rx) => {
++                    match batch {
++                        Some(batch) => {
++                            self.sealed_batches.push_back(batch);
++                            self.shared.cache_nudge.notify_waiters();
++                        }
++                        None => self.sealed_batch_rx = None,
++                    }
++                }
++                n = self.data.recv_many(&mut self.pending, room), if !self.sealed_active => {
+                     self.account_pending_from(self.pending.len().saturating_sub(n))
+                         .await;
+                     if n == 0 {
+@@ -8436,7 +8705,9 @@ impl Worker {
+                 }
+             }
+         }
+-        let batch: Vec<Pending> = if self.shared.sticky.is_some() {
++        let batch: Vec<Pending> = if self.sealed_active {
++            self.take_all_pending()
++        } else if self.shared.sticky.is_some() {
+             self.take_sticky_batch().await
+         } else {
+             let n = take_count_in(
+@@ -9303,7 +9574,58 @@ impl Worker {
+         self.stash_group_shell(best_shell);
+     }
+ 
++    fn queue_sealed_retry(&mut self, mut batch: Vec<Pending>) {
++        if !valid_sealed_retry(&batch) || self.shared.sticky.is_some() {
++            self.note_fail(Error::protocol("cannot retain this batch as one retry"));
++            drop(batch);
++            return;
++        }
++        let now = Instant::now();
++        if batch.iter().any(|pending| now >= pending.deadline) {
++            self.note_fail(Error::Timeout);
++            drop(batch);
++            return;
++        }
++        let retry = batch
++            .iter()
++            .map(|pending| pending.retry)
++            .max()
++            .unwrap_or(0)
++            .saturating_add(1);
++        let delay = crate::config::retry_backoff_delay(
++            self.shared.cfg.retry_backoff,
++            self.shared.cfg.retry_backoff_max,
++            retry.saturating_sub(1),
++        );
++        for pending in &mut batch {
++            pending.retry = retry;
++            pending.retry_after = now + delay;
++        }
++        let count = batch.len();
++        if self
++            .shared
++            .retries_out
++            .try_update(Ordering::SeqCst, Ordering::SeqCst, |current| current.checked_add(count))
++            .is_err()
++        {
++            self.note_fail(Error::protocol("retry counter exhausted"));
++            drop(batch);
++            return;
++        }
++        if let Err(error) = self.shared.try_sealed_retry(batch) {
++            let _ = self.shared.retries_out.fetch_sub(count, Ordering::SeqCst);
++            self.note_fail(Error::Closed);
++            match error {
++                mpsc::error::TrySendError::Full(batch) | mpsc::error::TrySendError::Closed(batch) => drop(batch),
++            }
++        }
++    }
++
+     fn requeue_pendings_sync(&mut self, mut pendings: Vec<Pending>) {
++        if self.shared.owned_records.is_some() && pendings.iter().any(|pending| pending.seq.is_some()) {
++            self.queue_sealed_retry(pendings);
++            return;
++        }
+         if let Some(policy) = &self.shared.sticky {
+             let mut policy = policy.lock();
+             for p in &pendings {
+@@ -9368,6 +9690,10 @@ impl Worker {
+     }
+ 
+     async fn requeue_pendings(&mut self, mut pendings: Vec<Pending>) {
++        if self.shared.owned_records.is_some() && pendings.iter().any(|pending| pending.seq.is_some()) {
++            self.queue_sealed_retry(pendings);
++            return;
++        }
+         if let Some(policy) = &self.shared.sticky {
+             seal_queued_sticky(policy, &pendings).await;
+         }
+@@ -9430,7 +9756,11 @@ impl Worker {
+     }
+ 
+     async fn drain_inflight(&mut self) {
+-        while !self.pending.is_empty() || !self.in_flight.is_empty() {
++        loop {
++            self.pull_ready();
++            if self.pending.is_empty() && self.in_flight.is_empty() {
++                break;
++            }
+             self.purge_expired_pending().await;
+             if !self.pending.is_empty() {
+                 while self.in_flight.len() >= self.shared.cfg.max_in_flight {
+@@ -12700,6 +13030,10 @@ mod tests {
+             throttle: shared.broker_throttle(1),
+             conn,
+             data: data_rx,
++            sealed_batch_rx: None,
++            sealed_batches: std::collections::VecDeque::new(),
++            deferred_pending: None,
++            sealed_active: false,
+             ctrl: ctrl_rx,
+             shared: Arc::clone(&shared),
+             write_buf: BytesMut::new(),
+@@ -12829,6 +13163,10 @@ mod tests {
+             throttle: shared.broker_throttle(1),
+             conn,
+             data: data_rx,
++            sealed_batch_rx: None,
++            sealed_batches: std::collections::VecDeque::new(),
++            deferred_pending: None,
++            sealed_active: false,
+             ctrl: ctrl_rx,
+             shared: Arc::clone(&shared),
+             write_buf: BytesMut::new(),
+@@ -13689,6 +14027,10 @@ mod tests {
+             throttle: shared.broker_throttle(1),
+             conn,
+             data: data_rx,
++            sealed_batch_rx: None,
++            sealed_batches: std::collections::VecDeque::new(),
++            deferred_pending: None,
++            sealed_active: false,
+             ctrl: ctrl_rx,
+             shared: Arc::clone(&shared),
+             write_buf: BytesMut::new(),
+@@ -18325,6 +18667,7 @@ mod rediscover_stop_tests {
+         let (meta_tx, _meta_rx) = mpsc::channel(1);
+         let (connect_tx, _connect_rx) = mpsc::channel(1);
+         let (retry_tx, _retry_rx) = mpsc::channel(1);
++        let (sealed_retry_tx, _sealed_retry_rx) = mpsc::channel(1);
+         let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
+         let shared = Arc::new(Shared {
+             cfg: cfg.clone(),
+@@ -18367,6 +18710,8 @@ mod rediscover_stop_tests {
+             meta_tx,
+             connect_tx,
+             retry_tx,
++            sealed_retry_tx,
++            sealed_retry_task: parking_lot::Mutex::new(None),
+             retry_admission: WorkerAdmission::new(),
+             meta_task: parking_lot::Mutex::new(None),
+             connect_task: parking_lot::Mutex::new(None),
+@@ -18523,6 +18868,10 @@ mod rediscover_stop_tests {
+             }),
+             conn,
+             data: data_rx,
++            sealed_batch_rx: None,
++            sealed_batches: std::collections::VecDeque::new(),
++            deferred_pending: None,
++            sealed_active: false,
+             ctrl: ctrl_rx,
+             shared: Arc::clone(&shared),
+             write_buf: bytes::BytesMut::new(),

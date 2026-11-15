@@ -5,6 +5,9 @@
 //! on an asynchronous executor. The caller must hold exclusive ownership of the
 //! configured file; a process-local guard rejects duplicate live handles, but
 //! this foundation does not provide cross-process file locking.
+//! On Unix, each open journal and owned reader keeps an extra descriptor to pin
+//! its inode. Staged syncs and replacements can temporarily retain more.
+//! Opening or staging can fail if the process exhausts its descriptor limit.
 //! Paths are trusted configuration and are never derived from topic names.
 //!
 //! Each nonempty opaque payload carries an explicit positive record count and
@@ -49,6 +52,9 @@ thread_local! {
     static CHECKPOINT_TEST_ERROR: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
     static APPEND_AFTER_SYNC_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static PAIR_RESERVE_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static INDEX_RESERVE_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static STAGED_RESERVE_TEST_ERROR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static STAGE_RESERVATION_OBSERVATION: std::cell::Cell<Option<(usize, usize, usize, usize)>> = const { std::cell::Cell::new(None) };
 }
 
 #[cfg(test)]
@@ -293,6 +299,8 @@ pub struct Journal {
 // The rolled backend shares this parser rather than retaining a dense Journal
 // index for every sealed file. These interfaces are intentionally crate-private;
 // Journal::open and its recovery/append contract are unchanged.
+pub(crate) use ownership::SyncFile;
+
 pub(crate) struct DirectoryOwnership(ownership::Guard);
 impl DirectoryOwnership {
     pub(crate) fn acquire(path: &Path) -> Result<Self, Error> {
@@ -300,6 +308,10 @@ impl DirectoryOwnership {
     }
     pub(crate) fn identify(&mut self, file: &File) -> Result<(), Error> {
         self.0.identify(file)
+    }
+    #[cfg(all(test, target_os = "linux"))]
+    pub(crate) fn pinned_identity(&self) -> Result<(u64, u64, u64), Error> {
+        self.0.pinned_identity()
     }
 }
 
@@ -541,7 +553,8 @@ impl Journal {
                 let stale = File::open(&tmp)?;
                 owner.identify(&stale)?;
                 std::fs::remove_file(&tmp)?;
-                owner.release_inode()?;
+                drop(stale);
+                owner.release_inode();
             }
             Ok(_) => return Err(Error::ChangedFile),
             Err(error) if error.kind() == io::ErrorKind::NotFound => {}
@@ -672,11 +685,15 @@ impl Journal {
         }
         #[cfg(test)]
         checkpoint_test_point("epoch-renamed");
-        if let Err(error) = self._ownership.adopt_replacement(&mut owner) {
-            self.inner.poisoned = true;
-            return Err(error);
-        }
+        let retired = match self._ownership.adopt_replacement(&mut owner) {
+            Ok(retired) => retired,
+            Err(error) => {
+                self.inner.poisoned = true;
+                return Err(error);
+            }
+        };
         self.inner = replacement;
+        drop(retired);
         let parent = self.path.parent().ok_or(Error::ChangedFile)?;
         #[cfg(test)]
         let synchronized = checkpoint_test_error("epoch-renamed")
@@ -808,7 +825,8 @@ impl Journal {
                 let stale = File::open(&tmp)?;
                 owner.identify(&stale)?;
                 std::fs::remove_file(&tmp)?;
-                owner.release_inode()?;
+                drop(stale);
+                owner.release_inode();
             }
             Ok(_) => return Err(Error::ChangedFile),
             Err(error) if error.kind() == io::ErrorKind::NotFound => {}
@@ -852,11 +870,15 @@ impl Journal {
         }
         #[cfg(test)]
         checkpoint_test_point("renamed");
-        if let Err(error) = self._ownership.adopt_replacement(&mut owner) {
-            self.inner.poisoned = true;
-            return Err(error);
-        }
+        let retired = match self._ownership.adopt_replacement(&mut owner) {
+            Ok(retired) => retired,
+            Err(error) => {
+                self.inner.poisoned = true;
+                return Err(error);
+            }
+        };
         self.inner = replacement;
+        drop(retired);
         let parent = self.path.parent().ok_or(Error::ChangedFile)?;
         #[cfg(test)]
         let synchronized = checkpoint_test_error("renamed")
@@ -901,7 +923,7 @@ impl Journal {
         record_count: u32,
         payload: &[u8],
         checksum: u32,
-    ) -> Result<File, Error> {
+    ) -> Result<SyncFile, Error> {
         self.append_staged_inner(record_count, payload, checksum, false)
     }
 
@@ -916,7 +938,7 @@ impl Journal {
         record_count: u32,
         payload: &[u8],
         checksum: u32,
-    ) -> Result<File, Error> {
+    ) -> Result<SyncFile, Error> {
         self.append_staged_inner(record_count, payload, checksum, true)
     }
 
@@ -926,15 +948,18 @@ impl Journal {
         payload: &[u8],
         checksum: u32,
         extend: bool,
-    ) -> Result<File, Error> {
+    ) -> Result<SyncFile, Error> {
         self.inner.stage(record_count, payload, checksum, extend)?;
-        match self.inner.storage.try_clone() {
-            Ok(file) => Ok(file),
-            Err(error) => {
-                self.inner.abort_staged();
-                Err(error.into())
-            }
+        let result = self
+            .inner
+            .storage
+            .try_clone()
+            .map_err(Error::from)
+            .and_then(|file| self._ownership.sync_file(file));
+        if result.is_err() {
+            self.inner.abort_staged();
         }
+        result
     }
 
     /// Publish the staged entry after its cloned descriptor has been synchronized.
@@ -1344,9 +1369,18 @@ fn has_later_header(bytes: &[u8], expected_next: u64, limits: Limits) -> bool {
     false
 }
 
-fn reserve_index(index: &mut Vec<Index>, limit: usize) -> Result<(), Error> {
-    if index.len() == index.capacity() {
-        let capacity = index.capacity().saturating_mul(2).max(1).min(limit);
+fn reserve_index(index: &mut Vec<Index>, limit: usize, additional: usize) -> Result<(), Error> {
+    let required = index
+        .len()
+        .checked_add(additional)
+        .filter(|count| *count <= limit)
+        .ok_or(Error::IndexBudgetExceeded)?;
+    if required > index.capacity() {
+        #[cfg(test)]
+        if INDEX_RESERVE_TEST_ERROR.with(|failure| failure.replace(false)) {
+            return Err(Error::AllocationFailed);
+        }
+        let capacity = index.capacity().saturating_mul(2).max(required).min(limit);
         index
             .try_reserve_exact(capacity - index.len())
             .map_err(|_| Error::AllocationFailed)?;
@@ -1366,7 +1400,7 @@ mod ownership {
     #[cfg(unix)]
     use std::os::unix::fs::MetadataExt;
     use std::path::{Path, PathBuf};
-    use std::sync::{Mutex, OnceLock};
+    use std::sync::{Arc, Mutex, OnceLock};
 
     #[derive(Clone, PartialEq, Eq, Hash)]
     enum Key {
@@ -1379,9 +1413,70 @@ mod ownership {
         OPEN.get_or_init(|| Mutex::new(HashSet::new()))
     }
 
-    pub(super) struct Guard {
-        keys: Vec<Key>,
+    // A private inode descriptor pins the identity until the last owner closes.
+    // Remove the key before closing the pin; no usable descriptor is left then.
+    struct Lease {
+        key: Key,
+        _pin: Option<File>,
     }
+    impl Drop for Lease {
+        fn drop(&mut self) {
+            if let Ok(mut open) = registry().lock() {
+                open.remove(&self.key);
+                if open.is_empty() {
+                    open.shrink_to_fit();
+                }
+            }
+        }
+    }
+
+    fn register(key: Key, pin: Option<File>) -> Result<Arc<Lease>, Error> {
+        {
+            let mut open = registry().lock().map_err(|_| Error::OwnershipUnavailable)?;
+            if open.contains(&key) {
+                return Err(Error::AlreadyOpen);
+            }
+            open.try_reserve(1).map_err(|_| Error::AllocationFailed)?;
+            open.insert(key.clone());
+        }
+        Ok(Arc::new(Lease { key, _pin: pin }))
+    }
+
+    pub(super) struct Guard {
+        path: Arc<Lease>,
+        #[cfg(unix)]
+        inode: Option<Arc<Lease>>,
+    }
+
+    // The old inode remains reserved until the replaced engine has closed.
+    pub(super) struct RetiredInode {
+        #[cfg(unix)]
+        _inode: Option<Arc<Lease>>,
+    }
+
+    /// A staged sync retains both the path and the original inode reservation.
+    pub(crate) struct SyncFile {
+        file: File,
+        _path: Option<Arc<Lease>>,
+        #[cfg(unix)]
+        _inode: Option<Arc<Lease>>,
+    }
+    impl SyncFile {
+        pub(crate) fn sync_data(&self) -> io::Result<()> {
+            self.file.sync_data()
+        }
+
+        #[cfg(test)]
+        pub(crate) fn untracked(file: File) -> Self {
+            Self {
+                file,
+                _path: None,
+                #[cfg(unix)]
+                _inode: None,
+            }
+        }
+    }
+
     impl Guard {
         pub(super) fn acquire(path: &Path) -> Result<Self, Error> {
             let key = match fs::canonicalize(path) {
@@ -1398,29 +1493,25 @@ mod ownership {
                 }
                 Err(error) => return Err(Error::Io(error)),
             };
-            let mut guard = Self { keys: Vec::new() };
-            guard
-                .keys
-                .try_reserve_exact(2)
-                .map_err(|_| Error::AllocationFailed)?;
-            guard.add(Key::Path(key))?;
-            Ok(guard)
+            Ok(Self {
+                path: register(Key::Path(key), None)?,
+                #[cfg(unix)]
+                inode: None,
+            })
         }
-        fn add(&mut self, key: Key) -> Result<(), Error> {
-            let mut open = registry().lock().map_err(|_| Error::OwnershipUnavailable)?;
-            if open.contains(&key) {
-                return Err(Error::AlreadyOpen);
-            }
-            open.try_reserve(1).map_err(|_| Error::AllocationFailed)?;
-            open.insert(key.clone());
-            self.keys.push(key);
-            Ok(())
-        }
+
         pub(super) fn identify(&mut self, file: &File) -> Result<(), Error> {
             #[cfg(unix)]
             {
-                let metadata = file.metadata()?;
-                self.add(Key::Inode(metadata.dev(), metadata.ino()))?;
+                if self.inode.is_some() {
+                    return Err(Error::OwnershipUnavailable);
+                }
+                let pin = file.try_clone()?;
+                let metadata = pin.metadata()?;
+                self.inode = Some(register(
+                    Key::Inode(metadata.dev(), metadata.ino()),
+                    Some(pin),
+                )?);
             }
             #[cfg(not(unix))]
             {
@@ -1429,60 +1520,63 @@ mod ownership {
             Ok(())
         }
 
-        pub(super) fn release_inode(&mut self) -> Result<(), Error> {
-            #[cfg(unix)]
-            {
-                let mut open = registry().lock().map_err(|_| Error::OwnershipUnavailable)?;
-                self.keys.retain(|key| {
-                    if matches!(key, Key::Inode(..)) {
-                        open.remove(key);
-                        false
-                    } else {
-                        true
-                    }
-                });
-            }
-            Ok(())
+        #[cfg(all(test, unix))]
+        pub(super) fn pinned_identity(&self) -> Result<(u64, u64, u64), Error> {
+            let metadata = self
+                .inode
+                .as_ref()
+                .and_then(|lease| lease._pin.as_ref())
+                .ok_or(Error::OwnershipUnavailable)?
+                .metadata()?;
+            Ok((metadata.dev(), metadata.ino(), metadata.nlink()))
         }
 
-        // Transfer the replacement inode without releasing it between the
-        // rename and installation. Keep the original pathname reservation.
-        pub(super) fn adopt_replacement(&mut self, replacement: &mut Self) -> Result<(), Error> {
+        pub(super) fn release_inode(&mut self) {
             #[cfg(unix)]
             {
-                let position = replacement
-                    .keys
-                    .iter()
-                    .position(|key| matches!(key, Key::Inode(..)))
+                drop(self.inode.take());
+            }
+        }
+
+        // Keep the original pathname reservation and install a distinct lease
+        // for the replacement. Existing sync files still hold the old lease.
+        pub(super) fn adopt_replacement(
+            &mut self,
+            replacement: &mut Self,
+        ) -> Result<RetiredInode, Error> {
+            #[cfg(unix)]
+            {
+                if self.inode.is_none() {
+                    return Err(Error::OwnershipUnavailable);
+                }
+                let new_inode = replacement
+                    .inode
+                    .take()
                     .ok_or(Error::OwnershipUnavailable)?;
-                let new_inode = replacement.keys[position].clone();
-                let mut open = registry().lock().map_err(|_| Error::OwnershipUnavailable)?;
-                self.keys.retain(|key| {
-                    if matches!(key, Key::Inode(..)) {
-                        open.remove(key);
-                        false
-                    } else {
-                        true
-                    }
-                });
-                replacement.keys.remove(position);
-                self.keys.push(new_inode);
+                Ok(RetiredInode {
+                    _inode: self.inode.replace(new_inode),
+                })
             }
             #[cfg(not(unix))]
-            let _ = replacement;
-            Ok(())
-        }
-    }
-    impl Drop for Guard {
-        fn drop(&mut self) {
-            if let Ok(mut open) = registry().lock() {
-                for key in &self.keys {
-                    open.remove(key);
-                }
-                if open.is_empty() {
-                    open.shrink_to_fit();
-                }
+            {
+                let _ = replacement;
+                Ok(RetiredInode {})
             }
+        }
+
+        pub(super) fn sync_file(&self, file: File) -> Result<SyncFile, Error> {
+            #[cfg(unix)]
+            let inode = self
+                .inode
+                .as_ref()
+                .ok_or(Error::OwnershipUnavailable)?
+                .clone();
+            Ok(SyncFile {
+                file,
+                _path: Some(Arc::clone(&self.path)),
+                #[cfg(unix)]
+                _inode: Some(inode),
+            })
         }
     }
 }
@@ -1592,7 +1686,7 @@ impl<S: Storage> Engine<S> {
             if checksum != index.checksum {
                 return Err(corrupt(position, Corruption::PayloadChecksum));
             }
-            reserve_index(&mut engine.index, limits.max_index_entries)?;
+            reserve_index(&mut engine.index, limits.max_index_entries, 1)?;
             engine.index.push(index);
             engine.next_offset = index.next_offset;
             engine.file_bytes = position
@@ -1661,7 +1755,14 @@ impl<S: Storage> Engine<S> {
         if file_bytes > self.limits.max_file_bytes {
             return Err(Error::FileBudgetExceeded);
         }
-        reserve_index(&mut self.index, self.limits.max_index_entries)?;
+        // Every staged record needs an index slot before it is written. The
+        // queued records are published later without another fallible allocation.
+        let pending = self
+            .staged
+            .len()
+            .checked_add(1)
+            .ok_or(Error::IndexBudgetExceeded)?;
+        reserve_index(&mut self.index, self.limits.max_index_entries, pending)?;
         let index = Index {
             first_offset: origin_offset,
             next_offset,
@@ -1744,6 +1845,24 @@ impl<S: Storage> Engine<S> {
         extend: bool,
     ) -> Result<(), Error> {
         let (index, file_bytes) = self.plan(record_count, payload, checksum, extend)?;
+        #[cfg(test)]
+        if self.staged.len() == self.staged.capacity()
+            && STAGED_RESERVE_TEST_ERROR.with(|failure| failure.replace(false))
+        {
+            return Err(Error::AllocationFailed);
+        }
+        self.staged
+            .try_reserve(1)
+            .map_err(|_| Error::AllocationFailed)?;
+        #[cfg(test)]
+        STAGE_RESERVATION_OBSERVATION.with(|observation| {
+            observation.set(Some((
+                self.index.len(),
+                self.index.capacity(),
+                self.staged.len(),
+                self.staged.capacity(),
+            )));
+        });
         if let Err(error) = self.write_planned(index, payload) {
             self.poisoned = true;
             return Err(error);
@@ -1943,6 +2062,433 @@ mod tests {
     use std::io::Cursor;
     use std::rc::Rc;
 
+    fn ownership_test_dir(label: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("pl-owner-{label}-{}-{nanos}", std::process::id()));
+        std::fs::create_dir(&dir)?;
+        Ok(dir)
+    }
+
+    #[test]
+    fn staged_sync_retains_the_path_after_journal_drop() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = ownership_test_dir("stage")?;
+        let path = dir.join("log");
+        let (mut log, _) = Journal::open(&path, 0, Limits::default())?;
+        let ticket = log.append_staged(1, b"staged", crc32c::crc32c(b"staged"))?;
+        ticket.sync_data()?;
+        log.commit_staged()?;
+        drop(log);
+        assert!(matches!(
+            Journal::open(&path, 0, Limits::default()),
+            Err(Error::AlreadyOpen)
+        ));
+        ticket.sync_data()?;
+        drop(ticket);
+        let (mut reopened, _) = Journal::open(&path, 0, Limits::default())?;
+        assert_eq!(reopened.fetch(0, 1, 1024)?[0].payload, b"staged");
+        drop(reopened);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    fn staged_sync_retains_old_generation(epoch: bool) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = ownership_test_dir(if epoch { "epoch" } else { "checkpoint" })?;
+        let path = dir.join("log");
+        let alias = dir.join("old");
+        let limits = Limits::default();
+        let (mut log, _) = if epoch {
+            Journal::open_replica(&path, 0, limits)?
+        } else {
+            Journal::open(&path, 0, limits)?
+        };
+        let ticket = log.append_staged(1, b"old", crc32c::crc32c(b"old"))?;
+        ticket.sync_data()?;
+        log.commit_staged()?;
+        std::fs::hard_link(&path, &alias)?;
+        if epoch {
+            log.persist_replica_epoch(7)?;
+        } else {
+            log.replace_with_snapshot(b"new")?;
+        }
+
+        // Both the new pathname and the old inode stay reserved.
+        assert!(matches!(
+            Journal::open(&path, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        assert!(matches!(
+            Journal::open(&alias, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        drop(log);
+        assert!(matches!(
+            Journal::open(&path, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        assert!(matches!(
+            Journal::open(&alias, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        ticket.sync_data()?;
+        drop(ticket);
+
+        let (mut old, _) = if epoch {
+            Journal::open_replica(&alias, 0, limits)?
+        } else {
+            Journal::open(&alias, 0, limits)?
+        };
+        let (mut current, _) = if epoch {
+            Journal::open_replica(&path, 0, limits)?
+        } else {
+            Journal::open(&path, 0, limits)?
+        };
+        assert_eq!(old.fetch(0, 1, 1024)?[0].payload, b"old");
+        assert_eq!(
+            current.fetch(0, 1, 1024)?[0].payload,
+            if epoch { b"old" } else { b"new" }
+        );
+        if epoch {
+            assert_eq!(old.replica_epoch(), None);
+            assert_eq!(current.replica_epoch(), Some(7));
+        }
+        drop(current);
+        drop(old);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn staged_sync_retains_checkpoint_generation() -> Result<(), Box<dyn std::error::Error>> {
+        staged_sync_retains_old_generation(false)
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn staged_sync_retains_epoch_generation() -> Result<(), Box<dyn std::error::Error>> {
+        staged_sync_retains_old_generation(true)
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn staged_syncs_keep_each_generation_and_path_until_the_last_drop(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = ownership_test_dir("multi-generation")?;
+        let path = dir.join("log");
+        let old_alias = dir.join("old");
+        let new_alias = dir.join("new");
+        let limits = Limits::default();
+        let (mut log, _) = Journal::open(&path, 0, limits)?;
+        let old_ticket = log.append_staged(1, b"old", crc32c::crc32c(b"old"))?;
+        old_ticket.sync_data()?;
+        log.commit_staged()?;
+        std::fs::hard_link(&path, &old_alias)?;
+        log.replace_with_snapshot(b"new")?;
+        let new_ticket = log.append_staged(1, b"tail", crc32c::crc32c(b"tail"))?;
+        new_ticket.sync_data()?;
+        log.commit_staged()?;
+        std::fs::hard_link(&path, &new_alias)?;
+        drop(log);
+
+        assert!(matches!(
+            Journal::open(&path, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        assert!(matches!(
+            Journal::open(&old_alias, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        assert!(matches!(
+            Journal::open(&new_alias, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        drop(old_ticket);
+        let (mut old, _) = Journal::open(&old_alias, 0, limits)?;
+        assert_eq!(old.fetch(0, 1, 1024)?[0].payload, b"old");
+        drop(old);
+        assert!(matches!(
+            Journal::open(&path, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        assert!(matches!(
+            Journal::open(&new_alias, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+
+        drop(new_ticket);
+        let (mut current, _) = Journal::open(&path, 0, limits)?;
+        assert_eq!(current.fetch(0, 2, 1024)?[0].payload, b"new");
+        assert_eq!(current.fetch(0, 2, 1024)?[1].payload, b"tail");
+        drop(current);
+        let (via_alias, _) = Journal::open(&new_alias, 0, limits)?;
+        drop(via_alias);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn old_inode_stays_reserved_until_replaced_engine_closes(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = ownership_test_dir("retired-engine")?;
+        let path = dir.join("log");
+        let alias = dir.join("old");
+        let tmp = dir.join("replacement");
+        let limits = Limits::default();
+        let (mut log, _) = Journal::open(&path, 0, limits)?;
+        log.append(1, b"old")?;
+        std::fs::hard_link(&path, &alias)?;
+        let replacement_file = File::create(&tmp)?;
+        let mut replacement = ownership::Guard::acquire(&tmp)?;
+        replacement.identify(&replacement_file)?;
+        drop(replacement_file);
+        let retired = log._ownership.adopt_replacement(&mut replacement)?;
+        assert!(matches!(
+            Journal::open(&alias, 0, limits),
+            Err(Error::AlreadyOpen)
+        ));
+        let Journal {
+            inner, _ownership, ..
+        } = log;
+        drop(inner);
+        drop(retired);
+        let (mut old, _) = Journal::open(&alias, 0, limits)?;
+        assert_eq!(old.fetch(0, 1, 1024)?[0].payload, b"old");
+        drop(old);
+        drop(_ownership);
+        drop(replacement);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn journal_and_cursor_keep_inode_pinned_through_close() -> Result<(), Box<dyn std::error::Error>>
+    {
+        use std::os::unix::fs::MetadataExt;
+
+        let dir = ownership_test_dir("file-pin")?;
+        for cursor in [false, true] {
+            let path = dir.join(if cursor { "cursor" } else { "journal" });
+            let alias = dir.join(if cursor {
+                "cursor-alias"
+            } else {
+                "journal-alias"
+            });
+            let (mut log, _) = Journal::open(&path, 0, Limits::default())?;
+            log.append(1, b"data")?;
+            drop(log);
+            std::fs::hard_link(&path, &alias)?;
+            let file = File::open(&path)?;
+            let metadata = file.metadata()?;
+            let identity = (metadata.dev(), metadata.ino(), 1);
+            drop(file);
+            if cursor {
+                let owner = CheckedCursor::open(&path, 0, Limits::default())?;
+                std::fs::remove_file(&path)?;
+                let CheckedCursor {
+                    file, _ownership, ..
+                } = owner;
+                drop(file);
+                assert_eq!(_ownership.pinned_identity()?, identity);
+                assert!(matches!(
+                    Journal::open(&alias, 0, Limits::default()),
+                    Err(Error::AlreadyOpen)
+                ));
+                drop(_ownership);
+            } else {
+                let (owner, _) = Journal::open(&path, 0, Limits::default())?;
+                std::fs::remove_file(&path)?;
+                let Journal {
+                    inner, _ownership, ..
+                } = owner;
+                drop(inner);
+                assert_eq!(_ownership.pinned_identity()?, identity);
+                assert!(matches!(
+                    Journal::open(&alias, 0, Limits::default()),
+                    Err(Error::AlreadyOpen)
+                ));
+                drop(_ownership);
+            }
+            let (mut reopened, _) = Journal::open(&alias, 0, Limits::default())?;
+            assert_eq!(reopened.fetch(0, 1, 1024)?[0].payload, b"data");
+            drop(reopened);
+
+            let unlinked = dir.join(if cursor {
+                "cursor-unlinked"
+            } else {
+                "journal-unlinked"
+            });
+            let fresh = dir.join(if cursor {
+                "cursor-fresh"
+            } else {
+                "journal-fresh"
+            });
+            let (log, _) = Journal::open(&unlinked, 0, Limits::default())?;
+            let metadata = std::fs::metadata(&unlinked)?;
+            let identity = (metadata.dev(), metadata.ino());
+            let check_pin = |guard: ownership::Guard| -> Result<(), Box<dyn std::error::Error>> {
+                assert_eq!(guard.pinned_identity()?, (identity.0, identity.1, 0));
+                let (other, _) = Journal::open(&fresh, 0, Limits::default())?;
+                let metadata = std::fs::metadata(&fresh)?;
+                assert_ne!((metadata.dev(), metadata.ino()), identity);
+                drop(other);
+                drop(guard);
+                let (new, _) = Journal::open(&unlinked, 0, Limits::default())?;
+                drop(new);
+                Ok(())
+            };
+            if cursor {
+                drop(log);
+                let owner = CheckedCursor::open(&unlinked, 0, Limits::default())?;
+                std::fs::remove_file(&unlinked)?;
+                let CheckedCursor {
+                    file, _ownership, ..
+                } = owner;
+                drop(file);
+                check_pin(_ownership)?;
+            } else {
+                std::fs::remove_file(&unlinked)?;
+                let Journal {
+                    inner, _ownership, ..
+                } = log;
+                drop(inner);
+                check_pin(_ownership)?;
+            }
+        }
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn directory_ownership_pins_a_temporary_handle() -> Result<(), Box<dyn std::error::Error>> {
+        use std::os::unix::fs::MetadataExt;
+
+        let root = ownership_test_dir("dir-pin")?;
+        let path = root.join("owned");
+        std::fs::create_dir(&path)?;
+        let metadata = std::fs::metadata(&path)?;
+        let mut owner = DirectoryOwnership::acquire(&path)?;
+        owner.identify(&File::open(&path)?)?;
+        let mut other = DirectoryOwnership::acquire(&root.join("other"))?;
+        assert!(matches!(
+            other.identify(&File::open(&path)?),
+            Err(Error::AlreadyOpen)
+        ));
+        drop(other);
+        std::fs::remove_dir(&path)?;
+        assert_eq!(
+            owner.0.pinned_identity()?,
+            (metadata.dev(), metadata.ino(), 0)
+        );
+        drop(owner);
+        std::fs::create_dir(&path)?;
+        let mut reopened = DirectoryOwnership::acquire(&path)?;
+        reopened.identify(&File::open(&path)?)?;
+        drop(reopened);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    #[ignore = "descriptor measurement must run alone"]
+    fn ownership_descriptor_cost() -> Result<(), Box<dyn std::error::Error>> {
+        fn descriptors() -> Result<usize, std::io::Error> {
+            Ok(std::fs::read_dir("/proc/self/fd")?.count())
+        }
+        let root = ownership_test_dir("fd-cost")?;
+        let baseline = descriptors()?;
+        let (mut journal, _) = Journal::open(root.join("log"), 0, Limits::default())?;
+        let journal_open = descriptors()?;
+        let ticket = journal.append_staged(1, b"data", crc32c::crc32c(b"data"))?;
+        let staged = descriptors()?;
+        drop(journal);
+        let ticket_only = descriptors()?;
+        drop(ticket);
+        let after = descriptors()?;
+        let mut directory = DirectoryOwnership::acquire(&root)?;
+        directory.identify(&File::open(&root)?)?;
+        let directory_open = descriptors()?;
+        drop(directory);
+        let directory_closed = descriptors()?;
+        println!(
+            "PL_FD_COST baseline={baseline} journal={journal_open} staged={staged} ticket_only={ticket_only} after={after} directory={directory_open} directory_closed={directory_closed}"
+        );
+        assert_eq!(journal_open, baseline + 2);
+        assert_eq!(staged, baseline + 3);
+        assert_eq!(ticket_only, baseline + 2);
+        assert_eq!(after, baseline);
+        assert_eq!(directory_open, baseline + 1);
+        assert_eq!(directory_closed, baseline);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    #[ignore = "run alone with a small descriptor limit"]
+    fn ownership_descriptor_exhaustion_releases_reservations(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        fn exhaust() -> Result<Vec<File>, Box<dyn std::error::Error>> {
+            let mut files = Vec::new();
+            for _ in 0..256 {
+                match File::open("/dev/null") {
+                    Ok(file) => files.push(file),
+                    Err(error) if error.raw_os_error() == Some(24) => return Ok(files),
+                    Err(error) => return Err(error.into()),
+                }
+            }
+            Err("descriptor limit was not reached within 256 handles".into())
+        }
+
+        let root = ownership_test_dir("fd-exhaustion")?;
+        let path = root.join("log");
+        let spare = File::open("/dev/null")?;
+        let held = exhaust()?;
+        drop(spare);
+        assert!(matches!(
+            Journal::open(&path, 0, Limits::default()),
+            Err(Error::Io(error)) if error.raw_os_error() == Some(24)
+        ));
+        // The new file exists: opening it succeeded and duplicating the pin failed.
+        assert!(path.exists());
+        drop(held);
+        let (mut log, _) = Journal::open(&path, 0, Limits::default())?;
+        let held = exhaust()?;
+        assert!(matches!(
+            log.append_staged(1, b"unconfirmed", crc32c::crc32c(b"unconfirmed")),
+            Err(Error::Io(error)) if error.raw_os_error() == Some(24)
+        ));
+        assert!(log.is_poisoned());
+        drop(held);
+        drop(log);
+        let (mut reopened, _) = Journal::open(&path, 0, Limits::default())?;
+        assert_eq!(reopened.fetch(0, 1, 1024)?[0].payload, b"unconfirmed");
+        drop(reopened);
+
+        let mut directory = DirectoryOwnership::acquire(&root)?;
+        let source = File::open(&root)?;
+        let held = exhaust()?;
+        assert!(matches!(
+            directory.identify(&source),
+            Err(Error::Io(error)) if error.raw_os_error() == Some(24)
+        ));
+        drop(source);
+        drop(directory);
+        drop(held);
+        let mut reopened = DirectoryOwnership::acquire(&root)?;
+        reopened.identify(&File::open(&root)?)?;
+        drop(reopened);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
     #[test]
     fn a_known_payload_crc_extends_the_fingerprint() {
         let header = [1u8, 2, 3, 4, 5, 6, 7, 8];
@@ -2065,6 +2611,165 @@ mod tests {
         journal.append(3, &vec![b'a'; 8201])?;
         journal.append(2, b"next")?;
         Ok(journal.storage.cursor.into_inner())
+    }
+
+    #[test]
+    fn grouped_preallocates_index_for_all_staged_writes() -> Result<(), Error> {
+        let mut journal = engine(0)?;
+        for value in 0u8..8 {
+            let payload = [value];
+            journal.stage(1, &payload, crc32c::crc32c(&payload), true)?;
+            let required = journal.index.len() + journal.staged.len();
+            let (index_len, index_capacity, queued, queue_capacity) = STAGE_RESERVATION_OBSERVATION
+                .with(|observation| observation.get())
+                .ok_or(Error::InvalidEntry)?;
+            assert_eq!(index_len, journal.index.len());
+            assert_eq!(queued + 1, journal.staged.len());
+            assert_eq!(index_capacity, journal.index.capacity());
+            assert_eq!(queue_capacity, journal.staged.capacity());
+            assert!(
+                index_capacity >= required,
+                "index capacity {} is below {} committed and staged entries",
+                index_capacity,
+                required
+            );
+            assert!(
+                queue_capacity > queued,
+                "staging queue was full before the write"
+            );
+        }
+        let capacity = journal.index.capacity();
+        journal.storage.synchronize()?;
+        for value in 0u64..8 {
+            let result = journal.commit_staged()?;
+            assert_eq!(
+                (result.first_offset, result.next_offset),
+                (value, value + 1)
+            );
+            assert_eq!(journal.index.capacity(), capacity);
+        }
+        let (mut recovered, recovery) = Engine::recover(journal.storage, 0, Limits::default())?;
+        assert_eq!(recovery.next_offset, 8);
+        let entries = recovered.fetch(0, 8, 1024)?;
+        for (value, entry) in (0u8..8).zip(entries) {
+            assert_eq!(entry.payload, [value]);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn grouped_reservation_failures_leave_prior_stage_intact() -> Result<(), Error> {
+        for fail_index in [true, false] {
+            let mut journal = engine(0)?;
+            journal.stage(1, b"a", crc32c::crc32c(b"a"), true)?;
+            while !fail_index && journal.staged.len() < journal.staged.capacity() {
+                assert!(journal.staged.len() < 32, "unexpected queue capacity");
+                journal.stage(1, b"a", crc32c::crc32c(b"a"), true)?;
+            }
+            let pending = journal.staged.len();
+            let bytes = journal.storage.cursor.get_ref().clone();
+            if fail_index {
+                INDEX_RESERVE_TEST_ERROR.with(|failure| failure.set(true));
+            } else {
+                assert_eq!(journal.staged.len(), journal.staged.capacity());
+                STAGED_RESERVE_TEST_ERROR.with(|failure| failure.set(true));
+            }
+            assert!(matches!(
+                journal.stage(1, b"b", crc32c::crc32c(b"b"), true),
+                Err(Error::AllocationFailed)
+            ));
+            assert_eq!(*journal.storage.cursor.get_ref(), bytes);
+            assert_eq!(journal.staged.len(), pending);
+            assert_eq!(journal.index.len(), 0);
+            assert!(!journal.poisoned);
+            journal.storage.synchronize()?;
+            for _ in 0..pending {
+                journal.commit_staged()?;
+            }
+            let (mut recovered, outcome) = Engine::recover(journal.storage, 0, Limits::default())?;
+            assert_eq!(outcome.next_offset, pending as u64);
+            for entry in recovered.fetch(0, pending, 1024)? {
+                assert_eq!(entry.payload, b"a");
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn grouped_capacity_limit_rejects_before_write() -> Result<(), Error> {
+        let limits = Limits::new(8, 4096, 3, 1024)?;
+        let (mut journal, _) = Engine::recover(Faults::new(Vec::new()), 0, limits)?;
+        for value in 0u8..3 {
+            let payload = [value];
+            journal.stage(1, &payload, crc32c::crc32c(&payload), true)?;
+        }
+        let bytes = journal.storage.cursor.get_ref().clone();
+        assert!(matches!(
+            journal.stage(1, b"x", crc32c::crc32c(b"x"), true),
+            Err(Error::IndexBudgetExceeded)
+        ));
+        assert_eq!(*journal.storage.cursor.get_ref(), bytes);
+        assert_eq!(journal.staged.len(), 3);
+        assert!(!journal.poisoned);
+        journal.storage.synchronize()?;
+        for value in 0u64..3 {
+            assert_eq!(journal.commit_staged()?.first_offset, value);
+        }
+        let (mut recovered, outcome) = Engine::recover(journal.storage, 0, limits)?;
+        assert_eq!(outcome.next_offset, 3);
+        let entries = recovered.fetch(0, 3, 1024)?;
+        assert_eq!(entries.len(), 3);
+        for (value, entry) in (0u8..3).zip(entries) {
+            assert_eq!(entry.payload, [value]);
+        }
+        let mut index = Vec::new();
+        assert!(matches!(
+            reserve_index(&mut index, 3, usize::MAX),
+            Err(Error::IndexBudgetExceeded)
+        ));
+        assert!(index.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn grouped_rollback_then_sync_preserves_committed_file_order(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let dir = ownership_test_dir("grouped-rollback")?;
+        let path = dir.join("log");
+        let (mut journal, _) = Journal::open(&path, 0, Limits::default())?;
+        let mut tickets = Vec::new();
+        for value in *b"abc" {
+            let bytes = [value];
+            tickets.push(journal.append_staged_grouped(1, &bytes, crc32c::crc32c(&bytes))?);
+            assert_eq!(journal.entry_count(), 0);
+        }
+        let capacity = journal.inner.index.capacity();
+        tickets[2].sync_data()?;
+        assert_eq!(journal.commit_staged()?.first_offset, 0);
+        assert_eq!(journal.inner.index.capacity(), capacity);
+        assert_eq!(journal.unstage_last()?, 2);
+        drop(tickets.pop());
+        let bytes = *b"d";
+        tickets.push(journal.append_staged_grouped(1, &bytes, crc32c::crc32c(&bytes))?);
+        tickets[2].sync_data()?;
+        assert_eq!(journal.commit_staged()?.first_offset, 1);
+        assert_eq!(journal.commit_staged()?.first_offset, 2);
+        assert_eq!(journal.inner.index.capacity(), capacity);
+        drop(tickets);
+        drop(journal);
+        let (mut recovered, outcome) = Journal::open(&path, 0, Limits::default())?;
+        assert_eq!(outcome.next_offset, 3);
+        let entries = recovered.fetch(0, 3, 1024)?;
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| entry.payload[0])
+                .collect::<Vec<_>>(),
+            b"abd"
+        );
+        drop(recovered);
+        std::fs::remove_dir_all(dir)?;
+        Ok(())
     }
 
     #[test]
@@ -2354,11 +3059,12 @@ mod tests {
         let fetched = reopened.fetch(0, 1, 1024)?;
         assert_eq!(fetched[0].payload, b"left");
         let (mut aborted, _) = Journal::open(dir.join("c"), 0, limits)?;
-        let _file = aborted.append_staged(1, b"gone", crc32c::crc32c(b"gone"))?;
+        let file = aborted.append_staged(1, b"gone", crc32c::crc32c(b"gone"))?;
         aborted.abort_staged();
         assert!(aborted.is_poisoned());
         assert!(aborted.append(1, b"next").is_err());
         drop(aborted);
+        drop(file);
         let (mut recovered, recovery) = Journal::open(dir.join("c"), 0, limits)?;
         assert_eq!(recovery.recovered_entries, 1);
         assert_eq!(recovered.fetch(0, 1, 1024)?[0].payload, b"gone");
@@ -2539,6 +3245,7 @@ mod tests {
         assert_eq!(fetched[0].payload, b"one");
         assert_eq!(fetched[1].payload, b"two");
         drop(log);
+        drop(second);
         let (mut reopened, recovery) = Journal::open(dir.join("log"), 0, limits)?;
         assert_eq!(recovery.recovered_entries, 2);
         assert_eq!(reopened.next_offset(), 3);

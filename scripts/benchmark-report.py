@@ -56,9 +56,11 @@ def normalize_acks(acks: Any) -> Optional[int]:
     """Normalize acks to integer (-1, 0, 1)."""
     if acks is None:
         return None
-    if isinstance(acks, int):
-        return acks
-    s = str(acks).strip().lower()
+    if type(acks) is int:
+        return acks if acks in (-1, 0, 1) else None
+    if not isinstance(acks, str):
+        return None
+    s = acks.strip().lower()
     if s in ("all", "-1"):
         return -1
     if s in ("1", "+1"):
@@ -68,6 +70,68 @@ def normalize_acks(acks: Any) -> Optional[int]:
     return None
 
 
+
+def reject_duplicate_keys(pairs: List[Tuple[str, Any]]) -> Dict[str, Any]:
+    """Reject ambiguous JSON objects before their keys are discarded."""
+    result: Dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
+
+
+
+def semantic_shape_errors(data: Dict[str, Any]) -> List[str]:
+    """Check the shapes needed by semantic checks, even with an alternate schema."""
+    objects = (
+        ("scenario",), ("scenario", "equal_semantics"),
+        ("provenance",), ("provenance", "config"),
+        ("provenance", "config", "effective_settings"), ("provenance", "broker"),
+        ("outcomes",), ("integrity",), ("integrity", "record_ids"),
+        ("integrity", "high_watermark_audit"), ("repetition_history",),
+    )
+    counts = (
+        *(("outcomes", key) for key in
+          ("offered", "accepted", "acknowledged", "consumed", "rejected", "timed_out", "unknown")),
+        *(("integrity", "record_ids", key) for key in
+          ("expected_count", "verified_count", "missing_ids_count", "duplicate_ids_count")),
+        ("integrity", "high_watermark_audit", "total_offset_delta"),
+        ("repetition_history", "total_attempts"), ("repetition_history", "failed_attempts"),
+    )
+    errors = []
+    missing = object()
+
+    def lookup(path: Tuple[str, ...]) -> Any:
+        value: Any = data
+        for key in path:
+            if not isinstance(value, dict) or key not in value:
+                return missing
+            value = value[key]
+        return value
+
+    for path in objects:
+        value = lookup(path)
+        if value is not missing and not isinstance(value, dict):
+            errors.append(f"Invalid {'.'.join(path)}: must be an object")
+    for path in counts:
+        value = lookup(path)
+        if value is not missing and type(value) is not int:
+            errors.append(f"Invalid {'.'.join(path)}: must be an integer")
+    return errors
+
+
+def has_type_error(errors: List[Any]) -> bool:
+    """Find type errors nested under composite JSON Schema failures."""
+    pending = list(errors)
+    while pending:
+        error = pending.pop()
+        if error.validator == "type":
+            return True
+        pending.extend(error.context)
+    return False
+
+
 class BenchmarkValidator:
     """Fail-closed validator for benchmark result documents."""
 
@@ -75,7 +139,7 @@ class BenchmarkValidator:
         self.schema_path = schema_path or Path(__file__).resolve().parent.parent / "benchmarks/result-schema.json"
         try:
             from jsonschema import Draft7Validator
-            self.schema = json.loads(self.schema_path.read_text(encoding="utf-8"))
+            self.schema = json.loads(self.schema_path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
             Draft7Validator.check_schema(self.schema)
             self.schema_validator = Draft7Validator(self.schema)
         except ImportError as e:
@@ -103,6 +167,18 @@ class BenchmarkValidator:
             "has_retained_integrity_failure": False,
         }
 
+        try:
+            return self._validate(data, require_clean, errors, summary)
+        except Exception as error:
+            # Invalid input or an unusable alternate schema must never produce
+            # a successful result or an unhandled traceback.
+            errors.append(f"Result validation could not complete ({type(error).__name__})")
+            return False, errors, summary
+
+    def _validate(
+        self, data: Dict[str, Any], require_clean: bool,
+        errors: List[str], summary: Dict[str, Any]
+    ) -> Tuple[bool, List[str], Dict[str, Any]]:
         if not isinstance(data, dict):
             return False, ["Root benchmark result must be a JSON object"], summary
 
@@ -122,7 +198,12 @@ class BenchmarkValidator:
             for error in schema_errors
         )
         # Semantic arithmetic and object access require correctly typed fields.
-        if any(error.validator == "type" for error in schema_errors):
+        # Composite schema failures can hide type errors in their contexts.
+        if has_type_error(schema_errors):
+            return False, errors, summary
+        shape_errors = semantic_shape_errors(data)
+        if shape_errors:
+            errors.extend(shape_errors)
             return False, errors, summary
 
         # 1. Required Top-Level Sections
@@ -561,18 +642,28 @@ class BenchmarkValidator:
                     if "records_lag" not in c_lag or "partition_lags" not in c_lag:
                         errors.append("measurements.consumer_lag missing records_lag or partition_lags")
 
-        # 6. Mismatched Acks Verification
-        # Check scenario equal_semantics vs effective configuration
-        scenario_acks = normalize_acks(scenario.get("equal_semantics", {}).get("acks"))
-        config_acks = normalize_acks(
-            provenance.get("config", {}).get("effective_settings", {}).get("acks")
-        )
-        if scenario_acks is not None and config_acks is not None:
-            if scenario_acks != config_acks:
-                errors.append(
-                    f"Mismatched acks: scenario equal_semantics requires acks={scenario_acks}, "
-                    f"but client effective_settings configured acks={config_acks}."
-                )
+        # 6. Compare declared and effective producer semantics.
+        semantics = scenario.get("equal_semantics", {})
+        effective = provenance.get("config", {}).get("effective_settings", {})
+        scenario_acks = normalize_acks(semantics.get("acks"))
+        config_acks = normalize_acks(effective.get("acks"))
+        null_fetch = (data.get("schema_version") == "2.0.0"
+                      and provenance.get("broker", {}).get("mode") == "null"
+                      and scenario.get("profile") == "fetch")
+        if not null_fetch:
+            if scenario_acks is None:
+                errors.append("Invalid scenario acks: expected -1/all, 0 or 1")
+            if config_acks is None:
+                errors.append("Invalid effective acks: expected -1/all, 0 or 1")
+        if scenario_acks is not None and config_acks is not None and scenario_acks != config_acks:
+            errors.append(
+                f"Mismatched acks: scenario equal_semantics requires acks={scenario_acks}, "
+                f"but client effective_settings configured acks={config_acks}."
+            )
+        if semantics.get("idempotence") != effective.get("idempotence"):
+            errors.append("Mismatched idempotence between scenario and effective settings")
+        if effective.get("idempotence") is True and config_acks is not None and config_acks != -1:
+            errors.append("Idempotence requires acks=-1/all")
 
         # Required zstd cells compare a declared level and resolved backend.
         compression = scenario.get("equal_semantics", {}).get("compression", {})
@@ -619,10 +710,33 @@ class BenchmarkValidator:
                         errors.append(f"Missing integrity.high_watermark_audit field: '{hw_k}'")
                 offset_delta = hw_audit.get("total_offset_delta", 0)
                 acked_count = outcomes.get("acknowledged", 0) if isinstance(outcomes, dict) else 0
+                partitions = hw_audit.get("partitions")
+                if isinstance(partitions, list):
+                    observed_sum = 0
+                    complete = True
+                    for index, row in enumerate(partitions):
+                        if not isinstance(row, dict):
+                            complete = False
+                            continue
+                        start = row.get("start_offset")
+                        end = row.get("end_offset")
+                        delta = row.get("offset_delta")
+                        if not all(type(value) is int for value in (start, end, delta)):
+                            complete = False
+                            continue
+                        if end < start or end - start != delta:
+                            errors.append(f"Offset audit partition row {index} has inconsistent offsets")
+                        observed_sum += delta
+                    if complete and type(offset_delta) is int and observed_sum != offset_delta:
+                        errors.append(
+                            f"Offset audit partition deltas sum to {observed_sum}, "
+                            f"not total_offset_delta ({offset_delta})"
+                        )
 
-                # If produce scenario with acknowledged records, high-watermark delta MUST match acknowledged count!
+                # Transaction control records also advance offsets, so this equality
+                # applies only to the nontransactional produce profiles.
                 scen_profile = scenario.get("profile")
-                if scen_profile in ("bulk", "low-latency", "transactional", "secure") and acked_count > 0:
+                if scen_profile in ("bulk", "low-latency", "secure") and acked_count > 0:
                     if offset_delta != acked_count:
                         errors.append(
                             f"Mismatched acks: broker high-watermark offset delta ({offset_delta}) "
@@ -653,13 +767,23 @@ class BenchmarkValidator:
                 expected = record_ids.get("expected_count", 0)
                 verified = record_ids.get("verified_count", 0)
                 missing = record_ids.get("missing_ids_count", 0)
+                duplicates = record_ids.get("duplicate_ids_count", 0)
                 payload_ok = record_ids.get("payload_checksum_matches")
 
                 acked_count = outcomes.get("acknowledged", 0) if isinstance(outcomes, dict) else 0
                 consumed_count = outcomes.get("consumed", 0) if isinstance(outcomes, dict) else 0
                 target_count = acked_count if acked_count > 0 else consumed_count
 
+                if missing > 0:
+                    errors.append(
+                        f"Integrity check failed: missing {missing} record IDs. "
+                        "Throughput numbers cannot be accepted without 100% record ID verification."
+                    )
+                if duplicates > 0:
+                    errors.append(f"Integrity check failed: {duplicates} duplicate record IDs")
                 if target_count > 0:
+                    if integrity.get("verified") is not True:
+                        errors.append("Integrity check failed: record history is not verified")
                     if expected != target_count:
                         errors.append(
                             f"Record ID accounting error: expected_count ({expected}) != target record count ({target_count})"
@@ -667,11 +791,6 @@ class BenchmarkValidator:
                     if verified != expected:
                         errors.append(
                             f"Integrity check failed: verified record IDs ({verified}) != expected ({expected})"
-                        )
-                    if missing > 0:
-                        errors.append(
-                            f"Integrity check failed: missing {missing} record IDs. "
-                            "Throughput numbers cannot be accepted without 100% record ID verification."
                         )
                     if payload_ok is not True:
                         errors.append("Integrity check failed: payload_checksum_matches is false")
@@ -718,23 +837,44 @@ class BenchmarkValidator:
                     )
 
                 summary["has_retained_integrity_failure"] = has_integrity_failure_in_attempts
-                if has_integrity_failure_in_attempts:
-                    if require_clean:
-                        errors.append(
-                            "Integrity policy violation: repetition history contains a failed attempt "
-                            "with an integrity failure. A subsequent successful rerun does not erase an earlier integrity failure."
-                        )
+                if require_clean and has_integrity_failure_in_attempts:
+                    errors.append(
+                        "Integrity policy violation: repetition history contains a failed attempt "
+                        "with an integrity failure. A subsequent successful rerun does not erase an earlier integrity failure."
+                    )
+                elif require_clean and actual_failed:
+                    errors.append(
+                        "Benchmark policy violation: repetition history contains a failed attempt. "
+                        "A subsequent successful rerun does not erase an earlier failed attempt."
+                    )
 
         is_valid = len(errors) == 0
         return is_valid, errors, summary
 
 
-def format_report_summary(data: Dict[str, Any], errors: List[str]) -> str:
-    """Format human-readable summary report of benchmark result."""
+def format_report_summary(
+    data: Dict[str, Any], errors: List[str],
+    schema_path: Optional[Path] = None, canonical_checked: bool = True
+) -> str:
+    """Format a report, identifying when an alternate schema was selected."""
     lines = []
     lines.append("=" * 78)
     lines.append("PARTITIONLINE BENCHMARK RESULT & PROVENANCE REPORT")
     lines.append("=" * 78)
+    if schema_path is not None:
+        lines.append(f"Schema: {schema_path}")
+    if not canonical_checked:
+        lines.append("Canonical repository schema was not checked.")
+    # Invalid input need not have the types that the detailed report expects.
+    if errors:
+        lines.append(f"VALIDATION FAILED ({len(errors)} error(s)):")
+        lines.extend(f"  [FAIL] {error}" for error in errors)
+        lines.append("=" * 78)
+        return "\n".join(lines)
+    if not canonical_checked:
+        lines.append("VALIDATION PASSED using the alternate schema and semantic checks; this is not qualification.")
+        lines.append("=" * 78)
+        return "\n".join(lines)
 
     scenario = data.get("scenario", {})
     provenance = data.get("provenance", {})
@@ -820,12 +960,7 @@ def format_report_summary(data: Dict[str, Any], errors: List[str]) -> str:
     )
     lines.append("-" * 78)
 
-    if errors:
-        lines.append(f"VALIDATION FAILED ({len(errors)} error(s)):")
-        for err in errors:
-            lines.append(f"  [FAIL] {err}")
-    else:
-        lines.append("VALIDATION PASSED: Result conforms strictly to fail-closed result schema.")
+    lines.append("VALIDATION PASSED: Result conforms to the selected schema and semantic checks.")
     lines.append("=" * 78)
     return "\n".join(lines)
 
@@ -839,12 +974,12 @@ def main() -> int:
         "--schema",
         type=Path,
         default=None,
-        help="Path to benchmarks/result-schema.json (defaults to repo schema if available)",
+        help="Alternate schema replaces the repository schema; canonical conformance requires the canonical schema",
     )
     parser.add_argument(
         "--require-clean",
         action="store_true",
-        help="Fail closed if any prior attempt suffered an integrity failure (no rerun erasure)",
+        help="Fail closed if any prior attempt failed or recorded an integrity failure (no rerun erasure)",
     )
     parser.add_argument(
         "--json",
@@ -865,17 +1000,14 @@ def main() -> int:
         return 2
 
     # Locate default schema if not provided
+    canonical_schema = Path(__file__).resolve().parent.parent / "benchmarks" / "result-schema.json"
     schema_path = args.schema
-    if schema_path is None:
-        default_schema = (
-            Path(__file__).resolve().parent.parent / "benchmarks" / "result-schema.json"
-        )
-        if default_schema.is_file():
-            schema_path = default_schema
+    if schema_path is None and canonical_schema.is_file():
+        schema_path = canonical_schema
 
     try:
         content = args.result_file.read_text(encoding="utf-8")
-        data = json.loads(content)
+        data = json.loads(content, object_pairs_hook=reject_duplicate_keys)
     except Exception as e:
         sys.stderr.write(f"Error reading JSON from {args.result_file}: {e}\n")
         return 2
@@ -886,17 +1018,23 @@ def main() -> int:
         sys.stderr.write(f"Error: {error}\n")
         return 2
     is_valid, errors, summary = validator.validate(data, require_clean=args.require_clean)
+    canonical_checked = validator.schema_path.resolve() == canonical_schema.resolve()
 
     if args.json_output:
         out_doc = {
             "valid": is_valid,
+            "schema": {"path": str(validator.schema_path), "canonical_checked": canonical_checked},
             "error_count": len(errors),
             "errors": errors,
             "summary": summary,
         }
         print(json.dumps(out_doc, indent=2))
     elif not args.quiet:
-        print(format_report_summary(data, errors))
+        try:
+            print(format_report_summary(data, errors, validator.schema_path, canonical_checked))
+        except Exception as error:
+            sys.stderr.write(f"Error: could not format validation report ({type(error).__name__})\n")
+            return 1
 
     return 0 if is_valid else 1
 

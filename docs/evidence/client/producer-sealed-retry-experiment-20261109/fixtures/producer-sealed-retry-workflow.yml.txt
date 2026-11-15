@@ -1,0 +1,55 @@
+name: Experimental sealed producer retry control
+
+on:
+  push:
+    branches: [qualification/producer-sealed-retry-20261109]
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+      RUSTFLAGS: "--cfg sealed_retry_witness --check-cfg=cfg(sealed_retry_witness)"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Identify exact source and run focused controls
+        shell: bash
+        run: |
+          set -uo pipefail
+          rustc -Vv
+          git rev-parse HEAD
+          git hash-object src/producer.rs src/producer/owned.rs tests/producer_sealed_retry_public.rs tests/common/mod.rs Cargo.lock
+          sha256sum src/producer.rs src/producer/owned.rs tests/producer_sealed_retry_public.rs tests/common/mod.rs Cargo.lock
+          failures=0
+          check() {
+            printf '\nCHECK: %s\n' "$*"
+            if "$@"; then
+              printf 'CHECK_RESULT=pass\n'
+            else
+              code=$?
+              printf 'CHECK_RESULT=fail:%s\n' "$code"
+              failures=$((failures + 1))
+            fi
+          }
+          check timeout 240 cargo test --locked --test producer_sealed_retry_public -- --nocapture --test-threads=1
+          check timeout 240 cargo test --locked --all-features --test producer_sealed_retry_public -- --nocapture --test-threads=1
+          check timeout 240 cargo test --locked --test buffer_ownership
+          check cargo clippy --locked --all-features --test producer_sealed_retry_public -- -D warnings
+          check cargo fmt --all -- --check
+          printf '\nFAILED_COMMANDS=%s\n' "$failures"
+          test "$failures" -eq 0

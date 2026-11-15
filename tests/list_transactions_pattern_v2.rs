@@ -1,10 +1,4 @@
 //! API66 v2 must retain pattern filters and the complete broker response.
-#![expect(
-    clippy::unwrap_used,
-    clippy::panic,
-    clippy::indexing_slicing,
-    reason = "finite codec and owned wire-peer regression assertions"
-)]
 #[path = "fixtures/list-transactions-pattern-v2/socket_peer.rs"]
 mod socket_peer;
 

@@ -1,8 +1,8 @@
-# One task per session
+# Work plan
 
-**Start here to implement the Kafka leadership plan.** Pick one ready task
-from [tasks.json](tasks.json), finish its narrow contract, record evidence and
-stop. Do not treat a KL package as one assignment.
+Use [tasks.json](tasks.json) to find planned work and record evidence as it
+is completed. Related tasks can progress together. Coordinate overlapping
+files and keep each change reviewable.
 
 [Source audit](../audits/2026-09-21.md) explains the verified gaps.
 [ROADMAP](../ROADMAP.md) defines profiles and promotion gates.
@@ -14,7 +14,7 @@ task status and dependencies**; the other documents are navigation and context.
 Each task has a stable ID, priority, kind, dependencies, starting files,
 one deliverable, explicit acceptance criteria and focused checks. A new
 card starts `pending`, with no owner and no completion evidence. Cards
-already in the file may be pending, in progress, or done. A passing
+already in the file may be pending, in progress, blocked, or done. A passing
 existing suite, or a merged preparatory harness, does not complete its
 dependent task.
 
@@ -40,13 +40,10 @@ The prefixes retain the existing roadmap packages:
 | KL10 | Gateway adoption: gzip, mTLS, one acknowledgement per record, and gzip consume. The 2026-09-26 CI failure is KL10-01, which is done. Dated measurements are in the [gateway plan](gateway-adoption.md). |
 | KL11 | Broker: transport, storage, replication, coordinators, and server qualification. The open cards are in the [broker plan](broker-implementation.md). |
 
-**Size rule:** one observable behavior, one fixture family, one adapter, one
-documentation outcome, or one evidence job per task. Aim for one or two
-production files plus focused tests/docs, not a broad subsystem rewrite.
-Listed `files` are starting points, not permission to ignore a necessary
-caller; `new:` paths do not exist yet. If a task cannot fit that boundary,
-split it into dependent child tasks **before** implementation and retain its
-acceptance criteria. Do not silently expand the session.
+Keep changes cohesive and large enough to address the underlying behavior.
+Split work when that improves review or evidence, and coordinate edits to
+shared files. Listed `files` are starting points; `new:` paths do not exist
+yet. Retain the relevant acceptance criteria when work spans tasks.
 
 ## Find ready work
 
@@ -66,7 +63,7 @@ for t in sorted(tasks.values(), key=lambda t: (t["priority"], t["id"])):
 PY
 ```
 
-Read just one card:
+Read a card:
 
 ```bash
 TASK=KL03-01 python3 - <<'PY'
@@ -95,13 +92,13 @@ declared `write_set`. Use both when more than one session is active.
 [gateway adoption plan](gateway-adoption.md). That page defines the
 gateway profile, the dated same-settings comparison against librdkafka,
 and the card for each gap. KL10 optimization cards use the KL09 worker
-protocol and the same hot-file locks. KL10-01, the green `main` CI card,
-is done. Later KL10 cards still use that CI as their check.
+protocol and the same hot-file locks. KL10-01 records a dated CI result;
+see [current status](../STATUS.md) for later runs.
 
 ## Execute and hand off
 
-1. Read applicable repository instructions, this guide, one task card, its
-   completed dependency evidence and the relevant audit finding. Verify
+1. Read applicable repository instructions, this guide, the relevant task
+   cards, completed dependency evidence and audit findings. Verify
    current source; audit line numbers are frozen at `cb7e97d`.
 2. Claim the card: set `status=in_progress` and `owner` to the actual owner.
    Check the worktree and coordinate if another session owns the same files.
@@ -109,9 +106,9 @@ is done. Later KL10 cards still use that CI as their check.
 3. For a defect, first add the failing behavioral case. Reuse existing
    codecs/helpers and the promoted fixture; do not duplicate a mock per test
    or encode the broken behavior as the expectation.
-4. Implement only the card's deliverable, preserving defaults and unrelated
-   behavior. An intentional behavior/API change needs its directly affected
-   documentation and compatibility tests in the same change.
+4. Implement the coherent change, preserving defaults and unrelated behavior.
+   An intentional behavior/API change needs its directly affected documentation
+   and compatibility tests in the same change.
 5. Run the card's checks and the repository's applicable format/lint gate.
    Commands referencing `new:` files are **future acceptance commands**, not
    commands that already pass today. Verify a test selector runs at least
@@ -123,8 +120,7 @@ is done. Later KL10 cards still use that CI as their check.
    `blocked_reason`, and leave dependents unready.
 7. Review the diff and hand off the task ID, meaningful change, evidence,
    unresolved limits and next ready ID. Commit/push only within the current
-   session's authorization. Stop after the task; do not start a second
-   unrelated feature to make the session look more complete.
+   session's authorization. Continue with other authorized work as useful.
 
 Example completion evidence (replace placeholders with real values):
 
@@ -149,9 +145,9 @@ busy polling loop or mark a launched job passed.
 - **Correctness first:** the five baseline consumer defects are fixed
   (KL03-01 through KL03-07). Independent replay of those histories is
   still KL01-22. Current CI is not a waiver of that replay.
-- **Named scope:** core client, transactional, group/share, secure, full-admin
-  and ecosystem profiles have different gates. Broker-internal replication
-  APIs, Streams, Connect and a drop-in C ABI are not silently added to scope.
+- **Named scope:** client and broker profiles have different gates. Broker
+  replication and operations need their own evidence; Streams, Connect and a
+  drop-in C ABI are not implicitly included.
 - **Complete means evidenced:** every selected upstream case has a disposition
   and provenance. `unsupported` does not count as passed. Major features such
   as zstd or enterprise auth cannot disappear behind a "demand-led" label when

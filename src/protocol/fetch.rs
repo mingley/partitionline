@@ -3689,7 +3689,7 @@ pub(crate) async fn decode_fetch_response_raw_cooperative_with_budget<B: Buf>(
         let mut raw_partitions = SlotList::try_with_budget(pn, metadata)?;
         let mut part_index = 0usize;
         while part_index < pn {
-            let end = part_index.saturating_add(8 * 1024).min(pn);
+            let end = part_index.saturating_add(1024).min(pn);
             read_fetch_partitions_cooperative(
                 buf,
                 version,
@@ -3728,7 +3728,7 @@ pub(crate) async fn decode_fetch_response_raw_cooperative_with_budget<B: Buf>(
         }
         raw_records.try_push_with_budget(raw_partitions, metadata)?;
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -4229,16 +4229,24 @@ mod tests {
             .collect();
         let mut body = bytes::BytesMut::new();
         encode_fetch_response(&mut body, 12, &topics).unwrap_or_else(|error| panic!("{error}"));
-        let started = std::time::Instant::now();
-        tokio::select! {
-            decoded = decode_fetch_response_raw_cooperative(&mut body, 12, Vec::new()) => {
-                let (decoded, ..) = decoded.unwrap_or_else(|error| panic!("{error}"));
-                assert_eq!(decoded.len(), 200_000);
-                assert_eq!(decoded.first().map(|item| item.topic.as_str()), Some("topic-0"));
+        let elapsed = {
+            let mut work = std::pin::pin!(decode_fetch_response_raw_cooperative(
+                &mut body,
+                12,
+                Vec::new()
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                decoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    let (decoded, ..) = decoded.unwrap_or_else(|error| panic!("{error}"));
+                    assert_eq!(decoded.len(), 200_000);
+                    assert_eq!(decoded.first().map(|item| item.topic.as_str()), Some("topic-0"));
+                    elapsed
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "decoding fetch topics held the caller for {elapsed:?}"

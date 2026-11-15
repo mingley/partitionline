@@ -413,9 +413,7 @@ async fn fetch_client_credentials_token_response_once(
     .await;
     // The request socket, when one was opened, drops as this block ends.
     // Yield so the endpoint observes that close before the result returns.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
     fetched
 }
 

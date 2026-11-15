@@ -1,0 +1,23 @@
+PL_JSON_INDEX nodes=8192 capacity=8192 node_bytes=12
+RESOURCE arm=baseline shape=many_keys trial=0 body_bytes=262159 extra_keys=16384 parse_ns=217462046 peak_rss_kib=16348
+RESOURCE arm=candidate shape=many_keys trial=0 body_bytes=262159 extra_keys=16384 parse_ns=5016828 peak_rss_kib=16348
+RESOURCE arm=candidate shape=many_keys trial=1 body_bytes=262159 extra_keys=16384 parse_ns=4733729 peak_rss_kib=16348
+RESOURCE arm=baseline shape=many_keys trial=1 body_bytes=262159 extra_keys=16384 parse_ns=220739229 peak_rss_kib=16348
+RESOURCE arm=baseline shape=many_keys trial=2 body_bytes=262159 extra_keys=16384 parse_ns=225297283 peak_rss_kib=16348
+RESOURCE arm=candidate shape=many_keys trial=2 body_bytes=262159 extra_keys=16384 parse_ns=5188327 peak_rss_kib=16348
+RESOURCE arm=candidate shape=many_keys trial=3 body_bytes=262159 extra_keys=16384 parse_ns=4934083 peak_rss_kib=16348
+RESOURCE arm=baseline shape=many_keys trial=3 body_bytes=262159 extra_keys=16384 parse_ns=224857576 peak_rss_kib=16348
+RESOURCE arm=baseline shape=many_keys trial=4 body_bytes=262159 extra_keys=16384 parse_ns=228980950 peak_rss_kib=16348
+RESOURCE arm=candidate shape=many_keys trial=4 body_bytes=262159 extra_keys=16384 parse_ns=5067544 peak_rss_kib=16348
+RESOURCE arm=baseline shape=default_limit trial=0 body_bytes=1048576 extra_keys=0 parse_ns=1844323 peak_rss_kib=16348
+RESOURCE arm=candidate shape=default_limit trial=0 body_bytes=1048576 extra_keys=0 parse_ns=1427171 peak_rss_kib=16348
+RESOURCE arm=candidate shape=default_limit trial=1 body_bytes=1048576 extra_keys=0 parse_ns=1415934 peak_rss_kib=16348
+RESOURCE arm=baseline shape=default_limit trial=1 body_bytes=1048576 extra_keys=0 parse_ns=1875670 peak_rss_kib=16348
+RESOURCE arm=baseline shape=default_limit trial=2 body_bytes=1048576 extra_keys=0 parse_ns=1828148 peak_rss_kib=16348
+RESOURCE arm=candidate shape=default_limit trial=2 body_bytes=1048576 extra_keys=0 parse_ns=1375152 peak_rss_kib=16348
+RESOURCE arm=baseline shape=max_limit trial=0 body_bytes=67108864 extra_keys=0 parse_ns=119031733 peak_rss_kib=200488
+RESOURCE arm=candidate shape=max_limit trial=0 body_bytes=67108864 extra_keys=0 parse_ns=88851207 peak_rss_kib=200268
+RESOURCE arm=candidate shape=max_limit trial=1 body_bytes=67108864 extra_keys=0 parse_ns=91656005 peak_rss_kib=200316
+RESOURCE arm=baseline shape=max_limit trial=1 body_bytes=67108864 extra_keys=0 parse_ns=117027277 peak_rss_kib=200380
+RESOURCE arm=baseline shape=max_limit trial=2 body_bytes=67108864 extra_keys=0 parse_ns=116642214 peak_rss_kib=200488
+RESOURCE arm=candidate shape=max_limit trial=2 body_bytes=67108864 extra_keys=0 parse_ns=88031666 peak_rss_kib=200336

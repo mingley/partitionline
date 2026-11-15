@@ -1148,6 +1148,14 @@ struct CoordinatorConnection {
 /// copy the topic name on every batch.
 type SequenceMap = HashMap<Arc<str>, HashMap<i32, i32>>;
 
+const TXN_ERROR_KIND_MASK: u64 = 7;
+const TXN_ERROR_NONE: u64 = 0;
+const TXN_ERROR_ABORT_PENDING: u64 = 1;
+const TXN_ERROR_ABORTABLE: u64 = 2;
+const TXN_ERROR_FATAL_PENDING: u64 = 3;
+const TXN_ERROR_FATAL_COMMITTED: u64 = 4;
+const TXN_ERROR_TICKET_STEP: u64 = 8;
+
 struct Shared {
     cfg: ProducerConfig,
     cluster: parking_lot::Mutex<Cluster>,
@@ -1157,8 +1165,8 @@ struct Shared {
     metadata_version: AtomicI16,
     /// ApiVersions learned on the initial metadata socket.
     api_keys: Vec<ApiVersion>,
-    /// ApiVersions learned on each produce address. An idle replacement
-    /// reuses them.
+    /// API ranges observed on prior sessions, keyed by address. A replacement
+    /// physical socket negotiates its own ranges.
     produce_keys: parking_lot::Mutex<HashMap<String, Vec<ApiVersion>>>,
     /// Last metadata image. The next refresh refills it.
     metadata_image: parking_lot::Mutex<MetadataResponse>,
@@ -1194,16 +1202,9 @@ struct Shared {
     /// Produce is fatal (pinned Java `maybeTransitionToErrorState`) and never
     /// sets this flag.
     epoch_bump_required: AtomicBool,
-    /// Java `TransactionManager.State.FATAL_ERROR`: fencing, authorization, or
-    /// identity errors (KL03-10). Terminal: close and recreate the producer.
-    txn_fatal: AtomicBool,
-    /// Java `TransactionManager.State.ABORTABLE_ERROR`: the open transaction
-    /// must be aborted before any other transactional operation (KL03-10).
-    /// Cleared by a successful abort.
-    txn_abort_required: AtomicBool,
-    /// First fatal/abortable transactional error (Java `lastError`).
-    /// `begin`/`commit`/`send_offsets` fail with it while set; `abort` fails
-    /// with it only when [`Self::txn_fatal`] is set.
+    /// Atomic severity and ticket summarize the mutex-owned error cause.
+    /// Pending severities fence before a setter acquires the cause lock.
+    txn_error_state: AtomicU64,
     txn_error: parking_lot::Mutex<Option<Error>>,
     seqs: parking_lot::Mutex<SequenceMap>,
     cache_nudge: Notify,
@@ -1355,9 +1356,7 @@ async fn wait_until_finished(handle: &tokio::task::JoinHandle<()>, deadline: Opt
     }
     // The abort drops the broker socket when the task is polled. The idle
     // watch then has to run before that broker sees the close.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 /// Per-record queue-to-ack latency against one batch ack timestamp
@@ -1489,59 +1488,208 @@ impl Shared {
         let _ = self.epoch_gen.fetch_add(1, Ordering::SeqCst);
     }
 
-    /// Java `TransactionManager.maybeFailWithError` for `begin`/`commit`/
-    /// `send_offsets`: fail with the remembered error while fatal or
-    /// abort-required (KL03-10).
+    /// Fail with the remembered error while fatal or abort-required.
     fn fail_on_txn_error(&self) -> Result<()> {
-        if self.txn_fatal.load(Ordering::SeqCst) || self.txn_abort_required.load(Ordering::SeqCst) {
-            if let Some(e) = self.txn_error.lock().clone() {
-                return Err(e);
+        match self.txn_error_state.load(Ordering::SeqCst) & TXN_ERROR_KIND_MASK {
+            TXN_ERROR_NONE => return Ok(()),
+            TXN_ERROR_ABORT_PENDING => {
+                return Err(Error::protocol("transaction in error state"));
             }
-            return Err(Error::protocol("transaction in error state"));
+            TXN_ERROR_FATAL_PENDING => {
+                return Err(Error::protocol(
+                    "transactional producer in fatal error state",
+                ));
+            }
+            _ => {}
         }
-        Ok(())
+        #[cfg(test)]
+        txn_error_state_controls::pause(self, txn_error_state_controls::Point::ReaderBeforeCause);
+        let error = self.txn_error.lock();
+        // Clear or fatal publication can occur while this reader waits.
+        match self.txn_error_state.load(Ordering::SeqCst) & TXN_ERROR_KIND_MASK {
+            TXN_ERROR_NONE => Ok(()),
+            TXN_ERROR_ABORT_PENDING => Err(Error::protocol("transaction in error state")),
+            TXN_ERROR_FATAL_PENDING => Err(Error::protocol(
+                "transactional producer in fatal error state",
+            )),
+            _ => match error.as_ref() {
+                Some(error) => Err(error.clone()),
+                None => Err(Error::protocol("transaction in error state")),
+            },
+        }
     }
 
-    /// Java `beginAbort` guard: abort is the recovery path out of
-    /// abort-required, but a fenced producer cannot even abort (KL03-10).
+    /// Abort is allowed while abort-required, but not when fatal.
     fn fail_on_txn_fatal(&self) -> Result<()> {
-        if self.txn_fatal.load(Ordering::SeqCst) {
-            if let Some(e) = self.txn_error.lock().clone() {
-                return Err(e);
-            }
-            return Err(Error::protocol("transactional producer fenced"));
+        match self.txn_error_state.load(Ordering::SeqCst) & TXN_ERROR_KIND_MASK {
+            TXN_ERROR_FATAL_PENDING => Err(Error::protocol(
+                "transactional producer in fatal error state",
+            )),
+            TXN_ERROR_FATAL_COMMITTED => match self.txn_error.lock().as_ref() {
+                Some(error) => Err(error.clone()),
+                None => Err(Error::protocol("transactional producer fenced")),
+            },
+            _ => Ok(()),
         }
-        Ok(())
     }
 
-    /// Record a fatal transactional error (Java `transitionToFatalError`).
-    /// The first error is retained as the root cause; the flag is terminal.
+    /// Claim a fatal transition before waiting for the cause lock. A fatal
+    /// cause replaces an earlier abortable cause; the first fatal wins.
     fn set_txn_fatal(&self, err: Error) {
-        if !self.txn_fatal.swap(true, Ordering::SeqCst) && self.txn_error.lock().is_none() {
-            *self.txn_error.lock() = Some(err);
+        #[cfg(test)]
+        txn_error_state_controls::mark(self, txn_error_state_controls::Point::FatalEntry);
+        let mut state = self.txn_error_state.load(Ordering::SeqCst);
+        loop {
+            if state & TXN_ERROR_KIND_MASK >= TXN_ERROR_FATAL_PENDING {
+                return;
+            }
+            let pending = (state & !TXN_ERROR_KIND_MASK) | TXN_ERROR_FATAL_PENDING;
+            match self.txn_error_state.compare_exchange_weak(
+                state,
+                pending,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => {
+                    self.commit_txn_fatal(pending, err);
+                    return;
+                }
+                Err(observed) => state = observed,
+            }
         }
     }
 
-    /// Record an abortable transactional error (Java
-    /// `transitionToAbortableError`). Ignored once fatal: fatal wins.
+    fn commit_txn_fatal(&self, pending: u64, err: Error) {
+        let mut error = self.txn_error.lock();
+        *error = Some(err);
+        self.txn_error_state.store(
+            (pending & !TXN_ERROR_KIND_MASK) | TXN_ERROR_FATAL_COMMITTED,
+            Ordering::SeqCst,
+        );
+    }
+
+    /// Publish an abortable claim before waiting for its cause lock. A new
+    /// ticket prevents a cleared old claim from overwriting a later error.
     fn set_txn_abortable(&self, err: Error) {
-        if self.txn_fatal.load(Ordering::SeqCst) {
+        #[cfg(test)]
+        txn_error_state_controls::mark(self, txn_error_state_controls::Point::AbortEntry);
+        let mut state = self.txn_error_state.load(Ordering::SeqCst);
+        let pending = loop {
+            if state & TXN_ERROR_KIND_MASK != TXN_ERROR_NONE {
+                return;
+            }
+            let Some(next) = state.checked_add(TXN_ERROR_TICKET_STEP) else {
+                #[cfg(test)]
+                txn_error_state_controls::pause(
+                    self,
+                    txn_error_state_controls::Point::TicketBeforeClaim,
+                );
+                let pending = (state & !TXN_ERROR_KIND_MASK) | TXN_ERROR_FATAL_PENDING;
+                match self.txn_error_state.compare_exchange(
+                    state,
+                    pending,
+                    Ordering::SeqCst,
+                    Ordering::SeqCst,
+                ) {
+                    Ok(_) => {
+                        #[cfg(test)]
+                        txn_error_state_controls::pause(
+                            self,
+                            txn_error_state_controls::Point::TicketAfterClaim,
+                        );
+                        self.commit_txn_fatal(
+                            pending,
+                            Error::protocol("transactional error ticket exhausted"),
+                        );
+                        return;
+                    }
+                    Err(observed) => {
+                        state = observed;
+                        continue;
+                    }
+                }
+            };
+            let pending = next | TXN_ERROR_ABORT_PENDING;
+            match self.txn_error_state.compare_exchange_weak(
+                state,
+                pending,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => break pending,
+                Err(observed) => state = observed,
+            }
+        };
+        #[cfg(test)]
+        txn_error_state_controls::pause(self, txn_error_state_controls::Point::AbortClaimed);
+        let mut error = self.txn_error.lock();
+        if self.txn_error_state.load(Ordering::SeqCst) != pending {
             return;
         }
-        if !self.txn_abort_required.swap(true, Ordering::SeqCst) && self.txn_error.lock().is_none()
-        {
-            *self.txn_error.lock() = Some(err);
+        #[cfg(test)]
+        txn_error_state_controls::pause(self, txn_error_state_controls::Point::AbortBeforeCause);
+        *error = Some(err);
+        // A fatal setter can claim PENDING while this lock is held.
+        let _published = self.txn_error_state.compare_exchange(
+            pending,
+            (pending & !TXN_ERROR_KIND_MASK) | TXN_ERROR_ABORTABLE,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        );
+    }
+
+    /// A completed abort clears its current abortable claim or cause, but
+    /// cannot clear a fatal transition.
+    fn clear_txn_abortable(&self) {
+        #[cfg(test)]
+        txn_error_state_controls::mark(self, txn_error_state_controls::Point::ClearEntry);
+        let mut error = self.txn_error.lock();
+        let state = self.txn_error_state.load(Ordering::SeqCst);
+        if matches!(
+            state & TXN_ERROR_KIND_MASK,
+            TXN_ERROR_ABORT_PENDING | TXN_ERROR_ABORTABLE
+        ) {
+            #[cfg(test)]
+            txn_error_state_controls::pause(
+                self,
+                txn_error_state_controls::Point::ClearBeforeCause,
+            );
+            if self
+                .txn_error_state
+                .compare_exchange(
+                    state,
+                    state & !TXN_ERROR_KIND_MASK,
+                    Ordering::SeqCst,
+                    Ordering::SeqCst,
+                )
+                .is_ok()
+            {
+                *error = None;
+            }
         }
     }
 
-    /// Java `resetTransactionState` (success path): a completed abort clears
-    /// the abort-required state so the next transaction can begin. Never
-    /// clears fatal.
-    fn clear_txn_abortable(&self) {
-        self.txn_abort_required.store(false, Ordering::SeqCst);
-        if !self.txn_fatal.load(Ordering::SeqCst) {
-            *self.txn_error.lock() = None;
-        }
+    #[cfg(test)]
+    fn txn_error_test_snapshot(&self) -> (bool, bool) {
+        let state = self.txn_error_state.load(Ordering::SeqCst) & TXN_ERROR_KIND_MASK;
+        (
+            state >= TXN_ERROR_FATAL_PENDING,
+            matches!(state, TXN_ERROR_ABORT_PENDING | TXN_ERROR_ABORTABLE),
+        )
+    }
+
+    #[cfg(test)]
+    fn txn_error_test_force_ticket_exhaustion(&self) {
+        self.txn_error_state
+            .store(!TXN_ERROR_KIND_MASK, Ordering::SeqCst);
+    }
+
+    #[cfg(test)]
+    fn txn_error_test_force_ticket_before_exhaustion(&self) {
+        self.txn_error_state.store(
+            (!TXN_ERROR_KIND_MASK) - TXN_ERROR_TICKET_STEP,
+            Ordering::SeqCst,
+        );
     }
 
     /// Java `TransactionManager.canHandleAbortableError` for the negotiated
@@ -1790,9 +1938,16 @@ impl Producer {
         let deadline = Instant::now()
             .checked_add(cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        crate::net::Deadline::from_std(deadline)
+        match crate::net::Deadline::from_std(deadline)
             .run(Self::new_until(cfg, deadline))
             .await
+        {
+            Ok(producer) => Ok(producer),
+            Err(err) => {
+                crate::net::settle_closed_socket().await;
+                Err(err)
+            }
+        }
     }
 
     /// Cancel handshakes that lost the bootstrap race and wait until they stop.
@@ -1820,9 +1975,7 @@ impl Producer {
         }
         // The aborted task drops its socket when it is polled. The idle watch
         // then has to run before the broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     async fn finish_aborted_bootstrap_handshakes(
@@ -1851,9 +2004,7 @@ impl Producer {
         }
         // A cancelled handshake drops its socket when the task is polled. The
         // idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     async fn finish_aborted_coord_handshakes(
@@ -1882,9 +2033,7 @@ impl Producer {
         }
         // A cancelled coordinator handshake drops its socket when the task is
         // polled. The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// TCP, ApiVersions, and SASL on one bootstrap, bounded by `deadline`.
@@ -1906,39 +2055,47 @@ impl Producer {
             )
             .await
             .map_err(|_| Error::Timeout)??;
-            let remaining = timeout_remaining(deadline)?;
-            let resp = tokio::time::timeout(
-                remaining,
-                crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
-            )
-            .await
-            .map_err(|_| Error::Timeout)??;
-            crate::protocol::sasl::apply_api_keys(&mut conn, &resp.api_keys);
-            let remaining = timeout_remaining(deadline)?;
-            tokio::time::timeout(
-                remaining,
-                crate::protocol::sasl::authenticate(
-                    &mut conn,
-                    cfg.sasl_plain.as_ref(),
-                    cfg.sasl_scram.as_ref(),
-                    cfg.sasl_scram_sha512.as_ref(),
-                    cfg.sasl_oauthbearer.as_deref(),
-                    cfg.sasl_oauthbearer_oidc.as_ref(),
+            let step = async {
+                let remaining = timeout_remaining(deadline)?;
+                let resp = tokio::time::timeout(
                     remaining,
-                ),
-            )
-            .await
-            .map_err(|_| Error::Timeout)??;
-            Ok((conn, resp))
+                    crate::protocol::api::negotiate_api_versions(&mut conn, remaining),
+                )
+                .await
+                .map_err(|_| Error::Timeout)??;
+                crate::protocol::sasl::apply_api_keys(&mut conn, &resp.api_keys);
+                let remaining = timeout_remaining(deadline)?;
+                tokio::time::timeout(
+                    remaining,
+                    crate::protocol::sasl::authenticate(
+                        &mut conn,
+                        cfg.sasl_plain.as_ref(),
+                        cfg.sasl_scram.as_ref(),
+                        cfg.sasl_scram_sha512.as_ref(),
+                        cfg.sasl_oauthbearer.as_deref(),
+                        cfg.sasl_oauthbearer_oidc.as_ref(),
+                        remaining,
+                    ),
+                )
+                .await
+                .map_err(|_| Error::Timeout)??;
+                Ok::<_, Error>(resp)
+            }
+            .await;
+            match step {
+                Ok(resp) => Ok((conn, resp)),
+                Err(error) => {
+                    retire_produce_conn(&mut conn).await;
+                    Err(error)
+                }
+            }
         }
         .await;
         // A failed handshake drops its socket in this call. Yield so the broker
         // observes that close before the error returns. A successful dial keeps
         // the socket and does not wait.
         if opened.is_err() {
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
         }
         opened
     }
@@ -1989,8 +2146,8 @@ impl Producer {
 
     /// Handshake every bootstrap together and keep the first full success.
     ///
-    /// Handshakes that finish with the first one are returned as learned
-    /// versions. A later produce to one of those brokers skips ApiVersions.
+    /// Completed sibling handshakes contribute learned ranges; their sockets
+    /// are retired. A later Produce socket performs its own negotiation.
     async fn open_bootstrap(
         cfg: &ProducerConfig,
         deadline: Instant,
@@ -2246,8 +2403,7 @@ impl Producer {
             producer_epoch: AtomicI16::new(producer_epoch),
             epoch_gen: AtomicU64::new(0),
             epoch_bump_required: AtomicBool::new(false),
-            txn_fatal: AtomicBool::new(false),
-            txn_abort_required: AtomicBool::new(false),
+            txn_error_state: AtomicU64::new(0),
             txn_error: parking_lot::Mutex::new(None),
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
@@ -3414,6 +3570,7 @@ impl Producer {
                 tokio::task::yield_now().await;
             }
         }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Test hook: inspect worker task handles to verify task termination.
@@ -4065,6 +4222,11 @@ impl Producer {
 
     /// Flush, then stop workers. Further sends on **any** clone return [`Error::Closed`].
     ///
+    /// Returns the initial flush result after attempting worker shutdown.
+    /// Errors already consumed by an earlier flush and errors arising only
+    /// during shutdown are not returned. A successful close does not establish
+    /// delivery of every record; see [`Self::flush`].
+    ///
     /// Prefer an explicit `close` over dropping the last handle: drop alone does
     /// not wait for in-flight produce outcomes (see the guide cancellation table).
     pub async fn close(self) -> Result<()> {
@@ -4081,18 +4243,17 @@ impl Producer {
         // The metadata socket drops with this handle. Yield so the broker
         // observes that close before the result returns.
         drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
-        match flush {
-            Err(Error::Timeout) => Err(Error::Timeout),
-            _ => Ok(()),
-        }
+        crate::net::settle_closed_socket().await;
+        flush
     }
 
     /// Flush for up to `timeout`, then stop workers (Java `close(Duration)`).
     ///
-    /// A flush timeout is returned after the producer is closed.
+    /// Returns the initial flush result after attempting worker shutdown.
+    /// Errors already consumed by an earlier flush and errors arising only
+    /// during shutdown are not returned. A successful close does not establish
+    /// delivery of every record; see [`Self::flush`]. A synchronous interceptor
+    /// callback can delay shutdown beyond the deadline.
     pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
         let deadline = Instant::now() + timeout;
         let flush = self.flush_until(deadline).await;
@@ -4101,13 +4262,8 @@ impl Producer {
         // The metadata socket drops with this handle. Yield so the broker
         // observes that close before the result returns.
         drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
-        match flush {
-            Err(Error::Timeout) => Err(Error::Timeout),
-            _ => Ok(()),
-        }
+        crate::net::settle_closed_socket().await;
+        flush
     }
 
     /// Abort `send_all` metadata refreshes and wait until they leave the runtime.
@@ -4140,9 +4296,7 @@ impl Producer {
         }
         // The aborted refresh marks the socket closed when its task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     async fn shutdown_workers(&self, deadline: Option<Instant>) {
@@ -4374,7 +4528,8 @@ async fn reopen_meta_if_idle(
         return Ok(());
     }
     let addr = conn.addr().to_string();
-    let (replacement, versions) = open_idle_replacement(
+    retire_produce_conn(conn).await;
+    let (mut replacement, versions) = open_idle_replacement(
         &addr,
         &shared.cfg,
         &shared.api_keys,
@@ -4382,10 +4537,15 @@ async fn reopen_meta_if_idle(
         deadline,
     )
     .await?;
-    let metadata_version = versions
+    let Some(metadata_version) = versions
         .api_version(METADATA)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 13))
-        .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+    else {
+        retire_produce_conn(&mut replacement).await;
+        return Err(Error::Unsupported(
+            "broker does not support Metadata".into(),
+        ));
+    };
     shared
         .metadata_version
         .store(metadata_version, Ordering::Relaxed);
@@ -4396,8 +4556,7 @@ async fn reopen_meta_if_idle(
     shared
         .telemetry_version
         .store(telemetry_version, Ordering::Relaxed);
-    let mut previous = std::mem::replace(conn, replacement);
-    retire_produce_conn(&mut previous).await;
+    *conn = replacement;
     Ok(())
 }
 
@@ -4450,9 +4609,7 @@ async fn open_idle_replacement(
     // A failed replacement drops its socket in this call. Yield so the broker
     // observes that close before the error returns.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -4529,9 +4686,7 @@ async fn open_conn_with_versions(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -4572,9 +4727,7 @@ async fn discover_typed_coord(
         }
     }
     .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
     discovered
 }
 
@@ -5037,9 +5190,7 @@ async fn rediscover_producer_coordinator(
         Ok(coordinator_connection(conn, &versions))
     }
     .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
     discovered
 }
 
@@ -5151,6 +5302,9 @@ async fn init_producer_id_roundtrip(
     let mut rediscover = false;
     let mut transport_retry_used = false;
     loop {
+        if txn_id.is_some() && txn.as_ref().is_none_or(|coord| coord.conn.is_closed()) {
+            rediscover = true;
+        }
         if rediscover {
             let tid = txn_id
                 .as_deref()
@@ -5179,6 +5333,9 @@ async fn init_producer_id_roundtrip(
             } else {
                 discover_within(cfg, tid, COORDINATOR_TRANSACTION, find_version, deadline).await?
             };
+            if let Some(previous) = txn.as_mut() {
+                retire_produce_conn(&mut previous.conn).await;
+            }
             *txn = Some(new);
         }
         let timeout = timeout_remaining(deadline)?;
@@ -5497,6 +5654,7 @@ fn remember_produce_keys(shared: &Shared, addr: &str, keys: &[ApiVersion]) {
     let _stored = known.insert(addr.to_string(), keys.to_vec());
 }
 
+#[cfg(test)]
 async fn read_producer_find(
     mut hop: BrokerConn,
     version: i16,
@@ -5553,46 +5711,37 @@ async fn discover_group_coordinator(
         remember_produce_keys(shared, found.conn.addr(), &found.keys);
         return Ok(found);
     }
-    let Some(addr) = shared.cfg.bootstrap.first() else {
+    if shared.cfg.bootstrap.is_empty() {
         return Err(Error::protocol("find coordinator failed"));
+    }
+    let find_body = {
+        let remaining = timeout_remaining(deadline)?;
+        let mut meta = tokio::time::timeout(remaining, shared.meta.lock())
+            .await
+            .map_err(|_| Error::Timeout)?;
+        reopen_meta_if_idle(shared, &mut meta, deadline).await?;
+        meta.roundtrip(
+            FIND_COORDINATOR,
+            version,
+            |buf| encode_find_coordinator_request_typed(buf, version, group_id, COORDINATOR_GROUP),
+            timeout_remaining(deadline)?,
+        )
+        .await?
     };
-    let bounded = bounded_producer_config(&shared.cfg, deadline)?;
-    let (hop, versions) = open_producer_peer(addr, &bounded, &shared.api_keys).await?;
-    let version = match find_version_for_peer(&versions) {
-        Ok(version) => version,
-        Err(error) => {
-            retire_owned_conn(hop).await;
-            return Err(error);
-        }
-    };
-    let timeout = match timeout_remaining(deadline) {
-        Ok(timeout) => timeout,
-        Err(error) => {
-            retire_owned_conn(hop).await;
-            return Err(error);
-        }
-    };
-    let (hop, err, _node, host, port) =
-        read_producer_find(hop, version, group_id, COORDINATOR_GROUP, timeout).await?;
+    let (err, _node, host, port) =
+        decode_find_coordinator_response(&mut find_body.clone(), version)?;
     if err != 0 {
-        let error = Err(Error::broker(err, "FindCoordinator"));
-        retire_owned_conn(hop).await;
-        return error;
+        return Err(Error::broker(err, "FindCoordinator"));
     }
     let coord_addr = crate::net::format_address(&host, port);
-    if coord_addr == hop.addr() {
-        return Ok(coordinator_connection(hop, &versions));
-    }
+    let bounded = bounded_producer_config(&shared.cfg, deadline)?;
     if let Some(keys) = remembered_produce_keys(shared, &coord_addr) {
-        let opened = open_conn_with_known_versions(&coord_addr, &bounded, false, &keys).await;
-        retire_owned_conn(hop).await;
-        let (conn, versions) = opened?;
+        let (conn, versions) =
+            open_conn_with_known_versions(&coord_addr, &bounded, false, &keys).await?;
         remember_produce_keys(shared, &coord_addr, &versions.api_keys);
         return Ok(coordinator_connection(conn, &versions));
     }
-    let opened = open_conn_with_versions(&coord_addr, &bounded, false).await;
-    retire_owned_conn(hop).await;
-    let (conn, opened) = opened?;
+    let (conn, opened) = open_conn_with_versions(&coord_addr, &bounded, false).await?;
     remember_produce_keys(shared, &coord_addr, &opened.api_keys);
     Ok(coordinator_connection(conn, &opened))
 }
@@ -5622,15 +5771,25 @@ async fn txn_roundtrip(
         .clone()
         .ok_or_else(reject_java_no_transaction_manager)?;
     let first = {
-        let remaining = timeout_remaining(deadline)?;
-        let mut guard = shared.txn.lock().await;
-        let conn = guard
-            .as_mut()
-            .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
-        require_coord_version(conn, api_key, api_version)?;
-        conn.conn
-            .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
+        let mut guard = tokio::time::timeout(timeout_remaining(deadline)?, shared.txn.lock())
             .await
+            .map_err(|_| Error::Timeout)?;
+        let _remaining = timeout_remaining(deadline)?;
+        match guard.as_mut() {
+            Some(conn) if !conn.conn.is_closed() => {
+                require_coord_version(conn, api_key, api_version)?;
+                let _remaining = timeout_remaining(deadline)?;
+                conn.conn
+                    .roundtrip_deadline(
+                        api_key,
+                        api_version,
+                        |buf| encode_body(buf),
+                        crate::net::Deadline::from_std(deadline),
+                    )
+                    .await
+            }
+            _ => Err(Error::Closed),
+        }
     };
     match first {
         Ok(body) if !error::coordinator_retriable(error_of(&body).await?) => return Ok(body),
@@ -5643,7 +5802,10 @@ async fn txn_roundtrip(
     }
     let find_version = required_find_coordinator(shared.find_coord_version)?;
     let found = {
-        let guard = shared.txn.lock().await;
+        let guard = tokio::time::timeout(timeout_remaining(deadline)?, shared.txn.lock())
+            .await
+            .map_err(|_| Error::Timeout)?;
+        let _remaining = timeout_remaining(deadline)?;
         guard
             .as_ref()
             .map(|coord| (coord.conn.addr().to_string(), coord.keys.clone()))
@@ -5675,19 +5837,42 @@ async fn txn_roundtrip(
         .await?
     };
     remember_produce_keys(shared, new.conn.addr(), &new.keys);
-    let remaining = timeout_remaining(deadline)?;
-    let mut guard = shared.txn.lock().await;
-    if let Some(previous) = guard.take() {
-        retire_owned_conn(previous.conn).await;
-    }
-    *guard = Some(new);
+    require_coord_version(&new, api_key, api_version)?;
+    let mut guard = replace_txn_coordinator(shared, new, deadline).await?;
     let conn = guard
         .as_mut()
         .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
-    require_coord_version(conn, api_key, api_version)?;
     conn.conn
-        .roundtrip(api_key, api_version, |buf| encode_body(buf), remaining)
+        .roundtrip_deadline(
+            api_key,
+            api_version,
+            |buf| encode_body(buf),
+            crate::net::Deadline::from_std(deadline),
+        )
         .await
+}
+
+/// Keep the old coordinator owned until its terminal shutdown completes.
+/// Cancellation leaves it closed in the slot, allowing a later rediscovery.
+async fn replace_txn_coordinator(
+    shared: &Shared,
+    new: CoordinatorConnection,
+    deadline: Instant,
+) -> Result<tokio::sync::MutexGuard<'_, Option<CoordinatorConnection>>> {
+    let limit = tokio::time::Instant::from_std(deadline);
+    let mut guard = tokio::time::timeout_at(limit, shared.txn.lock())
+        .await
+        .map_err(|_| Error::Timeout)?;
+    let _remaining = timeout_remaining(deadline)?;
+    if let Some(previous) = guard.as_mut() {
+        previous.conn.close();
+        tokio::time::timeout_at(limit, previous.conn.release_if_closed())
+            .await
+            .map_err(|_| Error::Timeout)?;
+    }
+    let _remaining = timeout_remaining(deadline)?;
+    *guard = Some(new);
+    Ok(guard)
 }
 
 async fn group_coord_roundtrip(
@@ -5714,6 +5899,7 @@ async fn group_coord_roundtrip(
         )
         .await?;
     if !error::coordinator_retriable(error_of(&body).await?) {
+        retire_owned_conn(coord.conn).await;
         return Ok(body);
     }
     let previous = coord.conn.addr().to_string();
@@ -5733,8 +5919,11 @@ async fn group_coord_roundtrip(
     )
     .await?;
     retire_owned_conn(coord.conn).await;
-    require_coord_version(&replacement, api_key, api_version)?;
-    replacement
+    if let Err(err) = require_coord_version(&replacement, api_key, api_version) {
+        retire_owned_conn(replacement.conn).await;
+        return Err(err);
+    }
+    let result = replacement
         .conn
         .roundtrip(
             api_key,
@@ -5742,7 +5931,9 @@ async fn group_coord_roundtrip(
             |buf| encode_body(buf),
             timeout_remaining(deadline)?,
         )
-        .await
+        .await;
+    retire_owned_conn(replacement.conn).await;
+    result
 }
 
 async fn decode_shared_metadata(
@@ -6490,8 +6681,7 @@ fn test_shared(cfg: ProducerConfig, meta: BrokerConn) -> Arc<Shared> {
         producer_epoch: AtomicI16::new(RecordBatch::NO_PRODUCER_EPOCH),
         epoch_gen: AtomicU64::new(0),
         epoch_bump_required: AtomicBool::new(false),
-        txn_fatal: AtomicBool::new(false),
-        txn_abort_required: AtomicBool::new(false),
+        txn_error_state: AtomicU64::new(0),
         txn_error: parking_lot::Mutex::new(None),
         seqs: parking_lot::Mutex::new(HashMap::new()),
         cache_nudge: Notify::new(),
@@ -7259,44 +7449,35 @@ impl AckIndex {
     /// pauses every 8,192 partitions across topics. A topic left empty is
     /// still removed. The current batch stays.
     async fn drop_previous_generation(&mut self, generation: u64) {
-        let names: Vec<Arc<str>> = self.topics.keys().cloned().collect();
+        let mut previous = std::mem::take(&mut self.topics);
         let mut walked = 0usize;
-        for name in names {
-            let partitions: Vec<i32> = self
-                .topics
-                .get(name.as_ref())
-                .map(|parts| parts.keys().copied().collect())
-                .unwrap_or_default();
-            if partitions.is_empty() {
-                walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
-                    walked = 0;
-                    tokio::task::yield_now().await;
-                }
-            }
-            for partition in partitions {
-                let remove = self
-                    .topics
-                    .get(name.as_ref())
-                    .and_then(|parts| parts.get(&partition))
-                    .is_some_and(|entry| entry.1 != generation);
-                if remove {
-                    if let Some(parts) = self.topics.get_mut(name.as_ref()) {
-                        let _ = parts.remove(&partition);
+        for (name, mut parts) in previous.drain() {
+            if parts.len() <= 2 * 1024 {
+                parts.retain(|_, entry| {
+                    walked = walked.saturating_add(1);
+                    entry.1 == generation
+                });
+            } else {
+                let mut kept = HashMap::new();
+                for (partition, entry) in parts.drain() {
+                    if entry.1 == generation {
+                        let _ = kept.insert(partition, entry);
+                    }
+                    walked = walked.saturating_add(1);
+                    if walked >= 2 * 1024 {
+                        walked = 0;
+                        tokio::task::yield_now().await;
                     }
                 }
-                walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
-                    walked = 0;
-                    tokio::task::yield_now().await;
-                }
+                parts = kept;
             }
-            if self
-                .topics
-                .get(name.as_ref())
-                .is_some_and(|parts| parts.is_empty())
-            {
-                let _ = self.topics.remove(name.as_ref());
+            if !parts.is_empty() {
+                let _ = self.topics.insert(name, parts);
+            }
+            walked = walked.saturating_add(1);
+            if walked >= 2 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
     }
@@ -8248,7 +8429,7 @@ impl Worker {
             version,
             acks,
             timeout_ms,
-            &groups,
+            &mut groups,
             topic_ids.as_slice(),
             compression,
             now,
@@ -9132,7 +9313,7 @@ async fn remember_added_txn_parts(
 ) {
     let mut start = 0usize;
     while start < added.len() {
-        let end = start.saturating_add(8 * 1024).min(added.len());
+        let end = start.saturating_add(1024).min(added.len());
         if let Some(slice) = added.get(start..end) {
             let mut guard = sent.lock();
             for (topic, part) in slice {
@@ -9178,7 +9359,7 @@ async fn unsent_txn_partitions(
         let mut batch = Vec::new();
         for part in &parts {
             batch.push(*part);
-            if batch.len() == 8 * 1024 {
+            if batch.len() == 1024 {
                 push_unsent_txn_partitions(&mut added, &topic, &batch, sent);
                 batch.clear();
                 tokio::task::yield_now().await;
@@ -9435,8 +9616,8 @@ async fn shell_one_topic_groups(
     scratch: &mut ProduceGroupScratch,
     mut groups: Vec<(Arc<str>, i32, Vec<Pending>)>,
 ) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
-    reserve_len(&mut groups, scratch.partition_order.len());
     let partitions = scratch.partition_order.len();
+    reserve_len(&mut groups, partitions.min(2048));
     let mut walked = 0usize;
     for index in 0..partitions {
         let Some(partition) = scratch.partition_order.get(index).copied() else {
@@ -9449,6 +9630,10 @@ async fn shell_one_topic_groups(
             .unwrap_or(0);
         let mut part = take_part_list(scratch);
         reserve_additional(&mut part, count).await;
+        if groups.len() == groups.capacity() {
+            let target = groups.len().saturating_add(2048).min(partitions);
+            reserve_len(&mut groups, target);
+        }
         groups.push((Arc::clone(topic), partition, part));
         pause_shell_partition(&mut walked).await;
     }
@@ -9463,7 +9648,7 @@ async fn shell_one_topic_groups(
 
 async fn pause_shell_partition(walked: &mut usize) {
     *walked = walked.saturating_add(1);
-    if *walked == 8 * 1024 {
+    if *walked == 1024 {
         *walked = 0;
         tokio::task::yield_now().await;
     }
@@ -9712,6 +9897,7 @@ async fn assemble_mixed_groups(
     let mut spare_slots = std::mem::take(&mut scratch.spare_slots);
     let mut spare_orders = std::mem::take(&mut scratch.spare_orders);
     let mut total = 0usize;
+    let mut walked = 0usize;
     for topic in &order {
         total = total.saturating_add(
             scratch
@@ -9720,10 +9906,15 @@ async fn assemble_mixed_groups(
                 .map(|groups| groups.order.len())
                 .unwrap_or(0),
         );
+        walked = walked.saturating_add(1);
+        if walked == 2 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
     }
     let mut out = take_group_shell(scratch);
     reserve_len(&mut out, total);
-    let mut walked = 0usize;
+    walked = 0;
     for topic in order.drain(..) {
         let Some(mut groups) = scratch.buckets.remove(topic.as_ref()) else {
             continue;
@@ -9731,7 +9922,7 @@ async fn assemble_mixed_groups(
         for (partition, pending) in groups.order.drain(..) {
             out.push((Arc::clone(&topic), partition, pending));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 2 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -10600,16 +10791,19 @@ async fn index_produce_groups(
         }
         let mut same = true;
         if let Some(parts) = scratch.parts.first_mut() {
-            reserve_len(parts, groups.len());
             let mut walked = 0usize;
             for (index, (topic, _, _)) in groups.iter().enumerate() {
                 if !Arc::ptr_eq(topic, first) {
                     same = false;
                     break;
                 }
+                if parts.len() == parts.capacity() {
+                    let next_cap = groups.len().min(parts.len().saturating_add(64 * 1024));
+                    reserve_len(parts, next_cap);
+                }
                 parts.push(index);
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 2 * 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -10624,7 +10818,6 @@ async fn index_produce_groups(
         }
     }
     scratch.topic_slots.clear();
-    reserve_len(&mut scratch.topics, groups.len());
     let mut walked = 0usize;
     for (index, (topic, _, _)) in groups.iter().enumerate() {
         if let Some(&slot) = scratch.topic_slots.get(topic.as_ref()) {
@@ -10633,6 +10826,12 @@ async fn index_produce_groups(
             }
         } else {
             let slot = scratch.topics.len();
+            if scratch.topics.len() == scratch.topics.capacity() {
+                let next_cap = groups
+                    .len()
+                    .min(scratch.topics.len().saturating_add(64 * 1024));
+                reserve_len(&mut scratch.topics, next_cap);
+            }
             scratch.topics.push(index);
             if scratch.parts.len() == slot {
                 scratch.parts.push(Vec::new());
@@ -10643,7 +10842,7 @@ async fn index_produce_groups(
             let _ = scratch.topic_slots.insert(Arc::clone(topic), slot);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -10660,7 +10859,7 @@ fn encode_produce_body(
     version: i16,
     acks: i16,
     timeout_ms: i32,
-    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    groups: &mut [(Arc<str>, i32, Vec<Pending>)],
     topic_ids: &[(Arc<str>, [u8; 16])],
     compression: Compression,
     now: i64,
@@ -10700,7 +10899,7 @@ async fn encode_produce_body_async(
     version: i16,
     acks: i16,
     timeout_ms: i32,
-    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    groups: &mut [(Arc<str>, i32, Vec<Pending>)],
     topic_ids: &[(Arc<str>, [u8; 16])],
     compression: Compression,
     now: i64,
@@ -10764,7 +10963,7 @@ async fn encode_produce_body_async(
 async fn write_indexed_produce_topics(
     buf: &mut BytesMut,
     version: i16,
-    groups: &[(Arc<str>, i32, Vec<Pending>)],
+    groups: &mut [(Arc<str>, i32, Vec<Pending>)],
     topic_ids: &[(Arc<str>, [u8; 16])],
     compression: Compression,
     now: i64,
@@ -10801,7 +11000,7 @@ async fn write_indexed_produce_topics(
         crate::protocol::buf::put_array_len(buf, flexible, Some(part_count))?;
         if part_count == 0 {
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 512 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -10815,7 +11014,7 @@ async fn write_indexed_produce_topics(
             else {
                 continue;
             };
-            let Some((_, partition, pendings)) = groups.get(i) else {
+            let Some((_, partition, pendings)) = groups.get_mut(i) else {
                 continue;
             };
             buf.put_i32(*partition);
@@ -10865,7 +11064,7 @@ async fn write_indexed_produce_topics(
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 512 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -10883,7 +11082,7 @@ async fn write_indexed_produce_topics(
 )]
 async fn encode_flexible_partition_async(
     buf: &mut BytesMut,
-    pendings: &[Pending],
+    pendings: &mut [Pending],
     compression: Compression,
     now: i64,
     producer_id: i64,
@@ -10952,7 +11151,7 @@ async fn encode_flexible_partition_async(
 )]
 async fn encode_classic_partition_async(
     buf: &mut BytesMut,
-    pendings: &[Pending],
+    pendings: &mut [Pending],
     compression: Compression,
     now: i64,
     producer_id: i64,
@@ -11124,7 +11323,7 @@ async fn uncompressed_pending_len(
 
 async fn encode_pendings(
     buf: &mut BytesMut,
-    pendings: &[Pending],
+    pendings: &mut [Pending],
     header: &BatchHeader,
     now: i64,
     scratch: &mut CompressScratch,
@@ -11143,7 +11342,7 @@ async fn encode_pendings(
 
 async fn pack_compressed_pendings(
     header: &BatchHeader,
-    pendings: &[Pending],
+    pendings: &mut [Pending],
     now: i64,
     scratch: &mut CompressScratch,
 ) -> Result<usize> {
@@ -11152,10 +11351,10 @@ async fn pack_compressed_pendings(
     let mut written = 0usize;
     let mut walked = 0usize;
     let mut encode_error = None;
-    for (index, pending) in pendings.iter().enumerate() {
+    for (index, pending) in pendings.iter_mut().enumerate() {
         let appended = {
             let rec = EncodeRecord {
-                timestamp: pending.rec.timestamp.unwrap_or(now),
+                timestamp: *pending.rec.timestamp.get_or_insert(now),
                 key: pending.rec.key.as_deref(),
                 value: pending.rec.value.as_deref(),
                 headers: &pending.rec.headers,
@@ -11195,7 +11394,7 @@ async fn pack_compressed_pendings(
 async fn write_uncompressed_pendings(
     buf: &mut BytesMut,
     header: &BatchHeader,
-    pendings: &[Pending],
+    pendings: &mut [Pending],
     now: i64,
     scratch: &mut CompressScratch,
 ) -> Result<()> {
@@ -11206,9 +11405,9 @@ async fn write_uncompressed_pendings(
     let mut written = 0usize;
     let mut walked = 0usize;
     let mut encode_error = None;
-    for (index, pending) in pendings.iter().enumerate() {
+    for (index, pending) in pendings.iter_mut().enumerate() {
         let rec = EncodeRecord {
-            timestamp: pending.rec.timestamp.unwrap_or(now),
+            timestamp: *pending.rec.timestamp.get_or_insert(now),
             key: pending.rec.key.as_deref(),
             value: pending.rec.value.as_deref(),
             headers: &pending.rec.headers,
@@ -11422,9 +11621,11 @@ async fn fail_kept_pendings(
 async fn detach_pending_chunks(pendings: &mut Vec<Pending>) -> Vec<Vec<Pending>> {
     let mut chunks = Vec::new();
     while !pendings.is_empty() {
-        let start = pendings.len().saturating_sub(8 * 1024);
+        let start = pendings.len().saturating_sub(512);
         chunks.push(pendings.split_off(start));
-        tokio::task::yield_now().await;
+        if !pendings.is_empty() {
+            tokio::task::yield_now().await;
+        }
     }
     chunks.reverse();
     chunks
@@ -11525,6 +11726,793 @@ fn record_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct ThirdLockFixture {
+        shared: Arc<Shared>,
+        listener: tokio::net::TcpListener,
+        meta_peer: tokio::net::TcpStream,
+        old_peer: tokio::net::TcpStream,
+        new_peer: tokio::net::TcpStream,
+        new: CoordinatorConnection,
+        release: oneshot::Sender<()>,
+        holder: tokio::task::JoinHandle<()>,
+    }
+
+    async fn third_lock_coordinator(
+        listener: &tokio::net::TcpListener,
+        name: &str,
+    ) -> (CoordinatorConnection, tokio::net::TcpStream) {
+        let addr = listener.local_addr().unwrap().to_string();
+        let conn = BrokerConn::connect(&addr, name, Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (peer, _) = listener.accept().await.unwrap();
+        (
+            CoordinatorConnection {
+                conn,
+                init_producer_id_version: Some(3),
+                keys: vec![ApiVersion {
+                    api_key: ADD_PARTITIONS_TO_TXN,
+                    min_version: 0,
+                    max_version: 0,
+                }],
+            },
+            peer,
+        )
+    }
+
+    async fn third_lock_fixture() -> ThirdLockFixture {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "third-meta", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (meta_peer, _) = listener.accept().await.unwrap();
+        let (old, old_peer) = third_lock_coordinator(&listener, "third-old").await;
+        let (new, new_peer) = third_lock_coordinator(&listener, "third-new").await;
+        let (acquired_tx, acquired_rx) = oneshot::channel();
+        let (release, release_rx) = oneshot::channel();
+        let holder = tokio::spawn(old.conn.test_hold_stream(acquired_tx, release_rx));
+        acquired_rx.await.unwrap();
+        let shared = test_shared(ProducerConfig::default().transactional_id("third"), meta);
+        *shared.txn.lock().await = Some(old);
+        ThirdLockFixture {
+            shared,
+            listener,
+            meta_peer,
+            old_peer,
+            new_peer,
+            new,
+            release,
+            holder,
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_cancel_retains_closed_coordinator() {
+        use std::task::Poll;
+
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new,
+            release,
+            holder,
+        } = fixture;
+        let mut call = Box::pin(replace_txn_coordinator(
+            &shared,
+            new,
+            Instant::now() + Duration::from_secs(5),
+        ));
+        let pending = std::future::poll_fn(|cx| {
+            Poll::Ready(std::future::Future::poll(call.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending);
+        assert!(shared.txn.try_lock().is_err());
+        println!("PL_REPLACEMENT_RETIREMENT_HELD");
+        drop(call);
+        let guard = shared.txn.lock().await;
+        assert!(
+            guard.as_ref().is_some_and(|coord| coord.conn.is_closed()),
+            "PL_REPLACEMENT_CANCEL_EMPTIED_COORDINATOR"
+        );
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_timeout_retains_coordinator_and_recovers() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new,
+            release,
+            holder,
+        } = fixture;
+        println!("PL_REPLACEMENT_STREAM_HELD");
+        let result = tokio::time::timeout(
+            Duration::from_secs(4),
+            replace_txn_coordinator(&shared, new, Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Error::Timeout))),
+            "PL_REPLACEMENT_TIMEOUT_BROKEN"
+        );
+        let guard = shared.txn.lock().await;
+        assert!(
+            guard.as_ref().is_some_and(|coord| coord.conn.is_closed()),
+            "PL_REPLACEMENT_TIMEOUT_EMPTIED_COORDINATOR"
+        );
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+
+        let (next, mut peer) = third_lock_coordinator(&listener, "third-recovered").await;
+        let guard = replace_txn_coordinator(&shared, next, Instant::now() + Duration::from_secs(3))
+            .await
+            .unwrap();
+        assert!(guard.as_ref().is_some_and(|coord| !coord.conn.is_closed()));
+        drop(guard);
+        let server_stop = Arc::new(Notify::new());
+        let server_done = Arc::clone(&server_stop);
+        let server = tokio::spawn(async move {
+            let len = peer.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&len));
+            let mut request = vec![0; usize::try_from(len).unwrap()];
+            let _read = peer.read_exact(&mut request).await.unwrap();
+            peer.write_i32(4).await.unwrap();
+            peer.write_all(&request[4..8]).await.unwrap();
+            server_done.notified().await;
+        });
+        let body = txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| Ok(()),
+            Duration::from_secs(3),
+            |_| Box::pin(async { Ok(0) }),
+        )
+        .await
+        .unwrap();
+        assert!(body.is_empty());
+        server_stop.notify_one();
+        server.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_wait_for_slot_obeys_deadline() {
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new,
+            release,
+            holder,
+        } = fixture;
+        let guard = shared.txn.lock().await;
+        println!("PL_REPLACEMENT_SLOT_HELD");
+        let result = tokio::time::timeout(
+            Duration::from_secs(4),
+            replace_txn_coordinator(&shared, new, Instant::now() + Duration::from_millis(200)),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Error::Timeout))),
+            "PL_REPLACEMENT_SLOT_DEADLINE_BROKEN"
+        );
+        assert!(guard.as_ref().is_some_and(|coord| !coord.conn.is_closed()));
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_transaction_coordinator_does_not_use_stale_api_versions() {
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new: _new,
+            release,
+            holder,
+        } = fixture;
+        {
+            let mut guard = shared.txn.lock().await;
+            let old = guard.as_mut().unwrap();
+            old.keys.clear();
+            old.conn.close();
+        }
+        let result = txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| Ok(()),
+            Duration::from_secs(2),
+            |_| Box::pin(async { Ok(0) }),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(Error::Unsupported(message)) if message.contains("transaction discovery requires")),
+            "closed coordinator reused stale API versions"
+        );
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_transaction_coordinator_rediscovers_for_epoch_bump() {
+        let fixture = third_lock_fixture().await;
+        let ThirdLockFixture {
+            shared,
+            listener: _listener,
+            meta_peer: _meta_peer,
+            old_peer: _old_peer,
+            new_peer: _new_peer,
+            new: _new,
+            release,
+            holder,
+        } = fixture;
+        let mut guard = shared.txn.lock().await;
+        let old = guard.as_mut().unwrap();
+        old.init_producer_id_version = None;
+        old.conn.close();
+        let result = init_producer_id_roundtrip(
+            &shared.cfg,
+            &mut guard,
+            None,
+            3,
+            None,
+            (7, 0),
+            &[],
+            &HashMap::new(),
+            Instant::now() + Duration::from_secs(2),
+        )
+        .await;
+        assert!(
+            matches!(result, Err(Error::Unsupported(message)) if message.contains("transaction discovery requires")),
+            "closed coordinator reused stale InitProducerId versions"
+        );
+        drop(guard);
+        assert!(release.send(()).is_ok());
+        holder.await.unwrap();
+    }
+
+    struct ThirdDiscoveryMock {
+        addr: String,
+        finds: Arc<AtomicUsize>,
+        adds: Arc<AtomicUsize>,
+        inits: Arc<AtomicUsize>,
+        old_closed: Arc<Notify>,
+        stop: oneshot::Sender<()>,
+        server: tokio::task::JoinHandle<()>,
+    }
+
+    async fn third_discovery_mock(retry_first_add: bool) -> ThirdDiscoveryMock {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let finds = Arc::new(AtomicUsize::new(0));
+        let adds = Arc::new(AtomicUsize::new(0));
+        let inits = Arc::new(AtomicUsize::new(0));
+        let old_closed = Arc::new(Notify::new());
+        let finds_task = Arc::clone(&finds);
+        let adds_task = Arc::clone(&adds);
+        let inits_task = Arc::clone(&inits);
+        let closed_task = Arc::clone(&old_closed);
+        let (stop, mut stop_rx) = oneshot::channel();
+        let server = tokio::spawn(async move {
+            let mut clients = tokio::task::JoinSet::new();
+            let mut accepted = 0_usize;
+            loop {
+                tokio::select! {
+                    _ = &mut stop_rx => break,
+                    accepted_socket = listener.accept() => {
+                        let (mut socket, _) = accepted_socket.unwrap();
+                        let initial = accepted == 0;
+                        accepted += 1;
+                        let finds = Arc::clone(&finds_task);
+                        let adds = Arc::clone(&adds_task);
+                        let inits = Arc::clone(&inits_task);
+                        let closed = Arc::clone(&closed_task);
+                        let _handler = clients.spawn(async move {
+                            while let Ok(len) = socket.read_i32().await {
+                                assert!((8..=65_536).contains(&len));
+                                let mut frame = vec![0; usize::try_from(len).unwrap()];
+                                if socket.read_exact(&mut frame).await.is_err() {
+                                    break;
+                                }
+                                let mut input = frame.as_slice();
+                                let header = crate::protocol::header::decode_request_header(&mut input).unwrap();
+                                let mut body = BytesMut::new();
+                                match header.api_key {
+                                    crate::protocol::api_keys::API_VERSIONS => {
+                                        use crate::protocol::api::{encode_api_versions_response, ApiVersionsResponse};
+                                        let versions = ApiVersionsResponse {
+                                            error_code: 0,
+                                            api_keys: vec![
+                                                ApiVersion { api_key: FIND_COORDINATOR, min_version: 1, max_version: 1 },
+                                                ApiVersion { api_key: ADD_PARTITIONS_TO_TXN, min_version: 0, max_version: 0 },
+                                                ApiVersion { api_key: INIT_PRODUCER_ID, min_version: 3, max_version: 3 },
+                                            ],
+                                            throttle_time_ms: 0,
+                                            supported_features: Vec::new(),
+                                            finalized_features_epoch: None,
+                                            finalized_features: Vec::new(),
+                                            zk_migration_ready: false,
+                                        };
+                                        encode_api_versions_response(&mut body, header.api_version, &versions).unwrap();
+                                    }
+                                    FIND_COORDINATOR => {
+                                        let _old = finds.fetch_add(1, Ordering::SeqCst);
+                                        crate::protocol::group::encode_find_coordinator_response(
+                                            &mut body,
+                                            header.api_version,
+                                            1,
+                                            "127.0.0.1",
+                                            i32::from(address.port()),
+                                            "third",
+                                        ).unwrap();
+                                    }
+                                    ADD_PARTITIONS_TO_TXN => {
+                                        use crate::protocol::txn::{decode_add_partitions_to_txn_request, encode_add_partitions_to_txn_response};
+                                        let (tid, pid, epoch, topics) =
+                                            decode_add_partitions_to_txn_request(&mut input, header.api_version).unwrap();
+                                        assert_eq!((tid.as_str(), pid, epoch), ("third", 7, 1));
+                                        assert_eq!(topics.len(), 1);
+                                        assert_eq!(topics[0].topic, "events");
+                                        assert_eq!(topics[0].partitions, vec![0]);
+                                        let call = adds.fetch_add(1, Ordering::SeqCst);
+                                        let error = if retry_first_add && call == 0 {
+                                            error::NOT_COORDINATOR
+                                        } else {
+                                            0
+                                        };
+                                        encode_add_partitions_to_txn_response(&mut body, header.api_version, &topics, error).unwrap();
+                                    }
+                                    INIT_PRODUCER_ID => {
+                                        use crate::protocol::idem::{decode_init_producer_id_request, encode_init_producer_id_response};
+                                        let (tid, _timeout, pid, epoch) =
+                                            decode_init_producer_id_request(&mut input, header.api_version).unwrap();
+                                        assert_eq!(tid.as_deref(), Some("third"));
+                                        assert_eq!((pid, epoch), (7, 1));
+                                        let _old = inits.fetch_add(1, Ordering::SeqCst);
+                                        encode_init_producer_id_response(&mut body, header.api_version, 0, 7, 2).unwrap();
+                                    }
+                                    other => panic!("unexpected mock API {other}"),
+                                }
+                                let mut response = Vec::new();
+                                response.extend_from_slice(&header.correlation_id.to_be_bytes());
+                                if crate::protocol::header::response_header_version(header.api_key, header.api_version) >= 1 {
+                                    response.push(0);
+                                }
+                                response.extend_from_slice(&body);
+                                if socket.write_i32(i32::try_from(response.len()).unwrap()).await.is_err()
+                                    || socket.write_all(&response).await.is_err()
+                                {
+                                    break;
+                                }
+                            }
+                            if initial {
+                                closed.notify_one();
+                            }
+                        });
+                    }
+                }
+            }
+            clients.abort_all();
+            while let Some(result) = clients.join_next().await {
+                if let Err(error) = result {
+                    assert!(error.is_cancelled(), "mock broker handler failed: {error}");
+                }
+            }
+        });
+        ThirdDiscoveryMock {
+            addr: address.to_string(),
+            finds,
+            adds,
+            inits,
+            old_closed,
+            stop,
+            server,
+        }
+    }
+
+    async fn third_discovery_shared(addr: &str) -> (Arc<Shared>, tokio::net::TcpStream) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let meta_addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&meta_addr, "third-meta", Duration::from_secs(2))
+            .await
+            .unwrap();
+        let (peer, _) = listener.accept().await.unwrap();
+        let config = ProducerConfig::bootstrap([addr.to_owned()]).transactional_id("third");
+        let mut shared = test_shared(config, meta);
+        Arc::get_mut(&mut shared).unwrap().find_coord_version = Some(1);
+        (shared, peer)
+    }
+
+    async fn third_discovery_add(shared: &Shared) -> Result<Bytes> {
+        use crate::protocol::txn::{encode_add_partitions_to_txn_request, TxnPartitionsTopic};
+
+        let topics = vec![TxnPartitionsTopic {
+            topic: "events".into(),
+            partitions: vec![0],
+        }];
+        txn_roundtrip(
+            shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |buf| encode_add_partitions_to_txn_request(buf, 0, "third", 7, 1, &topics),
+            Duration::from_secs(5),
+            |body| {
+                Box::pin(async move {
+                    decode_add_partitions_to_txn_response_cooperative(&mut { body }, 0).await
+                })
+            },
+        )
+        .await
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn replacement_rediscovery_retries_real_coordinator_rpc() {
+        let mock = third_discovery_mock(true).await;
+        let (shared, _meta_peer) = third_discovery_shared(&mock.addr).await;
+        let old = BrokerConn::connect(&mock.addr, "third-old", Duration::from_secs(2))
+            .await
+            .unwrap();
+        *shared.txn.lock().await = Some(CoordinatorConnection {
+            conn: old,
+            init_producer_id_version: Some(3),
+            keys: vec![ApiVersion {
+                api_key: ADD_PARTITIONS_TO_TXN,
+                min_version: 0,
+                max_version: 0,
+            }],
+        });
+        let body = third_discovery_add(&shared).await.unwrap();
+        let mut input = body.as_ref();
+        assert_eq!(
+            crate::protocol::txn::decode_add_partitions_to_txn_response(&mut input, 0).unwrap(),
+            0
+        );
+        assert_eq!(mock.adds.load(Ordering::SeqCst), 2);
+        assert!(mock.finds.load(Ordering::SeqCst) >= 1);
+        tokio::time::timeout(Duration::from_secs(3), mock.old_closed.notified())
+            .await
+            .unwrap();
+        assert!(mock.stop.send(()).is_ok());
+        mock.server.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn missing_transaction_coordinator_rediscovers_before_rpc() {
+        let mock = third_discovery_mock(false).await;
+        let (shared, _meta_peer) = third_discovery_shared(&mock.addr).await;
+        assert!(shared.txn.lock().await.is_none());
+        let body = third_discovery_add(&shared).await.unwrap();
+        let mut input = body.as_ref();
+        assert_eq!(
+            crate::protocol::txn::decode_add_partitions_to_txn_response(&mut input, 0).unwrap(),
+            0
+        );
+        assert_eq!(mock.adds.load(Ordering::SeqCst), 1);
+        assert!(mock.finds.load(Ordering::SeqCst) >= 1);
+        assert!(shared.txn.lock().await.is_some());
+        assert!(mock.stop.send(()).is_ok());
+        mock.server.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn closed_transaction_coordinator_rediscovers_and_bumps_epoch() {
+        let mock = third_discovery_mock(false).await;
+        let (shared, _meta_peer) = third_discovery_shared(&mock.addr).await;
+        let mut old = BrokerConn::connect(&mock.addr, "third-old", Duration::from_secs(2))
+            .await
+            .unwrap();
+        old.close();
+        *shared.txn.lock().await = Some(CoordinatorConnection {
+            conn: old,
+            init_producer_id_version: None,
+            keys: Vec::new(),
+        });
+        let mut guard = shared.txn.lock().await;
+        let (body, version) = init_producer_id_roundtrip(
+            &shared.cfg,
+            &mut guard,
+            None,
+            3,
+            Some(1),
+            (7, 1),
+            &[],
+            &HashMap::new(),
+            Instant::now() + Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+        assert_eq!(version, 3);
+        let mut input = body.as_ref();
+        let (error, pid, epoch, ..) =
+            crate::protocol::idem::decode_init_producer_id_response(&mut input, version).unwrap();
+        assert_eq!((error, pid, epoch), (0, 7, 2));
+        assert_eq!(mock.inits.load(Ordering::SeqCst), 1);
+        assert!(mock.finds.load(Ordering::SeqCst) >= 1);
+        assert!(guard.as_ref().is_some_and(|coord| !coord.conn.is_closed()));
+        drop(guard);
+        assert!(mock.stop.send(()).is_ok());
+        mock.server.await.unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn txn_roundtrip_times_out_waiting_for_initial_lock() {
+        use std::task::Poll;
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "lock-test", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(
+            ProducerConfig::default().transactional_id("lock-test"),
+            meta,
+        );
+        let guard = shared.txn.lock().await;
+        let encodes = AtomicUsize::new(0);
+        let mut call = Box::pin(txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| {
+                let _old = encodes.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            },
+            Duration::from_secs(2),
+            |_| Box::pin(async { Ok(0) }),
+        ));
+        let pending = std::future::poll_fn(|cx| {
+            Poll::Ready(std::future::Future::poll(call.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending, "first roundtrip did not reach its lock wait");
+        println!("PL_FIRST_LOCK_HELD");
+
+        let result = tokio::time::timeout(Duration::from_secs(8), call.as_mut()).await;
+        assert!(
+            matches!(result, Ok(Err(Error::Timeout))),
+            "PL_FIRST_DEADLINE_BROKEN"
+        );
+        assert_eq!(encodes.load(Ordering::SeqCst), 0);
+        drop(call);
+        drop(guard);
+        let unlocked = tokio::time::timeout(Duration::from_secs(5), shared.txn.lock())
+            .await
+            .unwrap();
+        assert!(unlocked.is_none());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn txn_roundtrip_times_out_waiting_for_rediscovery_snapshot_lock() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "meta", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_meta_peer, _) = listener.accept().await.unwrap();
+        let coord = BrokerConn::connect(&addr, "coord", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (mut coord_peer, _) = listener.accept().await.unwrap();
+        let mut shared = test_shared(
+            ProducerConfig::default().transactional_id("lock-test"),
+            meta,
+        );
+        Arc::get_mut(&mut shared).unwrap().find_coord_version = Some(1);
+        *shared.txn.lock().await = Some(CoordinatorConnection {
+            conn: coord,
+            init_producer_id_version: None,
+            keys: vec![ApiVersion {
+                api_key: ADD_PARTITIONS_TO_TXN,
+                min_version: 0,
+                max_version: 0,
+            }],
+        });
+
+        let server_stop = Arc::new(Notify::new());
+        let server_done = Arc::clone(&server_stop);
+        let server = tokio::spawn(async move {
+            let len = coord_peer.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&len));
+            let mut request = vec![0; usize::try_from(len).unwrap()];
+            let _read = coord_peer.read_exact(&mut request).await.unwrap();
+            coord_peer.write_i32(4).await.unwrap();
+            coord_peer.write_all(&request[4..8]).await.unwrap();
+            server_done.notified().await;
+        });
+        let started = Arc::new(Notify::new());
+        let ready = Arc::new(Notify::new());
+        let release = Arc::new(Notify::new());
+        let acquired = Arc::new(AtomicBool::new(false));
+        let holder_shared = Arc::clone(&shared);
+        let holder_started = Arc::clone(&started);
+        let holder_ready = Arc::clone(&ready);
+        let holder_release = Arc::clone(&release);
+        let holder_acquired = Arc::clone(&acquired);
+        let holder = tokio::spawn(async move {
+            holder_started.notified().await;
+            let _guard = holder_shared.txn.lock().await;
+            holder_acquired.store(true, Ordering::SeqCst);
+            holder_ready.notify_one();
+            holder_release.notified().await;
+        });
+
+        let callback_started = Arc::clone(&started);
+        let callback_ready = Arc::clone(&ready);
+        let encodes = AtomicUsize::new(0);
+        let result = tokio::time::timeout(
+            Duration::from_secs(8),
+            txn_roundtrip(
+                &shared,
+                ADD_PARTITIONS_TO_TXN,
+                0,
+                |_| {
+                    let _old = encodes.fetch_add(1, Ordering::SeqCst);
+                    Ok(())
+                },
+                Duration::from_secs(2),
+                move |_| {
+                    let started = Arc::clone(&callback_started);
+                    let ready = Arc::clone(&callback_ready);
+                    Box::pin(async move {
+                        started.notify_one();
+                        ready.notified().await;
+                        println!("PL_SNAPSHOT_LOCK_HELD");
+                        Ok(error::NOT_COORDINATOR)
+                    })
+                },
+            ),
+        )
+        .await;
+        assert!(
+            matches!(result, Ok(Err(Error::Timeout))),
+            "PL_SNAPSHOT_DEADLINE_BROKEN"
+        );
+        assert!(
+            acquired.load(Ordering::SeqCst),
+            "fixture never held rediscovery lock"
+        );
+        assert_eq!(encodes.load(Ordering::SeqCst), 1);
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), listener.accept())
+                .await
+                .is_err(),
+            "unexpected rediscovery dial"
+        );
+        release.notify_one();
+        tokio::time::timeout(Duration::from_secs(5), holder)
+            .await
+            .unwrap()
+            .unwrap();
+        server_stop.notify_one();
+        tokio::time::timeout(Duration::from_secs(5), server)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn txn_roundtrip_contended_after_canceled_waiter() {
+        use std::task::Poll;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "meta", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_meta_peer, _) = listener.accept().await.unwrap();
+        let coord = BrokerConn::connect(&addr, "coord", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (mut coord_peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(
+            ProducerConfig::default().transactional_id("lock-test"),
+            meta,
+        );
+        *shared.txn.lock().await = Some(CoordinatorConnection {
+            conn: coord,
+            init_producer_id_version: None,
+            keys: vec![ApiVersion {
+                api_key: ADD_PARTITIONS_TO_TXN,
+                min_version: 0,
+                max_version: 0,
+            }],
+        });
+
+        let server_stop = Arc::new(Notify::new());
+        let server_done = Arc::clone(&server_stop);
+        let server = tokio::spawn(async move {
+            let len = coord_peer.read_i32().await.unwrap();
+            assert!((8..=4096).contains(&len));
+            let mut request = vec![0; usize::try_from(len).unwrap()];
+            let _read = coord_peer.read_exact(&mut request).await.unwrap();
+            coord_peer.write_i32(4).await.unwrap();
+            coord_peer.write_all(&request[4..8]).await.unwrap();
+            server_done.notified().await;
+        });
+
+        let guard = shared.txn.lock().await;
+        let encodes = AtomicUsize::new(0);
+        let mut canceled = Box::pin(txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| {
+                let _old = encodes.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            },
+            Duration::from_secs(10),
+            |_| Box::pin(async { Ok(0) }),
+        ));
+        let pending = std::future::poll_fn(|cx| {
+            Poll::Ready(std::future::Future::poll(canceled.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending, "canceled caller never waited for the lock");
+
+        let mut call = Box::pin(txn_roundtrip(
+            &shared,
+            ADD_PARTITIONS_TO_TXN,
+            0,
+            |_| {
+                let _old = encodes.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            },
+            Duration::from_secs(10),
+            |_| Box::pin(async { Ok(0) }),
+        ));
+        let pending = std::future::poll_fn(|cx| {
+            Poll::Ready(std::future::Future::poll(call.as_mut(), cx).is_pending())
+        })
+        .await;
+        assert!(pending, "replacement caller never waited for the lock");
+        drop(canceled);
+        assert_eq!(encodes.load(Ordering::SeqCst), 0);
+        drop(guard);
+
+        let result = tokio::time::timeout(Duration::from_secs(5), call.as_mut())
+            .await
+            .unwrap()
+            .unwrap();
+        drop(call);
+        assert!(result.is_empty());
+        assert_eq!(encodes.load(Ordering::SeqCst), 1);
+        server_stop.notify_one();
+        tokio::time::timeout(Duration::from_secs(5), server)
+            .await
+            .unwrap()
+            .unwrap();
+    }
 
     #[tokio::test(flavor = "current_thread")]
     async fn unpolled_retired_worker_is_counted_until_its_resources_drop() {
@@ -14535,15 +15523,24 @@ mod tests {
         );
 
         // 4_000_000 records: detaching the failed batch held the caller 926ms.
-        let started = std::time::Instant::now();
-        let worker = tokio::spawn(async move { detach_pending_chunks(&mut batch).await.len() });
-        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
-        worker.abort();
-        let elapsed = started.elapsed();
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "releasing failed records held the caller for {elapsed:?}"
-        );
+        {
+            let mut held_chunks = Vec::new();
+            let detaching = detach_pending_chunks(&mut batch);
+            tokio::pin!(detaching);
+            let started = std::time::Instant::now();
+            tokio::select! {
+                chunks = &mut detaching => {
+                    held_chunks = chunks;
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            let elapsed = started.elapsed();
+            assert!(
+                elapsed < std::time::Duration::from_millis(80),
+                "releasing failed records held the caller for {elapsed:?}"
+            );
+            let _ = held_chunks.len();
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -14712,6 +15709,101 @@ mod tests {
         }
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn timestamp_freezing_at_existing_encode_yields() {
+        use std::task::Poll;
+
+        for compression in [Compression::None, Compression::Gzip] {
+            let topic = Arc::<str>::from("t");
+            let mut groups = vec![(
+                Arc::clone(&topic),
+                0,
+                (0..8193).map(|_| queued("t", Some(0))).collect(),
+            )];
+            let mut buf = BytesMut::new();
+            let mut scratch = CompressScratch::default();
+            let mut group_scratch = ProduceGroupScratch::default();
+            let mut first = Box::pin(encode_produce_body_async(
+                &mut buf,
+                9,
+                1,
+                1000,
+                &mut groups,
+                &[],
+                compression,
+                1000,
+                -1,
+                -1,
+                None,
+                &mut scratch,
+                &mut group_scratch,
+            ));
+            let state = std::future::poll_fn(|cx| Poll::Ready(first.as_mut().poll(cx))).await;
+            assert!(
+                state.is_pending(),
+                "first yield should happen during sizing"
+            );
+            drop(first);
+            let records = &groups.first().unwrap().2;
+            assert!(records.iter().all(|record| record.rec.timestamp.is_none()));
+
+            buf.clear();
+            let mut second = Box::pin(encode_produce_body_async(
+                &mut buf,
+                9,
+                1,
+                1000,
+                &mut groups,
+                &[],
+                compression,
+                1000,
+                -1,
+                -1,
+                None,
+                &mut scratch,
+                &mut group_scratch,
+            ));
+            let state = std::future::poll_fn(|cx| Poll::Ready(second.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "sizing must yield");
+            let state = std::future::poll_fn(|cx| Poll::Ready(second.as_mut().poll(cx))).await;
+            assert!(state.is_pending(), "encoding must yield after 8192 records");
+            drop(second);
+            let records = &groups.first().unwrap().2;
+            assert_eq!(records.first().unwrap().rec.timestamp, Some(1000));
+            assert_eq!(records.get(8191).unwrap().rec.timestamp, Some(1000));
+            assert_eq!(records.get(8192).unwrap().rec.timestamp, None);
+
+            // This fixture retains the group itself; the current worker does
+            // not retain it when its enclosing future is canceled.
+            buf.clear();
+            encode_produce_body_async(
+                &mut buf,
+                9,
+                1,
+                1000,
+                &mut groups,
+                &[],
+                compression,
+                2000,
+                -1,
+                -1,
+                None,
+                &mut scratch,
+                &mut group_scratch,
+            )
+            .await
+            .unwrap();
+            let records = &groups.first().unwrap().2;
+            assert_eq!(records.first().unwrap().rec.timestamp, Some(1000));
+            assert_eq!(records.get(8191).unwrap().rec.timestamp, Some(1000));
+            let tail = records.get(8192).unwrap().rec.timestamp;
+            assert!(tail.is_some());
+            println!(
+                "TIMESTAMP_CANCEL compression={compression:?} preencode=unset partial=8192 resumed_tail={tail:?}"
+            );
+        }
+    }
+
     #[test]
     fn an_uncompressed_produce_sizes_its_batch_once() {
         let topic = Arc::<str>::from("orders");
@@ -14724,7 +15816,7 @@ mod tests {
                 pending
             })
             .collect();
-        let groups = [(Arc::clone(&topic), 0, pendings)];
+        let mut groups = [(Arc::clone(&topic), 0, pendings)];
         let mut scratch = CompressScratch::default();
         let mut grouped = ProduceGroupScratch::default();
         for version in [3_i16, 9] {
@@ -14734,7 +15826,7 @@ mod tests {
                 version,
                 1,
                 1_000,
-                &groups,
+                &mut groups,
                 &[],
                 Compression::None,
                 5,
@@ -14755,7 +15847,7 @@ mod tests {
                 version,
                 1,
                 1_000,
-                &groups,
+                &mut groups,
                 &[],
                 Compression::None,
                 5,
@@ -14782,7 +15874,7 @@ mod tests {
                 pending
             })
             .collect();
-        let groups = [(topic, 0, pendings)];
+        let mut groups = [(topic, 0, pendings)];
         let mut scratch = CompressScratch::default();
         let mut grouped = ProduceGroupScratch::default();
         let mut buf = BytesMut::new();
@@ -14791,7 +15883,7 @@ mod tests {
             3,
             1,
             1_000,
-            &groups,
+            &mut groups,
             &[],
             Compression::Gzip,
             5,
@@ -14812,7 +15904,7 @@ mod tests {
             3,
             1,
             1_000,
-            &groups,
+            &mut groups,
             &[],
             Compression::Gzip,
             5,
@@ -14830,7 +15922,7 @@ mod tests {
     #[test]
     fn uncompressed_produce_writes_the_sized_batch_header() {
         let pending = queued("orders", Some(0));
-        let groups = [(Arc::clone(&pending.rec.topic), 0, vec![pending])];
+        let mut groups = [(Arc::clone(&pending.rec.topic), 0, vec![pending])];
         let mut scratch = CompressScratch::default();
         let mut grouped = ProduceGroupScratch::default();
         for version in [3_i16, 9] {
@@ -14840,7 +15932,7 @@ mod tests {
                 version,
                 1,
                 1_000,
-                &groups,
+                &mut groups,
                 &[],
                 Compression::None,
                 5,
@@ -15128,16 +16220,19 @@ mod tests {
             .map(|index| (Arc::clone(&topic), index))
             .collect();
         let sent = parking_lot::Mutex::new(TxnPartSet::new());
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = remember_added_txn_parts(&sent, &added) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        {
+            let mut work = std::pin::pin!(remember_added_txn_parts(&sent, &added));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => {}
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            assert!(
+                started.elapsed() < std::time::Duration::from_millis(80),
+                "remembering transaction partitions held the caller for {:?}",
+                started.elapsed()
+            );
         }
-        assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "remembering transaction partitions held the caller for {:?}",
-            started.elapsed()
-        );
         let orders: Arc<str> = Arc::from("orders");
         let payments: Arc<str> = Arc::from("payments");
         let sample = [
@@ -15164,16 +16259,23 @@ mod tests {
         let _ = wanted.insert(Arc::clone(&topic), parts);
         let wanted = parking_lot::Mutex::new(wanted);
         let sent = parking_lot::Mutex::new(TxnPartSet::new());
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = unsent_txn_partitions(&wanted, &sent) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        {
+            let mut held = Vec::new();
+            let mut work = std::pin::pin!(unsent_txn_partitions(&wanted, &sent));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                listed = &mut work => {
+                    held = listed;
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            assert!(
+                started.elapsed() < std::time::Duration::from_millis(80),
+                "listing unsent transaction partitions held the caller for {:?}",
+                started.elapsed()
+            );
+            let _ = held.len();
         }
-        assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "listing unsent transaction partitions held the caller for {:?}",
-            started.elapsed()
-        );
         let orders: Arc<str> = Arc::from("orders");
         let mut sample_wanted: TxnPartSet = HashMap::new();
         let mut sample_parts = HashSet::new();
@@ -15403,7 +16505,7 @@ mod tests {
     async fn encoding_many_produce_partitions_does_not_hold_the_caller() {
         // 200_000 partitions: encoding each one-record batch held the caller 394ms.
         let topic: Arc<str> = Arc::from("orders");
-        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..200_000)
+        let mut groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..200_000)
             .map(|index| {
                 let mut pending = queued("orders", Some(index));
                 pending.rec.topic = Arc::clone(&topic);
@@ -15420,7 +16522,7 @@ mod tests {
                 9,
                 1,
                 1_000,
-                &groups,
+                &mut groups,
                 &[],
                 Compression::None,
                 0,
@@ -15443,7 +16545,7 @@ mod tests {
         first.rec.topic = Arc::clone(&topic);
         let mut second = queued("orders", Some(7));
         second.rec.topic = Arc::clone(&topic);
-        let small = vec![
+        let mut small = vec![
             (Arc::clone(&topic), 0, vec![first]),
             (Arc::clone(&topic), 7, vec![second]),
         ];
@@ -15454,7 +16556,7 @@ mod tests {
             9,
             1,
             1_000,
-            &small,
+            &mut small,
             &[],
             Compression::None,
             0,
@@ -15471,7 +16573,7 @@ mod tests {
             9,
             1,
             1_000,
-            &small,
+            &mut small,
             &[],
             Compression::None,
             0,
@@ -15490,7 +16592,7 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn encoding_many_produce_topics_does_not_hold_the_caller() {
         // 80_000 topics: encoding each one-record batch held the caller 180ms.
-        let groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..80_000)
+        let mut groups: Vec<(Arc<str>, i32, Vec<Pending>)> = (0..80_000)
             .map(|index| {
                 let topic: Arc<str> = Arc::from(format!("topic-{index}"));
                 let mut pending = queued("orders", Some(0));
@@ -15502,12 +16604,11 @@ mod tests {
         let mut scratch = CompressScratch::default();
         let mut groups_scratch = ProduceGroupScratch::default();
         index_produce_groups(&groups, &mut groups_scratch).await;
-        let started = std::time::Instant::now();
-        tokio::select! {
-            encoded = write_indexed_produce_topics(
+        let elapsed = {
+            let mut work = std::pin::pin!(write_indexed_produce_topics(
                 &mut buf,
                 9,
-                &groups,
+                &mut groups,
                 &[],
                 Compression::None,
                 0,
@@ -15516,12 +16617,17 @@ mod tests {
                 false,
                 &mut scratch,
                 &groups_scratch,
-            ) => {
-                encoded.unwrap_or_else(|error| panic!("{error}"));
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                encoded = &mut work => {
+                    let elapsed = started.elapsed();
+                    encoded.unwrap_or_else(|error| panic!("{error}"));
+                    elapsed
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "encoding produce topics held the caller for {elapsed:?}"
@@ -15532,7 +16638,7 @@ mod tests {
         orders_record.rec.topic = Arc::clone(&orders);
         let mut payments_record = queued("payments", Some(4));
         payments_record.rec.topic = Arc::clone(&payments);
-        let few = vec![
+        let mut few = vec![
             (Arc::clone(&orders), 1, vec![orders_record]),
             (Arc::clone(&payments), 4, vec![payments_record]),
         ];
@@ -15543,7 +16649,7 @@ mod tests {
             9,
             1,
             1_000,
-            &few,
+            &mut few,
             &[],
             Compression::None,
             0,
@@ -15560,7 +16666,7 @@ mod tests {
             9,
             1,
             1_000,
-            &few,
+            &mut few,
             &[],
             Compression::None,
             0,
@@ -15584,15 +16690,18 @@ mod tests {
             .map(|index| (Arc::<str>::from(format!("topic-{index}")), 0, Vec::new()))
             .collect();
         let mut scratch = ProduceGroupScratch::default();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = index_produce_groups(&groups, &mut scratch) => {
-                assert_eq!(scratch.topics.len(), 500_000);
-                assert_eq!(scratch.topics.first().copied(), Some(0));
+        let (elapsed, finished) = {
+            let mut work = std::pin::pin!(index_produce_groups(&groups, &mut scratch));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => (started.elapsed(), true),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => (started.elapsed(), false),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        };
+        if finished {
+            assert_eq!(scratch.topics.len(), 500_000);
+            assert_eq!(scratch.topics.first().copied(), Some(0));
         }
-        let elapsed = started.elapsed();
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "indexing produce topics held the caller for {elapsed:?}"
@@ -15614,12 +16723,14 @@ mod tests {
             .map(|index| (Arc::clone(&topic), index, Vec::new()))
             .collect();
         let mut scratch = ProduceGroupScratch::default();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = index_produce_groups(&groups, &mut scratch) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(index_produce_groups(&groups, &mut scratch));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "indexing one produce topic held the caller for {elapsed:?}"
@@ -15877,15 +16988,19 @@ mod tests {
         let topic: Arc<str> = Arc::from("orders");
         let again = [(Arc::clone(&topic), 0, Vec::new())];
         let started = std::time::Instant::now();
-        tokio::select! {
-            _ = index.fill(&again) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        {
+            let fill = index.fill(&again);
+            tokio::pin!(fill);
+            tokio::select! {
+                _ = &mut fill => {}
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+            }
+            let elapsed = started.elapsed();
+            assert!(
+                elapsed < std::time::Duration::from_millis(80),
+                "dropping previous ack topics held the caller for {elapsed:?}"
+            );
         }
-        let elapsed = started.elapsed();
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "dropping previous ack topics held the caller for {elapsed:?}"
-        );
         let mut index = AckIndex::default();
         let alpha: Arc<str> = Arc::from("alpha");
         let beta: Arc<str> = Arc::from("beta");
@@ -15970,15 +17085,17 @@ mod tests {
         }
         let topic: Arc<str> = Arc::from("orders");
         let groups = take_group_shell(&mut scratch);
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = shell_one_topic_groups(&topic, &mut scratch, groups) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
+        let elapsed = {
+            let mut work = std::pin::pin!(shell_one_topic_groups(&topic, &mut scratch, groups));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "shelling produce partitions held the caller for {:?}",
-            started.elapsed()
+            elapsed < std::time::Duration::from_millis(80),
+            "shelling produce partitions held the caller for {elapsed:?}",
         );
         let mut sample = ProduceGroupScratch {
             partition_order: vec![3, 1],
@@ -16022,12 +17139,14 @@ mod tests {
                 },
             );
         }
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = assemble_mixed_groups(&mut scratch, order) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(assemble_mixed_groups(&mut scratch, order));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "assembling produce topics held the caller for {elapsed:?}"
@@ -17115,8 +18234,7 @@ mod rediscover_stop_tests {
             producer_epoch: AtomicI16::new(RecordBatch::NO_PRODUCER_EPOCH),
             epoch_gen: AtomicU64::new(0),
             epoch_bump_required: AtomicBool::new(false),
-            txn_fatal: AtomicBool::new(false),
-            txn_abort_required: AtomicBool::new(false),
+            txn_error_state: AtomicU64::new(0),
             txn_error: parking_lot::Mutex::new(None),
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
@@ -17653,3 +18771,7 @@ mod rediscover_stop_tests {
         peer.abort();
     }
 }
+
+#[cfg(test)]
+#[path = "producer/txn_error_state_controls.rs"]
+mod txn_error_state_controls;

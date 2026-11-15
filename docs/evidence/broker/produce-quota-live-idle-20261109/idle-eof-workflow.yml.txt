@@ -1,0 +1,21 @@
+name: Quota idle EOF and prefix controls
+on:
+  push:
+    branches: [qualification/produce-quota-idle-eof-20261109]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: partitionline-broker
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Default-feature controls
+        run: cargo test --locked --test quota_pause_reuse
+      - name: All-feature controls
+        if: always()
+        run: cargo test --locked --all-features --test quota_pause_reuse

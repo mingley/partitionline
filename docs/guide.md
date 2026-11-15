@@ -1,7 +1,8 @@
 # Operator guide
 
-Examples, configuration, recipes, and troubleshooting for the client.
-See the [documentation index](index.md) for API and protocol references.
+Examples, configuration, recipes, and troubleshooting for `partitionline` 0.2.
+See the [README](../README.md) for installation options and the
+[documentation index](index.md) for references.
 
 ## Read this first
 
@@ -21,10 +22,9 @@ Measure your own workload when choosing settings.
 
 This exercise produces one record, verifies application processing, commits
 its next offset, and leaves the group. It uses a freshly extracted `.crate`
-outside the checkout. The package built from this revision is **unpublished
-HEAD**, even when its manifest still says `0.1.0`; it is not proof that a
-crates.io release contains every HEAD feature. The recorded run used Apache
-Kafka 4.1.0 and Rust 1.98.1. Use the latest stable Rust.
+outside the checkout so you verify the exact packaged surface rather than
+workspace-only files. The recorded run used Apache Kafka 4.1.0 and Rust 1.98.1;
+build and validate with Rust `1.99` or newer (latest stable recommended).
 
 Prerequisites: Rust/Cargo, Bash, GNU `timeout`, Docker, a temporary directory,
 and an unused loopback port 9092. Start these commands in the clean repository
@@ -537,11 +537,12 @@ buffer in the application bounded.
 
 ### Buffer ownership
 
-`ProducerConfig::buffer_memory` reserves the visible key, value, and header
-bytes from the moment a record is accepted until the broker acks it or the
-send fails for good. Header keys and header values both count. A header-heavy
-record, a zero-value record, and a record that will be compressed all count
-their uncompressed visible bytes.
+`ProducerConfig::buffer_memory` tracks the visible key, value, and header
+bytes of accepted records. Reservations normally release after acknowledgement
+or a final failure; a known worker-cancellation path can leave the counter
+nonzero after a delivery future returns `Closed`. Header keys and header
+values both count. A header-heavy record, a zero-value record, and a record
+that will be compressed all count their uncompressed visible bytes.
 
 `metrics().bytes_buffered` and `metrics().bytes_queued` use that same count.
 
@@ -557,19 +558,20 @@ visible length. A uniquely owned allocation with spare capacity, or with a
 hidden prefix, is compacted. An allocation that is already the exact size can
 be reused. Header strings and the header vector release spare capacity too.
 
-When `bytes_buffered` reaches `buffer_memory`, `try_send` returns `QueueFull`,
-including for a zero-value record. `send` waits up to `max_block` and then
-returns `Timeout`. Under a full load, `bytes_buffered` stays at or below
-`buffer_memory`. After `flush` or `close` it returns to 0. One permit covers
-the record while it is queued, in flight, or retrying, and that permit is
-released once.
+When the configured `buffer_memory` limit is reached, `try_send` returns
+`QueueFull`, including for a zero-value record. `send` waits for capacity
+up to its `max_block` deadline, unless it is canceled or the producer closes.
+The intended accounting keeps one reservation with a record while it is queued,
+in flight, or retrying, and releases it at completion. Normally the count
+returns to zero after work settles. The worker-cancellation exception above
+can leave it nonzero after a delivery future has returned `Closed`.
 
 A single record can still enter an empty buffer when its serialized upper
 bound fits in both `max_request_size` and `buffer_memory`. That is Kafka's
 rule that the first oversized-looking batch must be able to make progress,
 so an empty producer does not stall on one legal record.
 
-The mock for this budget is `tests/buffer_ownership.rs`.
+Buffer ownership and overload (mock) coverage is in `tests/buffer_ownership.rs`.
 
 
 ### Process only the returned batch, then commit
@@ -741,7 +743,10 @@ records again.
 After `send` has accepted a record into `buffer_memory`, dropping its future
 leaves delivery ambiguous. The worker may still write the record. `try_send`
 returns after admission and does not provide an individual delivery future.
-Keep the delivery result before treating the outcome as final.
+
+A delivery error can also leave the outcome uncertain: an earlier attempt may
+have been appended before its response was lost. If duplicates matter, use an
+application-level idempotency key or a reconciliation process before resending.
 `flush` can return before some retries finish or miss delivery timeouts. `close`
 stops workers; a successful `close` does not replace a delivery result.
 
@@ -750,16 +755,31 @@ stops workers; a successful `close` does not replace a delivery result.
 | Before enqueue | unpolled `send`; rejected `try_send` (`QueueFull`, `RecordTooLarge`); known admission failure | **Not accepted** |
 | Buffered (queued, not yet on the wire) | `metrics().bytes_buffered > 0`; drop `send` future | **Ambiguous.** The worker may still deliver. |
 | After send / before ack | in flight to the broker; drop `send` future | **Ambiguous** |
+| Delivery error after acceptance | `send` returns an error after an attempt may have reached the broker | **Uncertain.** An earlier attempt may already be appended. |
 | After broker ack | `Ok(RecordMetadata)` from `send`, with `acks=1` or `all` | **Acknowledged.** `acks=0` cannot prove an offset. |
-| After `close` / `close_timeout` | further `send` or `try_send` on any clone | **Failed** with `Error::Closed` |
-| `close_timeout` while a batch is in flight | The deadline hits a stalled broker or the retry queue | In-flight batches return `Error::Timeout`. A record already transmitted stays ambiguous. |
-| A later send after an ambiguous result | The earlier per-record receipt is missing | Can duplicate the record, including when idempotence was on. |
+| After `close` / `close_timeout` returns | a new `send` or `try_send` on any clone | **Failed** with `Error::Closed` (`send` fails when polled) |
+| `close_timeout` with outstanding work | The flush reaches its deadline | Close reports `Error::Timeout`; a pending delivery can return `Timeout` or `Closed`. A record already transmitted stays ambiguous. |
+| A later send after an ambiguous result | The earlier per-record receipt is missing or its error leaves delivery uncertain | Can duplicate the record, including when idempotence was on. |
 
 Call `close` or `close_timeout` instead of dropping the last `Producer`.
-Drop alone does not wait for in-flight produce. Concurrent sends on every
-clone get `Error::Closed` immediately. Dropping the last handle aborts the
-worker and background tasks, and releases buffer permits and connections.
-The mock is `tests/produce_cancel.rs`.
+Close first attempts to flush and then stops admission, so another clone can
+still admit a record during that initial flush. Calls already waiting for
+admission may finish later. Drop alone does not wait for in-flight produce.
+
+Both close methods return their initial flush result after attempting
+shutdown, including recorded worker errors, control errors such as `Closed`,
+and timeouts. Earlier revisions suppressed non-timeout flush errors. A caller
+may receive an error that `send` already reported. A previous `flush` can
+consume that error; errors arising only during shutdown are not returned.
+Continue to inspect each delivery result: a successful close does not
+establish delivery.
+
+A blocking interceptor can delay worker cleanup and the close deadline. In a
+known cancellation path, accepted records can lose callbacks and leave
+`bytes_buffered` nonzero after the worker stops. See the
+[producer ownership evidence](https://github.com/mingley/partitionline/blob/efa7f23314e98f3aaa4559c3cf38302bdcdb9fb4/docs/evidence/client/producer-sequence-public-20261108/README.md)
+for the controlled history and its limits. The ordinary cancellation mock is
+`tests/produce_cancel.rs`.
 
 Run the recipe against an existing topic:
 
@@ -789,7 +809,7 @@ and `concurrent_sends_during_close_do_not_hang_and_observe_closed`.
 
 
 
-### Consumer leave, close, and auto-commit
+### Consumer leave/close and auto-commit
 
 `enable_auto_commit` defaults to false. When it is on, offsets are stored
 only on the poll-interval path: records that were already delivered, after
@@ -948,6 +968,10 @@ Encoding supports levels 1 through 19 (default 3), selected with
 return `Error::Unsupported`. See
 [zstd-spike.md](zstd-spike.md) for the tested profile and limits.
 
+```toml
+partitionline = { version = "0.2", features = ["zstd"] }
+```
+
 ```sh
 cargo test --locked --features zstd --test zstd_decode
 ```
@@ -960,7 +984,7 @@ disable default features; gzip then uses miniz_oxide, which forbids `unsafe`
 and is slower:
 
 ```toml
-partitionline = { version = "0.1", default-features = false }
+partitionline = { version = "0.2", default-features = false }
 ```
 
 Both backends speak the same wire format. See
@@ -971,7 +995,7 @@ Both backends speak the same wire format. See
 Enable spans without changing default builds:
 
 ```toml
-partitionline = { version = "0.1", features = ["tracing"] }
+partitionline = { version = "0.2", features = ["tracing"] }
 ```
 
 Spans cover `Producer::send` (topic field), `Consumer::fetch`,
@@ -988,7 +1012,7 @@ Credential rules are in [security.md](security.md).
 | Symptom | Likely cause | What to do |
 |---|---|---|
 | `try_send` returns `QueueFull` | `buffer_memory` is held by records that are not yet acked | `flush`, or wait, then retry. See [Backpressure](#backpressure). |
-| `send` returns `Timeout` | Metadata or buffer wait exceeded `max_block` | Raise `max_block`, and check that the broker is reachable. |
+| `send` returns `Timeout` | Admission or delivery exceeded a deadline | Check broker reachability and timeouts. If the record was accepted, reconcile its outcome before resending. |
 | `Error::Closed` on send | The producer was closed | Create a new producer. See [cancellation](#produce-cancellation-and-shutdown). |
 | `Error::RecordTooLarge` | The record exceeds `max_request_size` | Shrink the record, or raise the limit. |
 | Fetch returns no records | A partition is paused, the offset is wrong, or the leader was fenced | Check `pause` and `seek`. Fencing recovers with OffsetForLeaderEpoch. |

@@ -7,12 +7,15 @@
 //! accepted, and disconnect releases only that client's connection permits.
 //! Client identity state is bounded by the configured connection cap; idle
 //! identities are reclaimed only after both buckets refill and all debt clears.
+//! Time-bearing operations use the latest observed time when passed an older
+//! value. Callers must use one clock and avoid timestamps from the future.
 //!
 //! This is not a Kafka throttle response on the wire.
 
 use std::collections::BTreeMap;
 
-/// Kafka `THROTTLING_QUOTA_EXCEEDED`.
+/// Kafka `THROTTLING_QUOTA_EXCEEDED`. This code is API-specific and is not a
+/// generic mapping for a local bandwidth or capacity refusal.
 pub const THROTTLING_QUOTA_EXCEEDED: i16 = 89;
 
 /// Which byte quota a request spends.
@@ -41,7 +44,7 @@ pub struct Limits {
     pub max_connections: usize,
     /// Accepted but unfinished request bytes.
     pub max_inflight_bytes: u64,
-    /// Longest throttle this broker will ask a client to wait.
+    /// Largest delay this window accepts for one admission.
     pub max_throttle_ms: u64,
 }
 
@@ -84,14 +87,15 @@ impl Limits {
 pub struct Admission {
     /// Caller-visible work id.
     pub work_id: u64,
-    /// Delay before the response should be sent. Zero means the bucket had tokens.
+    /// Computed local delay in milliseconds; zero means the bucket had tokens.
+    /// This value does not define when a Kafka response is sent.
     pub throttle_ms: u64,
 }
 
 /// Why a quota decision was refused.
 #[derive(Debug)]
 pub enum Error {
-    /// The request would exceed the throttle, connection, or in-flight cap.
+    /// A local quota or capacity limit refused the operation.
     Throttled,
     /// The client id or byte count is not usable.
     InvalidRequest,
@@ -102,12 +106,13 @@ pub enum Error {
 }
 
 impl Error {
-    /// Kafka code for a throttle refusal. Other failures have none.
+    /// Return a Kafka error code when this failure has an unambiguous mapping.
+    ///
+    /// Local window refusals do not select a Kafka API or version, so none
+    /// has a generic wire code. In particular, Kafka bandwidth quotas use
+    /// response throttle times and channel muting, not a blanket error 89.
     pub fn code(&self) -> Option<i16> {
-        match self {
-            Self::Throttled => Some(THROTTLING_QUOTA_EXCEEDED),
-            Self::InvalidRequest | Self::UnknownWork | Self::InvalidLimits => None,
-        }
+        None
     }
 }
 
@@ -248,7 +253,8 @@ impl Window {
     }
 
     /// Account for elapsed time at the current rates before replacing them.
-    /// Accepted work and its accumulated debt remain in the window.
+    /// Accepted work and its accumulated debt remain in the window. Invalid
+    /// rates are rejected before observing time.
     pub fn set_rates_at(
         &mut self,
         produce_bytes_per_sec: u64,
@@ -260,7 +266,8 @@ impl Window {
         {
             return Err(Error::InvalidLimits);
         }
-        self.observed_ms = self.observed_ms.max(now_ms);
+        let now_ms = self.observed_ms.max(now_ms);
+        self.observed_ms = now_ms;
         for client in self.clients.values_mut() {
             client
                 .produce
@@ -286,9 +293,11 @@ impl Window {
 
     /// Take one connection permit and reclaim fully refilled idle identities
     /// when needed. Times must use the same millisecond clock as [`Self::admit`].
+    /// A valid client name observes time even when the connection is refused.
     pub fn connect_at(&mut self, client: &str, now_ms: u64) -> Result<(), Error> {
         self.named(client)?;
-        self.observed_ms = self.observed_ms.max(now_ms);
+        let now_ms = self.observed_ms.max(now_ms);
+        self.observed_ms = now_ms;
         if self.connections >= self.limits.max_connections {
             return Err(Error::Throttled);
         }
@@ -317,6 +326,8 @@ impl Window {
     }
 
     /// Accept a byte charge, or refuse it without spending tokens.
+    /// A nonzero request within the in-flight byte cap observes time even if
+    /// a later identity, work-ID, or quota check refuses the request.
     pub fn admit(
         &mut self,
         client: Option<&str>,
@@ -332,7 +343,8 @@ impl Window {
                 Error::Throttled
             });
         }
-        self.observed_ms = self.observed_ms.max(now_ms);
+        let now_ms = self.observed_ms.max(now_ms);
+        self.observed_ms = now_ms;
         // Reserve a distinct work ID before spending tokens; overflow must never
         // overwrite a live permit or leave charged work without a receipt.
         let work_id = self.next_work;
@@ -440,6 +452,35 @@ mod tests {
 
     fn limits() -> Limits {
         Limits::new(100, 100, 50, 2, 4, 1_000, 1_000).unwrap_or_else(|_| panic!("quota limits"))
+    }
+
+    // These exhaustion states are not practical to construct through public
+    // calls. Keep their error mapping under test using private state here.
+    #[test]
+    fn exhausted_work_ids_have_no_generic_kafka_error() {
+        let mut window = Window::new(limits(), 0);
+        window.next_work = u64::MAX;
+        let error = match window.admit(None, Kind::Replication, 1, 0) {
+            Err(error) => error,
+            Ok(_) => panic!("expected exhausted work IDs to refuse admission"),
+        };
+        assert!(matches!(error, Error::Throttled));
+        assert_eq!(error.code(), None);
+        assert_eq!(window.inflight_bytes(), 0);
+    }
+
+    #[test]
+    fn overflowing_debt_has_no_generic_kafka_error() {
+        let mut window = Window::new(limits(), 0);
+        window.replication.debt = u128::MAX;
+        window.replication.credit = 0;
+        let error = match window.admit(None, Kind::Replication, 1, 0) {
+            Err(error) => error,
+            Ok(_) => panic!("expected overflowing debt to refuse admission"),
+        };
+        assert!(matches!(error, Error::Throttled));
+        assert_eq!(error.code(), None);
+        assert_eq!(window.inflight_bytes(), 0);
     }
 
     #[test]

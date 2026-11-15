@@ -956,9 +956,9 @@ pub fn put_array_len(buf: &mut BytesMut, flexible: bool, len: Option<usize>) -> 
 
 /// Read an array length. `None` is a null array.
 ///
-/// Rejects lengths greater than `buf.remaining()` so untrusted broker bytes
-/// cannot force `Vec::with_capacity` into multi-gigabyte allocations. Kafka
-/// array elements are at least one byte on the wire.
+/// Rejects lengths greater than `buf.remaining()`; Kafka array elements are
+/// at least one byte on the wire. Decoded elements can be much larger than
+/// their wire representation, so callers must also manage vector reservations.
 pub fn get_array_len<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<usize>> {
     if flexible {
         let n = get_unsigned_varint(buf)?;

@@ -11,10 +11,6 @@ use partitionline::{partition_for_key, Error, ProduceRecord, Producer, ProducerC
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
 
-#[expect(
-    clippy::unwrap_used,
-    reason = "bounded test record sizing must succeed and fit the accounting type"
-)]
 fn unkeyed_packed_bytes(value: &'static [u8]) -> u64 {
     let record = Record {
         offset: 0,
@@ -395,7 +391,15 @@ async fn broker_terminal_error_and_acks_zero_both_retire_rows() {
         assert_eq!(result.is_ok(), acks == 0);
         assert_eq!(producer.__test_sticky_state().unwrap().1, 0);
         assert_eq!(producer.metrics().bytes_buffered, 0);
-        producer.close().await.unwrap();
+        let close = producer.close().await;
+        if acks == 0 {
+            assert!(close.is_ok());
+        } else {
+            assert_eq!(
+                close.unwrap_err().broker_code(),
+                Some(error::INVALID_RECORD)
+            );
+        }
     }
 }
 

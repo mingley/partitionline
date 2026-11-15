@@ -13,4 +13,13 @@ metadata_file="$(mktemp)"
 trap 'rm -f "$metadata_file"' EXIT
 cargo +stable metadata --format-version 1 --no-deps > "$metadata_file"
 soak_target="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["target_directory"])' "$metadata_file")"
-python3 scripts/resource-soak.py --binary "$soak_target/debug/examples/resource_soak" "$@"
+soak_bin="$soak_target/debug/examples/resource_soak"
+if [[ ! -x "$soak_bin" ]]; then
+  for cand in "$soak_target"/debug/build/partitionline/*/out/resource_soak; do
+    if [[ -f "$cand" && -x "$cand" ]]; then
+      soak_bin="$cand"
+      break
+    fi
+  done
+fi
+python3 scripts/resource-soak.py --binary "$soak_bin" "$@"

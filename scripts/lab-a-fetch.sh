@@ -27,6 +27,16 @@ export WARMUP_SECS=0 MEASURE_SECS=0
 cargo +stable build --locked --release --example bench_produce --example bench_fetch
 produce_binary="${BENCH_PRODUCE_BINARY:-${CARGO_TARGET_DIR:-$ROOT/target}/release/examples/bench_produce}"
 fetch_binary="${BENCH_FETCH_BINARY:-${CARGO_TARGET_DIR:-$ROOT/target}/release/examples/bench_fetch}"
+if [[ ! -x "$produce_binary" ]]; then
+  for cand in "${CARGO_TARGET_DIR:-$ROOT/target}"/release/build/partitionline/*/out/bench_produce; do
+    if [[ -f "$cand" && -x "$cand" ]]; then produce_binary="$cand"; break; fi
+  done
+fi
+if [[ ! -x "$fetch_binary" ]]; then
+  for cand in "${CARGO_TARGET_DIR:-$ROOT/target}"/release/build/partitionline/*/out/bench_fetch; do
+    if [[ -f "$cand" && -x "$cand" ]]; then fetch_binary="$cand"; break; fi
+  done
+fi
 produce_history=()
 fetch_history=()
 if [[ "$VERIFY_HISTORY" == 1 ]]; then

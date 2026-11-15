@@ -7,6 +7,13 @@ Contract version **1.1.0**. Schema version **1.0.0** for Kafka result files.
 This document specifies the scenarios. It does not run them. Every cell is
 `specified` or `not_run`. None is `passed`.
 
+Current qualification work targets x86_64 on the available host. A second
+machine, architecture or operator is not required for x86-scoped work.
+A separate run on the same host can reproduce an x86 result when its inputs,
+settings and independent record checks are retained. Claims must name the
+tested hardware, workloads and peers; x86 results alone do not establish an
+unqualified fastest-client claim across other architectures.
+
 Suite HOLD is still on. An unsigned sample, a shared CI runner, or a local
 VM does not lift it. Official qualification still needs signed evidence on
 controlled hardware.
@@ -107,6 +114,15 @@ verified per-partition offsets at the warmup boundary for the timed delta.
 Offsets alone do not prove receipt or payload integrity: an independent reader
 must check the expected IDs and payloads for both phases. Transaction control
 records and other writers can also change offsets.
+
+The report validator checks the values recorded in a result. A `--schema`
+argument replaces the repository schema; an alternate schema cannot establish
+canonical schema conformance unless it enforces the full contract. Alternate
+schemas receive a concise report that states the canonical schema was not
+checked. Use `--require-clean` to reject retained failed attempts as well as integrity
+failures. Validation does not inspect the raw artifacts or prove that the
+declared settings were used. A valid result file does not pass a cell or lift
+Suite HOLD.
 
 ## Do not move the old latency gates
 
@@ -331,8 +347,9 @@ without, including zstd.
 ## Sentences this repository may publish
 
 A sentence below is allowed only when equal semantics, the measurement
-protocol, Suite HOLD, and any required independent reproduction are all
-met. Until then every cell stays `not_run` and no summary claim exists.
+protocol, a separate reproduction with independent record checks, and Suite
+HOLD are satisfied. The reproduction may use the same x86 host. Until then
+every cell stays `not_run` and no summary claim exists.
 
 “Superior” is against the best peer that implements the cell and has a
 runnable driver. A peer without a driver, or without the feature, is
@@ -345,7 +362,7 @@ excluded. It is not counted as a loss.
 | Java kafka-clients | Historical `ProducerPerformance` command. The current peer driver is marked `unsupported` for this cell | A driver that matches the batch-record cap and the key distribution |
 | franz-go v1.22.0 | `benchmarks/peers/franz-go` (KL09-65) | The matched cell is `not_run` |
 | rust-rdkafka 0.39.0 | Reported separately from the C tool. Fetch and latency samples are in [benchmark.md](benchmark.md) | Those samples are not the matched cell |
-| Another pure-Rust client | Not selected | A named peer, chosen before any comparison |
+| Another Rust client | Not selected | A named peer, chosen before any comparison |
 
 For throughput, the paired 95% confidence interval’s lower bound on the
 partitionline/peer ratio must be above 1.0. For latency, the upper bound
@@ -353,8 +370,8 @@ of each percentile ratio must be below 1.0 at every declared load.
 
 | Sentence | Required result |
 |---|---|
-| “Fastest Kafka client” | Superior on every required cell of all six profiles, plus required lz4 and zstd cells, on both x86_64 and arm64, independently reproduced. Any loss, tie, or missing cell blocks the sentence. |
-| “Fastest for this profile on this architecture” | Superior on every required cell of that profile on that architecture, independently reproduced |
+| “Fastest Kafka client” without a hardware scope | An x86-only campaign cannot establish an unqualified claim across architectures. Any loss, tie, or missing required cell also blocks it. |
+| “Fastest for this profile on x86_64” | Superior on every required cell of that profile on the named x86 hardware, with a separate reproduction and independent record checks |
 | “X% faster” | The throughput ratio’s lower bound is at least 1+X in every covered cell. For latency, the percentile ratio’s upper bound is at most 1−X |
 | “Most CPU-efficient” | CPU per record has an upper bound of at most 0.80 against the best peer. This is never worded as “fastest” |
 | Roadmap scorecard | Throughput lower bound at least 1.20, or CPU-per-record upper bound at most 0.80, and p99 upper bound at most 1.05 at matched load |
@@ -382,10 +399,13 @@ Evidence levels:
 | L0 | Microbenchmarks, allocations, instruction counts | Internal notes |
 | L1 | Client ceilings | Internal notes |
 | L2 | Local broker runs, paired and repeated | Engineering direction. Unsigned |
-| L3 | Controlled x86_64 and arm64 campaigns | Dated per-cell comparison, losses included |
-| L4 | Independent reproduction and the Suite HOLD process | The strongest sentence above whose requirement is met |
+| L3 | Controlled campaigns on the named architecture | Dated per-cell comparison, losses included |
+| L4 | Separate reproduction with independent record checks, and the Suite HOLD process | The strongest sentence above whose requirement is met |
 
 ## Version history
 
+- **8 November 2026 scope clarification.** Current qualification targets
+  x86_64. A separate reproduction can use the same host and does not require
+  a different operator; claims remain scoped to the tested hardware.
 - **1.1.0.** Claim wording, peer set, metrics, guardrails, scorecard thresholds, client-ceiling tier, and local-evidence rules. Required lz4 and zstd bulk cells. Suite HOLD unchanged.
 - **1.0.0.** Initial equal-semantics contract.

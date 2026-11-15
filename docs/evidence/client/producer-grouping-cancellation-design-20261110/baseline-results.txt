@@ -1,0 +1,12 @@
+2026-11-10T18:59:57.5379404Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2329 filtered out; finished in 0.02s
+2026-11-10T19:01:29.2080264Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2329 filtered out; finished in 0.02s
+2026-11-10T19:01:29.3226713Z profile=default exit=101
+2026-11-10T19:01:29.3241580Z DRAIN_WITNESS total=8193 closed=8193 still_accounted=8193 pending=0
+2026-11-10T19:01:29.3242975Z test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2329 filtered out; finished in 0.01s
+2026-11-10T19:01:29.3255118Z DRAIN_WITNESS total=8193 closed=8193 still_accounted=8193 pending=0
+2026-11-10T19:01:29.3268642Z assertion `left == right` failed: accepted receipt senders were dropped
+2026-11-10T19:01:29.4265324Z profile=all-features exit=101
+2026-11-10T19:01:29.4286877Z DRAIN_WITNESS total=8193 closed=8193 still_accounted=8193 pending=0
+2026-11-10T19:01:29.4288201Z test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2329 filtered out; finished in 0.02s
+2026-11-10T19:01:29.4306369Z DRAIN_WITNESS total=8193 closed=8193 still_accounted=8193 pending=0
+2026-11-10T19:01:29.4320566Z assertion `left == right` failed: accepted receipt senders were dropped

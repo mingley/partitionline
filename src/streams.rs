@@ -60,9 +60,7 @@ async fn open_streams_heartbeat(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -126,9 +124,7 @@ async fn open_known_streams(
     }
     .await;
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -201,8 +197,11 @@ pub struct StreamsClient {
 /// Dropping the connection aborts its idle watch, so the broker stays in its
 /// read until that watch is scheduled.
 async fn retire_streams_conn(mut conn: BrokerConn) {
-    conn.close();
-    conn.release_if_closed().await;
+    let _retired = conn.try_retire_physical();
+    drop(conn);
+    for _ in 0..8 {
+        tokio::task::yield_now().await;
+    }
 }
 
 impl StreamsClient {
@@ -295,10 +294,12 @@ impl StreamsClient {
     /// The socket is dropped before this returns. On a current-thread runtime
     /// the broker stays in its read until this caller yields.
     pub async fn close(&mut self) {
-        self.cached = None;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+        if let Some((_, mut conn)) = self.cached.take() {
+            conn.close();
+            conn.release_if_closed().await;
+            drop(conn);
         }
+        crate::net::settle_closed_socket().await;
     }
 
     async fn heartbeat_until(
@@ -348,9 +349,7 @@ impl StreamsClient {
             Err(last)
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         finished
     }
 
@@ -408,9 +407,7 @@ impl StreamsClient {
         }
         // A cancelled streams handshake drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     async fn open_any(

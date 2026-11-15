@@ -10,17 +10,12 @@ fn directory() -> PathBuf {
 }
 #[expect(
     clippy::disallowed_methods,
-    clippy::expect_used,
     reason = "finite synchronous independent fixture I/O"
 )]
 fn read(name: &str) -> Vec<u8> {
     std::fs::read(directory().join(name)).expect("read independent codec fixture")
 }
-#[expect(
-    clippy::disallowed_methods,
-    clippy::expect_used,
-    reason = "finite synchronous peer output"
-)]
+#[expect(clippy::disallowed_methods, reason = "finite synchronous peer output")]
 fn emit(name: &str, bytes: &[u8]) {
     if let Some(dir) = std::env::var_os("PL_CODEC_MATRIX_OUTPUT") {
         std::fs::create_dir_all(&dir).expect("create peer output");

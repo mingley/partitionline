@@ -549,7 +549,7 @@ impl TopicRuns {
         for run in &self.runs {
             snapshot.push((run.partition, run.first, run.last));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -581,7 +581,7 @@ impl TopicRuns {
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -606,7 +606,7 @@ async fn retain_pending_share(
     let mut write = 0usize;
     let mut index = 0usize;
     while index < pending.len() {
-        let end = index.saturating_add(8 * 1024).min(pending.len());
+        let end = index.saturating_add(1024).min(pending.len());
         while index < end {
             let keep_record = pending.get(index).is_some_and(&mut keep);
             if keep_record {
@@ -643,7 +643,7 @@ async fn retain_topic_runs(
             kept.push((topic, parts));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -652,7 +652,7 @@ async fn retain_topic_runs(
     for (topic, parts) in kept {
         let _stored = map.insert(topic, parts);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -832,7 +832,7 @@ async fn remember_overlapped(
 
 async fn pause_overlapped_scan(walked: &mut usize) {
     *walked = walked.saturating_add(1);
-    if *walked == 8 * 1024 {
+    if *walked == 1024 {
         *walked = 0;
         tokio::task::yield_now().await;
     }
@@ -1041,7 +1041,7 @@ async fn reject_stale_share_acks(map: &AcquisitionMap, recs: &[ShareRecord]) -> 
             ));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -1080,7 +1080,7 @@ fn acquisition_node_for_range(
     let mut cursor = first;
     let mut node = None;
     loop {
-        let chunk = covering_run_indexes(topic_runs, partition, scan_from, last, 8 * 1024);
+        let chunk = covering_run_indexes(topic_runs, partition, scan_from, last, 1024);
         if chunk.is_empty() {
             break;
         }
@@ -1172,7 +1172,7 @@ fn span_len(first: i64, last: i64) -> usize {
     }
 }
 
-const COVER_CHUNK: usize = 8 * 1024;
+const COVER_CHUNK: usize = 1024;
 
 async fn copy_chunked<T: Copy>(src: &[T]) -> Vec<T> {
     let mut out = Vec::with_capacity(src.len());
@@ -1762,7 +1762,7 @@ async fn note_share_offsets(
             return false;
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -1781,7 +1781,7 @@ async fn remember_share_offsets(
     for &(partition, offset) in offsets {
         remember_acquisition(map, topic, partition, offset, acquisition).await;
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -2162,9 +2162,7 @@ async fn finish_aborted_join_set<T: 'static>(mut set: tokio::task::JoinSet<T>, d
     // The finished dial drops its socket while this call is still in the
     // same poll. Yield so the broker observes that close before the caller
     // continues.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 /// Aborts parked share fetches if this round is cancelled before they are stored.
@@ -2441,7 +2439,7 @@ async fn refill_stale_names(
             used = used.saturating_add(1);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -2492,7 +2490,7 @@ async fn share_nodes_for(
             Consumer::remember_node(&mut nodes, &mut seen, node);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -2519,7 +2517,7 @@ async fn fill_unique_topic_names(names: &mut Vec<String>, assigned: &[(Arc<str>,
             used = used.saturating_add(1);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -2556,7 +2554,7 @@ async fn build_share_leader_plan(
         }
         remember_share_leader(plan, node, topic, *partition);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -2577,7 +2575,7 @@ async fn clear_share_leader_plan(plan: &mut ShareLeaderPlan) {
         for parts in topics.values_mut() {
             parts.clear();
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2634,23 +2632,19 @@ async fn prune_share_leader_plan(plan: &mut ShareLeaderPlan) {
 async fn prune_share_leader_topics(topics: &mut HashMap<Arc<str>, Vec<i32>>) {
     let mut pending = std::mem::take(topics);
     let mut kept = Vec::new();
-    loop {
-        let keys: Vec<Arc<str>> = pending.keys().take(8 * 1024).cloned().collect();
-        if keys.is_empty() {
-            break;
-        }
-        let full = keys.len() == 8 * 1024;
-        for key in keys {
-            if let Some(parts) = pending.remove(&key) {
-                if !parts.is_empty() {
-                    kept.push((key, parts));
-                }
+    {
+        let mut drain = pending.drain();
+        let mut walked = 0usize;
+        for (key, parts) in &mut drain {
+            if !parts.is_empty() {
+                kept.push((key, parts));
+            }
+            walked = walked.saturating_add(1);
+            if walked == 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
             }
         }
-        if !full {
-            break;
-        }
-        tokio::task::yield_now().await;
     }
     if topics.capacity() < pending.capacity() {
         *topics = pending;
@@ -2659,7 +2653,7 @@ async fn prune_share_leader_topics(topics: &mut HashMap<Arc<str>, Vec<i32>>) {
     for (topic, parts) in kept {
         let _stored = topics.insert(topic, parts);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -3069,7 +3063,7 @@ impl ShareGroup {
         for (topic, partition) in &self.assigned {
             out.push(crate::TopicPartition::new(topic.as_ref(), *partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -3210,11 +3204,12 @@ impl ShareGroup {
             // The heartbeat carries topic names. A stale image loads on the
             // member socket while the coordinator answers.
             let consumer = &self.consumer;
-            let stale = !crate::consumer::topics_metadata_fresh(
-                self.topics.iter().map(String::as_str),
-                |topic| consumer.topic_metadata_fresh(topic),
-            )
-            .await;
+            let stale = first
+                && !crate::consumer::topics_metadata_fresh(
+                    self.topics.iter().map(String::as_str),
+                    |topic| consumer.topic_metadata_fresh(topic),
+                )
+                .await;
             let (version, body, metadata_refresh) = if stale {
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
@@ -3252,7 +3247,11 @@ impl ShareGroup {
                     timeout,
                 );
                 let (refresh, rpc) = tokio::join!(refresh, rpc);
-                let (version, body) = rpc?;
+                let (version, body) = match rpc {
+                    Ok(pair) => pair,
+                    Err(Error::Timeout) if !first => return Ok(()),
+                    Err(error) => return Err(error),
+                };
                 (version, body, Some(refresh))
             } else {
                 let bootstrap_keys = self.consumer.copy_api_keys();
@@ -3264,7 +3263,7 @@ impl ShareGroup {
                     encode_share_group_heartbeat_request_cooperative(&mut encoded, version, &req)
                         .await?;
                 }
-                let (version, body) = coord_roundtrip_with_bootstrap(
+                let (version, body) = match coord_roundtrip_with_bootstrap(
                     &mut self.coord,
                     &self.cfg,
                     &self.group_id,
@@ -3283,7 +3282,12 @@ impl ShareGroup {
                     &mut self.prior_coords,
                     timeout,
                 )
-                .await?;
+                .await
+                {
+                    Ok(pair) => pair,
+                    Err(Error::Timeout) if !first => return Ok(()),
+                    Err(error) => return Err(error),
+                };
                 (version, body, None)
             };
 
@@ -3316,13 +3320,16 @@ impl ShareGroup {
             if let Some(Err(error)) = metadata_refresh {
                 self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
                 self.hb_err.store(0, Ordering::SeqCst);
+                if matches!(error, Error::Timeout) && !first {
+                    return Ok(());
+                }
                 return Err(error);
             }
             self.apply_share_assignment(resp.assignment.as_deref())
                 .await;
             self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
             self.hb_err.store(0, Ordering::SeqCst);
-            if !self.assigned.is_empty() {
+            if !self.assigned.is_empty() || self.topics.is_empty() {
                 return Ok(());
             }
             // Join succeeded; poll waits for assignment (Java ShareConsumer).
@@ -3442,6 +3449,7 @@ impl ShareGroup {
             rack_id: self.cfg.rack.clone(),
             subscribed_topic_names: Some(crate::group::clone_names(&self.topics).await),
         };
+        let mut refreshed_topics = false;
         while self.assigned.is_empty() {
             let timeout = deadline.saturating_duration_since(Instant::now());
             if timeout.is_zero() {
@@ -3466,11 +3474,12 @@ impl ShareGroup {
             // The heartbeat carries topic names. A stale image loads on the
             // member socket while the coordinator answers.
             let consumer = &self.consumer;
-            let stale = !crate::consumer::topics_metadata_fresh(
-                self.topics.iter().map(String::as_str),
-                |topic| consumer.topic_metadata_fresh(topic),
-            )
-            .await;
+            let stale = !refreshed_topics
+                && !crate::consumer::topics_metadata_fresh(
+                    self.topics.iter().map(String::as_str),
+                    |topic| consumer.topic_metadata_fresh(topic),
+                )
+                .await;
             let (version, body, metadata_refresh) = if stale {
                 let bootstrap_keys = self.consumer.copy_api_keys();
                 let address_keys = self.consumer.copy_learned_broker_keys();
@@ -3568,8 +3577,9 @@ impl ShareGroup {
                 self.member_epoch = resp.member_epoch;
                 self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
             }
-            if let Some(Err(error)) = metadata_refresh {
-                return Err(error);
+            if let Some(refresh) = metadata_refresh {
+                refresh?;
+                refreshed_topics = true;
             }
             self.apply_share_assignment(resp.assignment.as_deref())
                 .await;
@@ -3921,7 +3931,7 @@ impl ShareGroup {
         let mut watch_live = true;
         while !inflight.is_empty() {
             if wakeup.load(Ordering::SeqCst) || Instant::now() >= deadline {
-                Self::keep_completed_share_dials(&mut inflight, &mut opened);
+                Self::drain_completed_share_dials(&mut inflight, &mut opened).await;
                 finish_aborted_join_set(std::mem::take(&mut inflight), Instant::now()).await;
                 break;
             }
@@ -3947,7 +3957,7 @@ impl ShareGroup {
                     continue;
                 }
                 ShareDialEvent::Wake | ShareDialEvent::Timeout => {
-                    Self::keep_completed_share_dials(&mut inflight, &mut opened);
+                    Self::drain_completed_share_dials(&mut inflight, &mut opened).await;
                     finish_aborted_join_set(std::mem::take(&mut inflight), Instant::now()).await;
                     break;
                 }
@@ -3969,6 +3979,21 @@ impl ShareGroup {
     }
 
     /// Keep share-leader sockets that already finished before the rest of the wave is aborted.
+    async fn drain_completed_share_dials(
+        inflight: &mut tokio::task::JoinSet<ShareDialAttempt>,
+        opened: &mut Vec<OpenedShareDial>,
+    ) {
+        Self::keep_completed_share_dials(inflight, opened);
+        if !inflight.is_empty() {
+            tokio::task::yield_now().await;
+            Self::keep_completed_share_dials(inflight, opened);
+        }
+        if !inflight.is_empty() {
+            tokio::time::sleep(Duration::from_millis(2)).await;
+            Self::keep_completed_share_dials(inflight, opened);
+        }
+    }
+
     fn keep_completed_share_dials(
         inflight: &mut tokio::task::JoinSet<ShareDialAttempt>,
         opened: &mut Vec<OpenedShareDial>,
@@ -4139,8 +4164,12 @@ impl ShareGroup {
             }
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
+        if resolved.is_err() {
+            crate::net::settle_closed_socket().await;
+        } else {
+            for _ in 0..8 {
+                tokio::task::yield_now().await;
+            }
         }
         resolved
     }
@@ -5147,7 +5176,7 @@ impl ShareGroup {
                     ));
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -5243,7 +5272,7 @@ impl ShareGroup {
                                 return Err(Error::protocol("duplicate ShareFetch record offset"));
                             }
                             noted = noted.saturating_add(1);
-                            if noted == 8 * 1024 {
+                            if noted == 1024 {
                                 noted = 0;
                                 tokio::task::yield_now().await;
                             }
@@ -5280,7 +5309,7 @@ impl ShareGroup {
                 acquired.clear();
             }
             topics_named = topics_named.saturating_add(1);
-            if topics_named == 8 * 1024 {
+            if topics_named == 1024 {
                 topics_named = 0;
                 tokio::task::yield_now().await;
             }
@@ -5313,7 +5342,7 @@ impl ShareGroup {
             .await;
             self.pending_delivery.push(record);
             remembered = remembered.saturating_add(1);
-            if remembered == 8 * 1024 {
+            if remembered == 1024 {
                 remembered = 0;
                 tokio::task::yield_now().await;
             }
@@ -5781,7 +5810,7 @@ impl ShareGroup {
                 .ok_or_else(|| Error::protocol(format!("missing share topic id for {topic}")))?;
             resolved.push((topic_id, part, batches));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -6089,7 +6118,7 @@ impl ShareGroup {
                     ));
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -6220,7 +6249,7 @@ impl ShareGroup {
                     }
                 }
                 applied = applied.saturating_add(1);
-                if applied == 8 * 1024 {
+                if applied == 1024 {
                     applied = 0;
                     tokio::task::yield_now().await;
                 }
@@ -6594,12 +6623,17 @@ impl ShareGroup {
             if let Some(heartbeat) = heartbeat {
                 finish_share_heartbeat(heartbeat, deadline).await;
             }
+            for (_, mut entry) in self.share_conns.drain() {
+                entry.conn.close();
+                entry.conn.release_if_closed().await;
+            }
+            self.coord.close();
+            self.coord.release_if_closed().await;
+            self.consumer.close_open_sockets().await;
             // The member socket drops with this group. Yield so the broker
             // observes that close before leave returns.
             drop(self);
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
             return Ok(());
         }
         *self.hb_deadline.lock() = None;
@@ -6613,12 +6647,17 @@ impl ShareGroup {
             finish_share_heartbeat(heartbeat, deadline).await;
         }
         let result = close.and(out);
+        for (_, mut entry) in self.share_conns.drain() {
+            entry.conn.close();
+            entry.conn.release_if_closed().await;
+        }
+        self.coord.close();
+        self.coord.release_if_closed().await;
+        self.consumer.close_open_sockets().await;
         // Member and coordinator sockets drop with this group. Yield so the
         // broker observes that close before leave returns.
         drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         result
     }
 
@@ -6733,6 +6772,7 @@ impl ShareGroup {
                 d
             };
             let mut member_id = hb_member_id.lock().clone();
+            let mut load_retried = false;
             let mut heartbeat = ShareGroupHeartbeatRequest {
                 group_id: group_id.clone(),
                 member_id: member_id.clone(),
@@ -6889,7 +6929,21 @@ impl ShareGroup {
                         )
                         .await
                         {
-                            if crate::error::coordinator_retriable(resp.error_code) {
+                            if resp.error_code == error::COORDINATOR_LOAD_IN_PROGRESS
+                                && !load_retried
+                            {
+                                load_retried = true;
+                                let retry_delay = cfg.retry_backoff.max(Duration::from_millis(1));
+                                next_hb_deadline = Instant::now() + retry_delay;
+                                if !update_share_heartbeat_deadline(
+                                    &hb_deadline,
+                                    &stop,
+                                    next_hb_deadline,
+                                ) {
+                                    break;
+                                }
+                            } else if crate::error::coordinator_retriable(resp.error_code) {
+                                load_retried = false;
                                 if let Some(current) = conn.as_ref() {
                                     remembered = Some(
                                         crate::group::KnownCoord::capture(current)
@@ -6908,6 +6962,7 @@ impl ShareGroup {
                                     break;
                                 }
                             } else {
+                                load_retried = false;
                                 hb_err.store(resp.error_code, Ordering::SeqCst);
                                 if let Some(id) = resp.member_id.as_deref() {
                                     if !id.is_empty() && id != member_id {
@@ -7042,9 +7097,7 @@ async fn finish_share_heartbeat(task: Arc<tokio::task::JoinHandle<()>>, deadline
     }
     // The abort drops the coordinator when the task is polled. The idle watch
     // then has to run before the broker sees that close.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 #[cfg(test)]
@@ -7141,7 +7194,7 @@ async fn share_node_addresses(
             }
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7164,7 +7217,7 @@ async fn drop_share_records_for_topics(records: &mut Vec<ShareRecord>, topics: &
     for topic in topics {
         let _inserted = dropped.insert(topic.as_ref());
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7193,7 +7246,7 @@ async fn account_share_delivery(
         entry.0 = entry.0.saturating_add(1);
         entry.1 = entry.1.saturating_add(bytes);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7205,7 +7258,7 @@ async fn account_share_delivery(
             .or_insert_with(crate::metrics::FetchTopicTracker::new)
             .note_fetched(count, bytes, latency);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7241,7 +7294,7 @@ async fn share_acquisition_metadata_bytes(acquisitions: &AcquisitionMap) -> usiz
         sum = sum
             .saturating_add(acquisition_storage_bytes(topic.as_str()).saturating_mul(parts.len()));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7285,7 +7338,7 @@ async fn share_delivery_accounted_bytes(
                 new_metadata_bytes.saturating_add(acquisition_storage_bytes(&record.topic));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7334,7 +7387,7 @@ async fn group_share_ack_topics(
             });
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7350,7 +7403,7 @@ async fn share_ack_expected(topics: &[ShareAckTopic]) -> HashSet<([u8; 16], i32)
         for (partition, _) in &topic.partitions {
             let _ = expected.insert((topic.topic_id, *partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -7365,7 +7418,7 @@ async fn share_partition_set(requested: &[i32]) -> HashSet<i32> {
     for partition in requested {
         let _ = allowed.insert(*partition);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7495,9 +7548,12 @@ fn share_topic_by_id(topic_ids: &HashMap<Arc<str>, [u8; 16]>, id: [u8; 16]) -> R
 async fn index_share_topic_ids(
     ids: &HashMap<Arc<str>, [u8; 16]>,
 ) -> HashMap<[u8; 16], Option<Arc<str>>> {
-    let mut by_id = HashMap::with_capacity(ids.len());
+    let mut by_id = HashMap::with_capacity(ids.len().min(4096));
     let mut walked = 0usize;
     for (name, id) in ids {
+        if by_id.len() == by_id.capacity() {
+            by_id.reserve(ids.len().saturating_sub(by_id.len()).min(4096));
+        }
         match by_id.entry(*id) {
             std::collections::hash_map::Entry::Vacant(slot) => {
                 let _stored = slot.insert(Some(Arc::clone(name)));
@@ -7507,7 +7563,7 @@ async fn index_share_topic_ids(
             }
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7629,7 +7685,7 @@ where
             }
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7643,7 +7699,7 @@ where
             return false;
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7688,7 +7744,7 @@ where
     for name in topic_ids.keys() {
         names.push(Arc::clone(name));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7698,7 +7754,7 @@ where
     for name in &names {
         let _inserted = known.insert(name.as_ref());
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7711,7 +7767,7 @@ where
             extra.push(Arc::clone(topic));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7725,7 +7781,7 @@ where
         let next = metadata.get(topic.as_ref()).copied();
         let Some(id) = refreshed_share_topic_id(stored, next) else {
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -7737,7 +7793,7 @@ where
         }
         let _previous = topic_ids.insert(topic, id);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7828,7 +7884,7 @@ async fn index_sent_ack_batches(
                 .entry((topic.topic_id, *partition))
                 .or_insert(batches.as_slice());
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -7855,7 +7911,7 @@ async fn index_ack_partition_slots(
             let _previous = slots.insert(Arc::clone(name), parts);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7910,7 +7966,7 @@ async fn clear_indexed_ack_batches(
     for batch in sent {
         let _ = sent_set.insert(ack_batch_key(batch));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -7934,7 +7990,7 @@ async fn clear_indexed_ack_batches(
                 write = write.saturating_add(1);
             }
             seen = seen.saturating_add(1);
-            if seen == 8 * 1024 {
+            if seen == 1024 {
                 seen = 0;
                 tokio::task::yield_now().await;
             }
@@ -7961,7 +8017,7 @@ async fn compact_cleared_ack_partitions(partitions: &mut Vec<AckPartition>) {
             kept.push(part);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -8210,13 +8266,7 @@ async fn append_ack_batch_from_runs(
     let mut open: Option<(i32, i64)> = None;
     let mut walked = 0usize;
     loop {
-        let chunk = covering_run_indexes(
-            topic_runs,
-            partition,
-            scan_from,
-            batch.last_offset,
-            8 * 1024,
-        );
+        let chunk = covering_run_indexes(topic_runs, partition, scan_from, batch.last_offset, 1024);
         if chunk.is_empty() {
             break;
         }
@@ -8276,7 +8326,7 @@ async fn append_ack_batch_from_runs(
             }
             cursor = next;
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -8475,7 +8525,7 @@ async fn acknowledgement_batches_with(
             while pairs.get(end).is_some_and(|(next, _)| *next == partition) {
                 end = end.saturating_add(1);
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -8506,7 +8556,7 @@ async fn acknowledgement_batches_with(
             let _ = by_part.insert(rec.topic.clone(), parts);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -8535,7 +8585,7 @@ async fn ack_records_share_partition(recs: &[ShareRecord]) -> bool {
             return false;
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -8554,7 +8604,7 @@ async fn ack_records_share_topic(recs: &[ShareRecord]) -> bool {
             return false;
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -8568,7 +8618,7 @@ async fn copy_ack_offsets<T>(out: &mut Vec<T>, values: impl Iterator<Item = T>) 
     for value in values {
         out.push(value);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -8619,7 +8669,7 @@ async fn collapse_ack_offsets(
             }
         };
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -9396,12 +9446,14 @@ mod tests {
                 (topic_id, 0, Vec::new())
             })
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = group_share_ack_topics(resolved) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(group_share_ack_topics(resolved));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "grouping share acknowledgement topics held the caller for {elapsed:?}"
@@ -9998,14 +10050,17 @@ mod tests {
                 types: vec![ACK_ACCEPT],
             })
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = async { drop_covered_runs(&mut runs, 0, &sent).await; } => {
-                assert!(runs.is_empty());
+        let (elapsed, finished) = {
+            let mut work = std::pin::pin!(drop_covered_runs(&mut runs, 0, &sent));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => (started.elapsed(), true),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => (started.elapsed(), false),
             }
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        };
+        if finished {
+            assert!(runs.is_empty());
         }
-        let elapsed = started.elapsed();
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "covering acquisitions held the caller for {elapsed:?}"
@@ -10849,33 +10904,37 @@ mod tests {
             let _ = ids.insert(name, id);
             wanted.push(id);
         }
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = index_share_topic_ids(&ids) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(index_share_topic_ids(&ids));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "indexing share topic ids held the caller for {elapsed:?}"
         );
         let index = index_share_topic_ids(&ids).await;
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = async {
+        let lookup_elapsed = {
+            let mut work = std::pin::pin!(async {
                 let mut named = 0usize;
                 for id in &wanted {
                     let _named = share_topic_from_index(&index, *id);
                     named = named.saturating_add(1);
-                    if named == 8 * 1024 {
+                    if named == 1024 {
                         named = 0;
                         tokio::task::yield_now().await;
                     }
                 }
-            } => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let lookup_elapsed = started.elapsed();
+            });
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             lookup_elapsed < std::time::Duration::from_millis(80),
             "naming indexed share topics held the caller for {lookup_elapsed:?}"
@@ -12458,6 +12517,36 @@ mod dial_tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn wakeup_keeps_a_share_dial_that_already_finished() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        async fn answer_versions(mut socket: tokio::net::TcpStream) -> tokio::net::TcpStream {
+            let size = socket.read_i32().await.unwrap();
+            let mut request = vec![0u8; usize::try_from(size).unwrap()];
+            let _read = socket.read_exact(&mut request).await.unwrap();
+            let versions = crate::protocol::api::ApiVersionsResponse {
+                error_code: 0,
+                api_keys: vec![ApiVersion {
+                    api_key: FETCH,
+                    min_version: 0,
+                    max_version: 4,
+                }],
+                throttle_time_ms: 0,
+                supported_features: Vec::new(),
+                finalized_features_epoch: None,
+                finalized_features: Vec::new(),
+                zk_migration_ready: false,
+            };
+            let mut body = bytes::BytesMut::new();
+            crate::protocol::api::encode_api_versions_response(&mut body, 4, &versions).unwrap();
+            socket
+                .write_i32(i32::try_from(4 + body.len()).unwrap())
+                .await
+                .unwrap();
+            socket.write_all(&request[4..8]).await.unwrap();
+            socket.write_all(&body).await.unwrap();
+            socket
+        }
+
         let listener_a = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let listener_b = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr_a = listener_a.local_addr().unwrap().to_string();
@@ -12465,10 +12554,14 @@ mod dial_tests {
         let wakeup = Arc::new(AtomicBool::new(false));
         let flag = Arc::clone(&wakeup);
         let hold = tokio::spawn(async move {
-            let accepted = tokio::join!(listener_a.accept(), listener_b.accept());
+            let ((sock_a, _), (sock_b, _)) =
+                tokio::join!(async { listener_a.accept().await.unwrap() }, async {
+                    listener_b.accept().await.unwrap()
+                },);
+            let answered = tokio::join!(answer_versions(sock_a), answer_versions(sock_b));
             flag.store(true, Ordering::SeqCst);
             std::future::pending::<()>().await;
-            drop(accepted);
+            drop(answered);
         });
         let mut node_keys = HashMap::new();
         let learned = vec![ApiVersion {

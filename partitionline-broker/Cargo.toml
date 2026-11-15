@@ -42,7 +42,7 @@ tokio-rustls = { version = "0.26", optional = true, default-features = false, fe
 tokio = { version = "1.53.3", features = ["io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
 
 [dev-dependencies]
-tokio = { version = "1.53.3", features = ["fs"] }
+tokio = { version = "1.53.3", features = ["fs", "test-util"] }
 
 [lints.rust]
 unsafe_code = "forbid"

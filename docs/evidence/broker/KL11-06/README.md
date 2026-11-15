@@ -1,5 +1,9 @@
 # Bounded ordinary Produce
 
+> The descriptor counts below describe the earlier source recorded here. Current
+> Unix journal ownership retains additional descriptors. See [file descriptor
+> sizing](../../../../partitionline-broker/README.md#file-descriptors).
+
 Exact pushed source `c34bdfd3fbba65492ea49b3804dd0ae5311364b0` implements ordinary Produce3–13 through an explicitly configured data router. The metadata-only router retains its four-entry profile. The data profile adds API0/3–13, with classic headers through8 and flexible headers from9; names are used through12 and UUIDs from13. It does not advertise Fetch, ListOffsets, producer-ID allocation or transactions.
 
 One blocking actor owns Catalog and all partition journals. Catalog lookups, delete and Produce serialize; filenames contain only a valid topic UUID and nonnegative partition index. Deleted identities' logs remain retained history under the store/FD budget. Recreating a name gets a fresh UUID and an empty independent log. Startup bounds and validates directory entries and every recovered journal; unknown names, symlinks/nonregular entries, unknown identities and malformed/corrupt data fail before a router is returned. Startup failures join the actor before returning, preventing an immediate reopen from racing retained ownership.

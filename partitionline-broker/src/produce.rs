@@ -48,19 +48,24 @@ const DEFAULT_SYNC_CONCURRENCY: usize = 4;
 pub struct Config {
     /// Exclusively owned directory; its parent must exist. Names never enter it.
     pub directory: PathBuf,
-    /// Active and historical partition store handles, 1..=4096; no eviction.
-    /// Rolling limits separately bound the data/sidecar files in each store.
+    /// Active and historical partition stores, 1..=4096; no eviction.
+    /// This counts stores, not operating-system file descriptors.
+    /// On Unix, an idle flat store uses two descriptors and an idle rolling store
+    /// uses three. Catalog files, sockets and transient work need more.
     pub max_stores: usize,
     /// Worst-case sum of configured backend disk budgets, at most one TiB.
     pub max_disk_bytes: u64,
-    /// Aggregate configured index envelopes; monolithic slots charge64bytes
-    /// each, while rolling limits include retained and transient index buffers.
-    /// Allocator bookkeeping is separate; the total is at most512MiB.
+    /// Aggregate configured index charges, at most 512 MiB. Monolithic stores
+    /// charge 64 bytes per configured entry; rolling stores use their index envelope.
+    /// Staging queues, allocator overhead and excess allocation capacity are separate.
     pub max_index_bytes: usize,
     /// Aggregate partitions in a request, 1..=4096.
+    /// Each staged flat-log partition retains one sync descriptor. The actor
+    /// can group up to eight requests before syncing.
     pub max_partitions: usize,
     /// Concurrent partition fsync operations per actor, including the actor.
-    /// Valid values are 1..=64; the default is 4.
+    /// Valid values are 1..=64; the default is 4. This does not limit the
+    /// number of retained staged sync descriptors.
     pub max_sync_concurrency: usize,
     /// Aggregate owned normalized batches retained before append, at most64MiB.
     pub max_normalized_bytes: usize,
@@ -69,8 +74,10 @@ pub struct Config {
     /// Explicit rolling backend. None preserves the flat monolithic layout.
     /// Rolling startup rejects legacy/mixed layouts rather than hiding records.
     /// File/index budgets include sealed generations, staging and replacement.
-    /// At most `max_stores` active files plus four transient actor files are
-    /// open; no sealed-reader cache or unbounded index mapping is retained.
+    /// Each active journal keeps a file and, on Unix, a separate inode pin.
+    /// On Unix, rolling stores also pin their directory. Temporary readers, staged syncs,
+    /// and replacement files require additional descriptors. No sealed-reader
+    /// cache or unbounded index mapping is retained.
     pub segment_limits: Option<segments::Limits>,
     /// Independent ordinary-record byte/count/work limits.
     pub record_limits: records::Limits,
@@ -79,7 +86,8 @@ pub struct Config {
     pub codec_limits: crate::codecs::Limits,
 }
 impl Config {
-    /// Default64 stores/FDs,64GiB file envelope,256MiB conservative index envelope.
+    /// Defaults to 64 stores, a 64 GiB file envelope and a 256 MiB index envelope.
+    /// These settings do not enforce a process file-descriptor budget.
     /// One actor also retains at most16MiB normalized work, one append copy and
     /// one maximum-entry validation/scan payload during rolling/recovery/copy.
     pub fn new(directory: PathBuf) -> Self {
@@ -1446,7 +1454,7 @@ struct PendingSync {
     part_at: usize,
     id: TopicId,
     index: i32,
-    file: std::fs::File,
+    file: journal::SyncFile,
     batch_count: usize,
     failed: bool,
     /// Log start read while the partition was staged. `None` means the log
@@ -2005,9 +2013,7 @@ fn process_inner(
     for (topic_at, topic) in results.iter_mut().enumerate() {
         for (part_at, part) in topic.parts.iter_mut().enumerate() {
             if let Err(error) = active() {
-                if grouped {
-                    rollback_pending(store, &mut pending_sync);
-                }
+                rollback_pending(store, &mut pending_sync);
                 return Err(error);
             }
             if part.error == 0 {
@@ -2277,6 +2283,286 @@ impl Writer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    type CancelFixture = (PathBuf, metadata::Config, Catalog, Store, TopicId);
+
+    fn cancellation_test_request(parts: &[i32]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        let batch = include_bytes!("../tests/fixtures/records/valid-basic.bin");
+        let mut out = Vec::new();
+        out.extend_from_slice(&0_i16.to_be_bytes());
+        out.extend_from_slice(&3_i16.to_be_bytes());
+        out.extend_from_slice(&77_i32.to_be_bytes());
+        out.extend_from_slice(&(-1_i16).to_be_bytes());
+        out.extend_from_slice(&(-1_i16).to_be_bytes());
+        out.extend_from_slice(&1_i16.to_be_bytes());
+        out.extend_from_slice(&60_000_i32.to_be_bytes());
+        out.extend_from_slice(&1_i32.to_be_bytes());
+        out.extend_from_slice(&5_i16.to_be_bytes());
+        out.extend_from_slice(b"alpha");
+        out.extend_from_slice(&i32::try_from(parts.len())?.to_be_bytes());
+        for part in parts {
+            out.extend_from_slice(&part.to_be_bytes());
+            out.extend_from_slice(&i32::try_from(batch.len())?.to_be_bytes());
+            out.extend_from_slice(batch);
+        }
+        Ok(out)
+    }
+
+    fn cancellation_test_fixture(
+        label: &str,
+        rolling: bool,
+    ) -> Result<CancelFixture, Box<dyn std::error::Error>> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("pl-cancel-{}-{nanos}-{label}", std::process::id()));
+        std::fs::create_dir(&root)?;
+        let common = metadata::Config::new(0, "127.0.0.1".into(), 9092, "cancel".into());
+        let (mut catalog, _) = Catalog::open(root.join("catalog"), common.catalog_limits)?;
+        let id = TopicId::new([7; 16])?;
+        let _created = catalog.create("alpha", id, 2)?;
+        let mut config = Config::new(root.join("data"));
+        if rolling {
+            config.segment_limits = Some(segments::Limits::new(
+                150,
+                2,
+                4,
+                2,
+                8 * 1024 * 1024,
+                65_536,
+                2 * 1024 * 1024,
+            )?);
+        }
+        let store = Store::open(config, &catalog)?;
+        Ok((root, common, catalog, store, id))
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    #[ignore = "descriptor measurement must run alone"]
+    fn store_and_grouped_sync_descriptor_cost() -> Result<(), Box<dyn std::error::Error>> {
+        fn descriptors() -> Result<usize, std::io::Error> {
+            Ok(std::fs::read_dir("/proc/self/fd")?.count())
+        }
+
+        for rolling in [false, true] {
+            let (root, common, catalog, mut store, id) =
+                cancellation_test_fixture("descriptor-cost", rolling)?;
+            let baseline = descriptors()?;
+            for part in 0..2 {
+                store
+                    .slot(id, part)
+                    .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
+            }
+            let idle = descriptors()?;
+            let per_store = if rolling { 3 } else { 2 };
+            assert_eq!(idle, baseline + 2 * per_store);
+
+            if !rolling {
+                let mut requests = Vec::new();
+                let mut captured = Vec::new();
+                for count in 1..=8 {
+                    let mut request = cancellation_test_request(&[0, 1])?;
+                    let result = process_inner(
+                        &catalog,
+                        &mut store,
+                        &mut request,
+                        &common,
+                        Instant::now(),
+                        || Ok(()),
+                        true,
+                    )?;
+                    let item = match result {
+                        ProcessOut::Captured(item) => item,
+                        ProcessOut::Reply(_) => return Err("expected staged syncs".into()),
+                    };
+                    assert_eq!(item.pending_sync.len(), 2);
+                    requests.push(request);
+                    captured.push(Some(item));
+                    assert_eq!(descriptors()?, idle + 2 * count);
+                }
+                let staged = descriptors()?;
+                sync_partition_once(&mut store, &mut captured);
+                for (request, item) in requests.iter().zip(captured) {
+                    let item = item.ok_or("missing captured request")?;
+                    drop(finish_captured(&mut store, item, request, &mut Vec::new())?);
+                }
+                assert_eq!(descriptors()?, idle);
+                println!(
+                    "PL_GROUP_FD_COST baseline={baseline} idle={idle} staged={staged} after={}",
+                    descriptors()?
+                );
+            } else {
+                println!("PL_ROLLING_FD_COST baseline={baseline} two_stores={idle}");
+            }
+            drop(store);
+            assert_eq!(descriptors()?, baseline);
+            drop(catalog);
+            std::fs::remove_dir_all(root)?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn cancel_ungrouped_after_first_stage_rolls_back() -> Result<(), Box<dyn std::error::Error>> {
+        use std::cell::Cell;
+        let (root, common, catalog, mut store, id) = cancellation_test_fixture("ungrouped", false)?;
+        let mut input = cancellation_test_request(&[0, 1])?;
+        let calls = Cell::new(0_usize);
+        let result = process(
+            &catalog,
+            &mut store,
+            &mut input,
+            &common,
+            Instant::now(),
+            || {
+                let next = calls.get() + 1;
+                calls.set(next);
+                if next == 3 {
+                    Err(Error::Canceled)
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        assert!(matches!(result, Err(Error::Canceled)));
+        assert_eq!(calls.get(), 3);
+        assert_eq!(store.slots.len(), 1);
+        assert!(store.take_changed());
+        let position = store
+            .slot(id, 0)
+            .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
+        let fetched = store.slots[position].partition.fetch(0, 1, 4096);
+        assert!(fetched.is_ok(), "UNGROUPED_CANCEL_LEFT_STAGED");
+        assert!(fetched?.is_empty());
+
+        let mut retry = cancellation_test_request(&[0, 1])?;
+        assert!(process(
+            &catalog,
+            &mut store,
+            &mut retry,
+            &common,
+            Instant::now(),
+            || Ok(())
+        )?
+        .is_some());
+        assert_eq!(store.log_bounds(id, 0), Ok((0, 1)));
+        assert_eq!(store.log_bounds(id, 1), Ok((0, 1)));
+        let config = store.config.clone();
+        drop(store);
+        let mut reopened = Store::open(config, &catalog)?;
+        for part in [0, 1] {
+            let position = reopened
+                .slot(id, part)
+                .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
+            assert_eq!(reopened.log_bounds(id, part), Ok((0, 1)));
+            let entries = reopened.slots[position].partition.fetch(0, 2, 4096)?;
+            assert_eq!(entries.len(), 1);
+            assert_eq!(entries[0].first_offset, 0);
+            assert_eq!(entries[0].record_count, 1);
+        }
+        drop(reopened);
+        drop(catalog);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn cancel_grouped_preserves_prior_request() -> Result<(), Box<dyn std::error::Error>> {
+        let (root, common, catalog, mut store, id) = cancellation_test_fixture("grouped", false)?;
+        let mut inputs = vec![
+            cancellation_test_request(&[0])?,
+            cancellation_test_request(&[0, 1])?,
+        ];
+        let admitted = [Instant::now(), Instant::now()];
+        let mut spares = vec![Vec::new(), Vec::new()];
+        let mut calls = [0_usize; 2];
+        let replies = process_queued(
+            &catalog,
+            &mut store,
+            &mut inputs,
+            &admitted,
+            &common,
+            &mut spares,
+            |index| {
+                calls[index] += 1;
+                if index == 1 && calls[index] == 3 {
+                    Err(Error::Canceled)
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        assert_eq!(calls, [2, 3]);
+        assert!(matches!(replies.first(), Some(Ok(Some(_)))));
+        assert!(matches!(replies.get(1), Some(Err(Error::Canceled))));
+        assert_eq!(store.log_bounds(id, 0), Ok((0, 1)));
+        assert_eq!(store.log_bounds(id, 1), Ok((0, 0)));
+        let position = store
+            .slot(id, 0)
+            .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
+        assert_eq!(store.slots[position].partition.fetch(0, 2, 4096)?.len(), 1);
+        let mut retry = cancellation_test_request(&[0])?;
+        assert!(process(
+            &catalog,
+            &mut store,
+            &mut retry,
+            &common,
+            Instant::now(),
+            || Ok(())
+        )?
+        .is_some());
+        assert_eq!(store.log_bounds(id, 0), Ok((0, 2)));
+        drop(store);
+        drop(catalog);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn cancel_rolling_may_leave_durable_prefix() -> Result<(), Box<dyn std::error::Error>> {
+        use std::cell::Cell;
+        let (root, common, catalog, mut store, id) = cancellation_test_fixture("rolling", true)?;
+        let mut input = cancellation_test_request(&[0, 1])?;
+        let calls = Cell::new(0_usize);
+        let result = process(
+            &catalog,
+            &mut store,
+            &mut input,
+            &common,
+            Instant::now(),
+            || {
+                let next = calls.get() + 1;
+                calls.set(next);
+                if next == 3 {
+                    Err(Error::Canceled)
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        assert!(matches!(result, Err(Error::Canceled)));
+        assert_eq!(calls.get(), 3);
+        assert_eq!(store.log_bounds(id, 0), Ok((0, 1)));
+        assert_eq!(store.log_bounds(id, 1), Ok((0, 0)));
+        let config = store.config.clone();
+        drop(store);
+        let mut reopened = Store::open(config, &catalog)?;
+        let position = reopened
+            .slot(id, 0)
+            .map_err(|code| std::io::Error::other(format!("slot error {code}")))?;
+        assert_eq!(reopened.log_bounds(id, 0), Ok((0, 1)));
+        assert_eq!(reopened.log_bounds(id, 1), Ok((0, 0)));
+        assert_eq!(
+            reopened.slots[position].partition.fetch(0, 2, 4096)?.len(),
+            1
+        );
+        drop(reopened);
+        drop(catalog);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
 
     #[test]
     fn cached_read_errors_report_poison_for_direct_and_relocated_handles(
@@ -2710,7 +2996,7 @@ mod tests {
             part_at: 0,
             id,
             index,
-            file: File::open("/dev/null").expect("null device"),
+            file: journal::SyncFile::untracked(File::open("/dev/null").expect("null device")),
             batch_count: 1,
             failed: false,
             log_start: Some(0),

@@ -904,7 +904,43 @@ fn validate_batch(
     }
     let mut observed_max = i64::MIN;
     let mut previous = None;
-    for delta in 0..count {
+    let mut completed = 0;
+    // Single-record batches stay on the generic fallback after a plain miss.
+    let prefix = if plain_enabled() && count > 1 {
+        outlined_header_prefix(
+            c.remaining(),
+            count,
+            last,
+            base_time,
+            read,
+            limits,
+            *total_headers,
+        )
+    } else {
+        None
+    };
+    if let Some(prefix) = prefix {
+        if prefix.complete
+            && prefix.index == c.remaining().len()
+            && (count == 0 || prefix.observed_max == max_time)
+        {
+            #[cfg(test)]
+            RECORD_VISITS.with(|n| n.set(n.get() + count));
+            *total_records += count;
+            *total_headers += prefix.headers;
+            return Ok(());
+        }
+        // Resume at the first unvalidated record so the generic walk retains
+        // its exact error and partial-count behavior.
+        c.position += prefix.index;
+        observed_max = prefix.observed_max;
+        previous = prefix.previous;
+        completed = prefix.completed;
+        *total_headers += prefix.headers;
+        #[cfg(test)]
+        RECORD_VISITS.with(|n| n.set(n.get() + completed));
+    }
+    for delta in completed..count {
         #[cfg(test)]
         RECORD_VISITS.with(|n| n.set(n.get() + 1));
         let record_at = c.at();
@@ -1084,6 +1120,201 @@ fn try_accept_plain(
     index == bytes.len() && (count == 0 || observed_max == max_time)
 }
 
+/// Inspect just the first record before attempting the resumable header walk.
+/// Declining leaves the generic walk responsible for the original error.
+#[inline(never)]
+fn first_record_has_headers(
+    bytes: &[u8],
+    last: i32,
+    base_time: i64,
+    read: bool,
+    limits: Limits,
+) -> bool {
+    (|| {
+        let (length, next) = read_canonical_i32(bytes, 0)?;
+        if length < 6 {
+            return None;
+        }
+        let length = usize::try_from(length).ok()?;
+        let end = next.checked_add(length)?;
+        if end > limits.record_bytes || end > bytes.len() || bytes.get(next) != Some(&0) {
+            return None;
+        }
+        let mut cursor = next.checked_add(1)?;
+        let (timestamp, next) = read_canonical_i64(bytes, cursor)?;
+        base_time.checked_add(timestamp)?;
+        cursor = next;
+        let (offset, next) = read_canonical_i32(bytes, cursor)?;
+        if (!read && offset != 0) || (read && (offset < 0 || offset > last)) {
+            return None;
+        }
+        cursor = next;
+        let (key_len, next) = read_canonical_i32(bytes, cursor)?;
+        cursor = next;
+        if !skip_plain_field(bytes, &mut cursor, end, key_len, limits.field_bytes) {
+            return None;
+        }
+        let (value_len, next) = read_canonical_i32(bytes, cursor)?;
+        cursor = next;
+        if !skip_plain_field(bytes, &mut cursor, end, value_len, limits.field_bytes) {
+            return None;
+        }
+        let (headers, next) = read_canonical_i32(bytes, cursor)?;
+        Some(headers > 0 && next <= end)
+    })()
+    .unwrap_or(false)
+}
+
+/// Last record boundary checked by the header-aware walk.
+#[derive(Debug, Clone, Copy)]
+struct HeaderPrefix {
+    index: usize,
+    completed: usize,
+    headers: usize,
+    observed_max: i64,
+    previous: Option<i32>,
+    complete: bool,
+}
+
+// Keep the extra probe and header scanner off the successful plain path.
+#[cold]
+#[inline(never)]
+fn outlined_header_prefix(
+    bytes: &[u8],
+    count: usize,
+    last: i32,
+    base_time: i64,
+    read: bool,
+    limits: Limits,
+    total_headers: usize,
+) -> Option<HeaderPrefix> {
+    if !first_record_has_headers(bytes, last, base_time, read, limits) {
+        return None;
+    }
+    Some(scan_header_prefix(
+        bytes,
+        count,
+        last,
+        base_time,
+        read,
+        limits,
+        total_headers,
+    ))
+}
+
+/// Validate records through the first mismatch without deciding its error.
+/// The caller resumes the generic walk at the last validated boundary.
+#[allow(clippy::too_many_arguments, reason = "independent validation inputs")]
+fn scan_header_prefix(
+    bytes: &[u8],
+    count: usize,
+    last: i32,
+    base_time: i64,
+    read: bool,
+    limits: Limits,
+    total_headers: usize,
+) -> HeaderPrefix {
+    let mut prefix = HeaderPrefix {
+        index: 0,
+        completed: 0,
+        headers: 0,
+        observed_max: i64::MIN,
+        previous: None,
+        complete: false,
+    };
+    for delta in 0..count {
+        let record = (|| {
+            let (body_len, next) = read_canonical_i32(bytes, prefix.index)?;
+            if body_len < 6 {
+                return None;
+            }
+            let body_len = usize::try_from(body_len).ok()?;
+            let end = next.checked_add(body_len)?;
+            if end.saturating_sub(prefix.index) > limits.record_bytes
+                || bytes.len() < end
+                || bytes.get(next) != Some(&0)
+            {
+                return None;
+            }
+            let mut cursor = next.saturating_add(1);
+            let (timestamp_delta, next) = read_canonical_i64(bytes, cursor)?;
+            cursor = next;
+            let timestamp = base_time.checked_add(timestamp_delta)?;
+            let (offset, next) = read_canonical_i32(bytes, cursor)?;
+            cursor = next;
+            let offset_ok = if read {
+                offset >= 0 && offset <= last && prefix.previous.is_none_or(|n| offset > n)
+            } else {
+                i32::try_from(delta).ok() == Some(offset)
+            };
+            if !offset_ok {
+                return None;
+            }
+            let (key_len, next) = read_canonical_i32(bytes, cursor)?;
+            cursor = next;
+            if !skip_plain_field(bytes, &mut cursor, end, key_len, limits.field_bytes) {
+                return None;
+            }
+            let (value_len, next) = read_canonical_i32(bytes, cursor)?;
+            cursor = next;
+            if !skip_plain_field(bytes, &mut cursor, end, value_len, limits.field_bytes) {
+                return None;
+            }
+            let (headers, next) = read_canonical_i32(bytes, cursor)?;
+            let headers = usize::try_from(headers).ok()?;
+            if headers == 0 {
+                if next != end {
+                    return None;
+                }
+            } else {
+                let remaining = limits
+                    .headers
+                    .checked_sub(total_headers)?
+                    .checked_sub(prefix.headers)?;
+                if headers > limits.headers_per_record || headers > remaining {
+                    return None;
+                }
+                cursor = next;
+                if headers > end.checked_sub(cursor)? / 2 {
+                    return None;
+                }
+                for _ in 0..headers {
+                    let (key_len, next) = read_canonical_i32(bytes, cursor)?;
+                    let key_len = usize::try_from(key_len).ok()?;
+                    if key_len > limits.field_bytes {
+                        return None;
+                    }
+                    cursor = next;
+                    let key_end = cursor.checked_add(key_len)?;
+                    if key_end > end || std::str::from_utf8(bytes.get(cursor..key_end)?).is_err() {
+                        return None;
+                    }
+                    cursor = key_end;
+                    let (value_len, next) = read_canonical_i32(bytes, cursor)?;
+                    cursor = next;
+                    if !skip_plain_field(bytes, &mut cursor, end, value_len, limits.field_bytes) {
+                        return None;
+                    }
+                }
+                if cursor != end {
+                    return None;
+                }
+            }
+            Some((end, offset, timestamp, headers))
+        })();
+        let Some((end, offset, timestamp, headers)) = record else {
+            return prefix;
+        };
+        prefix.index = end;
+        prefix.completed += 1;
+        prefix.headers += headers;
+        prefix.observed_max = prefix.observed_max.max(timestamp);
+        prefix.previous = Some(offset);
+    }
+    prefix.complete = true;
+    prefix
+}
+
 fn skip_plain_field(
     bytes: &[u8],
     cursor: &mut usize,
@@ -1119,11 +1350,14 @@ fn read_canonical_i32(bytes: &[u8], index: usize) -> Option<(i32, usize)> {
     Some((((raw >> 1) as i32) ^ -((raw & 1) as i32), next))
 }
 
+// Keep the short timestamp decoder in the record scan's common path.
+#[inline(always)]
 fn read_canonical_i64(bytes: &[u8], index: usize) -> Option<(i64, usize)> {
     let (raw, next) = read_canonical_u64(bytes, index, 10, 1)?;
     Some((((raw >> 1) as i64) ^ -((raw & 1) as i64), next))
 }
 
+#[inline(always)]
 fn read_canonical_u64(bytes: &[u8], index: usize, width: usize, last: u8) -> Option<(u64, usize)> {
     let first = *bytes.get(index)?;
     if first & 0x80 == 0 {
@@ -1307,8 +1541,9 @@ impl<'a> Cursor<'a> {
 #[cfg(test)]
 mod tests {
     use super::{
-        framed_assignment, trust_stored, validate, validate_batch, validate_read, Error, Invalid,
-        Limits, SKIP_PLAIN,
+        first_record_has_headers, framed_assignment, scan_header_prefix, trust_stored, validate,
+        validate_batch, validate_known_crc, validate_read, Budget, Error, Invalid, Limits,
+        SKIP_PLAIN,
     };
     use crate::batch;
 
@@ -1414,13 +1649,21 @@ mod tests {
     }
 
     fn both(bytes: &[u8], read: bool) -> (Result<(), Error>, Result<(), Error>) {
-        let limits = Limits::default();
+        both_with_limits(bytes, read, Limits::default(), 0)
+    }
+
+    fn both_with_limits(
+        bytes: &[u8],
+        read: bool,
+        limits: Limits,
+        initial_headers: usize,
+    ) -> (Result<(), Error>, Result<(), Error>) {
         let mut records = 0_usize;
-        let mut headers = 0_usize;
+        let mut headers = initial_headers;
         let fast = validate_batch(bytes, 0, limits, &mut records, &mut headers, read, false);
         SKIP_PLAIN.with(|flag| flag.set(true));
         let mut slow_records = 0_usize;
-        let mut slow_headers = 0_usize;
+        let mut slow_headers = initial_headers;
         let slow = validate_batch(
             bytes,
             0,
@@ -1431,11 +1674,8 @@ mod tests {
             false,
         );
         SKIP_PLAIN.with(|flag| flag.set(false));
-        assert_eq!(fast.is_ok(), slow.is_ok());
-        if fast.is_ok() {
-            assert_eq!(records, slow_records);
-            assert_eq!(headers, slow_headers);
-        }
+        assert_eq!(records, slow_records);
+        assert_eq!(headers, slow_headers);
         assert_eq!(fast, slow);
         (fast, slow)
     }
@@ -1540,6 +1780,532 @@ mod tests {
             let _ = both(&garbage, false);
             let _ = both(&garbage, true);
         }
+    }
+
+    #[test]
+    fn header_batches_match_generic_walk_and_budgets() {
+        let mut samples: Vec<_> = (0..6).map(|n| sample(n, b"value")).collect();
+        samples[0].headers.push((Vec::new(), None));
+        samples[1]
+            .headers
+            .push(("caf\u{e9}".as_bytes().to_vec(), Some(Vec::new())));
+        samples[2]
+            .headers
+            .push((vec![b'k'; 63], Some(vec![b'v'; 64])));
+        samples[2].headers.push((vec![b'k'; 64], None));
+        samples[4]
+            .headers
+            .push((vec![b'k'; 128], Some(vec![b'v'; 128])));
+        let bytes = encode(&samples, 1_000, 1_005, 5);
+        let limits = Limits::default();
+        let prefix = scan_header_prefix(&bytes[batch::LEN..], 6, 5, 1_000, false, limits, 0);
+        assert!(prefix.complete);
+        assert_eq!(prefix.headers, 5);
+        assert!(first_record_has_headers(
+            &bytes[batch::LEN..],
+            5,
+            1_000,
+            false,
+            limits,
+        ));
+        assert_eq!(validate(&bytes, limits).unwrap().header_count(), 5);
+        assert!(both(&bytes, false).0.is_ok());
+        assert!(both(&bytes, true).0.is_ok());
+        for at in 0..bytes.len() {
+            let mut changed = bytes.clone();
+            changed[at] ^= 0xa5;
+            let _ = both(&changed, false);
+            let _ = both(&changed, true);
+        }
+        for end in batch::LEN..bytes.len() {
+            let _ = both(&bytes[..end], false);
+            let _ = both(&bytes[..end], true);
+        }
+
+        for &(field, per_record, all, initial) in &[
+            (63, 1024, 65536, 0),
+            (128, 1, 65536, 0),
+            (128, 1024, 4, 0),
+            (128, 1024, 5, 1),
+            (128, 1024, 5, 0),
+        ] {
+            let limits = Limits::new(
+                1_000_000, 1_000_000, 10, 100, 100_000, field, per_record, all,
+            )
+            .unwrap();
+            let _ = both_with_limits(&bytes, false, limits, initial);
+            let _ = both_with_limits(&bytes, true, limits, initial);
+        }
+
+        // Carry an exhausted aggregate budget across batches. A header-free
+        // batch still succeeds, but the next header must be rejected.
+        let limits = Limits::new(1_000_000, 1_000_000, 10, 100, 100_000, 128, 1024, 5).unwrap();
+        let mut plain = encode(&[sample(0, b"tail")], 10, 10, 0);
+        plain[..8].copy_from_slice(&6_i64.to_be_bytes());
+        let prefix = scan_header_prefix(&plain[batch::LEN..], 1, 0, 10, false, limits, 5);
+        assert!(prefix.complete);
+        assert_eq!(prefix.headers, 0);
+        assert!(!first_record_has_headers(
+            &plain[batch::LEN..],
+            0,
+            10,
+            false,
+            limits,
+        ));
+        assert!(both_with_limits(&plain, false, limits, 5).0.is_ok());
+        let mut invalid_plain = [sample(0, b"v"), sample(1, b"v"), sample(2, b"v")];
+        invalid_plain[2].attributes = 1;
+        let invalid_plain = encode(&invalid_plain, 10, 12, 2);
+        assert!(!first_record_has_headers(
+            &invalid_plain[batch::LEN..],
+            2,
+            10,
+            false,
+            limits,
+        ));
+        assert!(matches!(
+            both_with_limits(&invalid_plain, false, limits, 0).0,
+            Err(Error::Invalid {
+                kind: Invalid::RecordAttributes,
+                ..
+            })
+        ));
+        let mut with_tail = bytes.clone();
+        with_tail.extend_from_slice(&plain);
+
+        let mut last = sample(0, b"v");
+        last.headers.push((b"key".to_vec(), None));
+        let mut extra_header = encode(&[last], 10, 10, 0);
+        extra_header[..8].copy_from_slice(&7_i64.to_be_bytes());
+        let mut over_limit = with_tail.clone();
+        over_limit.extend_from_slice(&extra_header);
+        for input in [&with_tail, &over_limit] {
+            for mode in 0..3 {
+                let run = || match mode {
+                    0 => validate(input, limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count())),
+                    1 => validate_known_crc(input, limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count())),
+                    _ => validate_read(input, limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count())),
+                };
+                SKIP_PLAIN.with(|flag| flag.set(false));
+                let fast = run();
+                SKIP_PLAIN.with(|flag| flag.set(true));
+                let slow = run();
+                SKIP_PLAIN.with(|flag| flag.set(false));
+                assert_eq!(fast, slow);
+                if input.len() == with_tail.len() {
+                    assert_eq!(fast, Ok((2, 7, 5)));
+                } else {
+                    assert!(matches!(
+                        fast,
+                        Err(Error::BudgetExceeded {
+                            budget: Budget::Headers,
+                            ..
+                        })
+                    ));
+                }
+            }
+        }
+
+        let mut late_header = [sample(0, b"v"), sample(1, b"v")];
+        late_header[1].headers.push((b"key".to_vec(), None));
+        let late_header = encode(&late_header, 10, 11, 1);
+        assert!(!first_record_has_headers(
+            &late_header[batch::LEN..],
+            1,
+            10,
+            false,
+            limits,
+        ));
+        assert!(both_with_limits(&late_header, false, limits, 0).0.is_ok());
+
+        let mut sparse: Vec<_> = [0, 2, 5].into_iter().map(|n| sample(n, b"v")).collect();
+        sparse[1].headers.push((b"key".to_vec(), None));
+        let sparse_bytes = encode(&sparse, 20, 25, 5);
+        let prefix = scan_header_prefix(
+            &sparse_bytes[batch::LEN..],
+            3,
+            5,
+            20,
+            true,
+            Limits::default(),
+            0,
+        );
+        assert!(prefix.complete);
+        assert_eq!(prefix.headers, 1);
+        assert!(both(&sparse_bytes, true).0.is_ok());
+        assert!(both(&sparse_bytes, false).0.is_err());
+
+        // A late invalid record resumes after the checked prefix, with its
+        // previous offset and header count retained for the generic walk.
+        let mut late_bad: Vec<_> = (0..4).map(|n| sample(n, b"v")).collect();
+        for record in &mut late_bad {
+            record
+                .headers
+                .push((b"key".to_vec(), Some(b"value".to_vec())));
+        }
+        late_bad[3].attributes = 1;
+        let late_bad = encode(&late_bad, 20, 23, 3);
+        let prefix = scan_header_prefix(&late_bad[batch::LEN..], 4, 3, 20, false, limits, 0);
+        assert!(!prefix.complete);
+        assert_eq!(prefix.completed, 3);
+        assert_eq!(prefix.headers, 3);
+        assert_eq!(prefix.previous, Some(2));
+        assert_eq!(prefix.observed_max, 22);
+        assert!(matches!(
+            both_with_limits(&late_bad, false, limits, 0).0,
+            Err(Error::Invalid {
+                kind: Invalid::RecordAttributes,
+                ..
+            })
+        ));
+
+        let mut late_key: Vec<_> = (0..4).map(|n| sample(n, b"v")).collect();
+        for record in &mut late_key {
+            record.headers.push((b"key".to_vec(), None));
+        }
+        late_key[3].headers[0].0 = vec![0xff];
+        let late_key = encode(&late_key, 20, 23, 3);
+        let prefix = scan_header_prefix(&late_key[batch::LEN..], 4, 3, 20, false, limits, 1);
+        assert!(!prefix.complete);
+        assert_eq!(prefix.completed, 3);
+        assert_eq!(prefix.headers, 3);
+        super::reset_record_visits();
+        let mut fast_records = 0;
+        let mut fast_headers = 1;
+        let fast = validate_batch(
+            &late_key,
+            37,
+            limits,
+            &mut fast_records,
+            &mut fast_headers,
+            false,
+            false,
+        );
+        let fast_visits = super::record_visits();
+        SKIP_PLAIN.with(|flag| flag.set(true));
+        super::reset_record_visits();
+        let mut slow_records = 0;
+        let mut slow_headers = 1;
+        let slow = validate_batch(
+            &late_key,
+            37,
+            limits,
+            &mut slow_records,
+            &mut slow_headers,
+            false,
+            false,
+        );
+        let slow_visits = super::record_visits();
+        SKIP_PLAIN.with(|flag| flag.set(false));
+        assert_eq!(fast, slow);
+        assert!(matches!(
+            fast,
+            Err(Error::Invalid {
+                kind: Invalid::HeaderKey,
+                ..
+            })
+        ));
+        assert_eq!((fast_records, fast_headers), (slow_records, slow_headers));
+        assert_eq!(fast_headers, 5);
+        assert_eq!(fast_visits, slow_visits);
+        assert_eq!(fast_visits, 4);
+
+        let mut bad_max = bytes.clone();
+        bad_max[batch::MAX_TIMESTAMP..batch::PRODUCER_ID].copy_from_slice(&1_006_i64.to_be_bytes());
+        assert!(matches!(
+            both(&bad_max, false).0,
+            Err(Error::Invalid {
+                kind: Invalid::Timestamp,
+                ..
+            })
+        ));
+        let mut trailing = bytes.clone();
+        trailing.push(0);
+        let new_len = i32::try_from(trailing.len() - batch::PREFIX).unwrap();
+        trailing[batch::LENGTH..batch::LEADER_EPOCH].copy_from_slice(&new_len.to_be_bytes());
+        assert!(matches!(
+            both(&trailing, false).0,
+            Err(Error::Invalid {
+                kind: Invalid::TrailingBytes,
+                ..
+            })
+        ));
+
+        let mut invalid_utf8 = sample(0, b"v");
+        invalid_utf8.headers.push((vec![0xff], None));
+        let bad = encode(&[invalid_utf8], 10, 10, 0);
+        assert!(matches!(
+            both(&bad, false).0,
+            Err(Error::Invalid {
+                kind: Invalid::HeaderKey,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn header_walk_deterministic_differential_corpus() {
+        struct Case {
+            id: u64,
+            read: bool,
+            origin: usize,
+            records: usize,
+            headers: usize,
+            limits: Limits,
+        }
+
+        fn random(state: &mut u64) -> u64 {
+            *state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            *state
+        }
+
+        fn compare(bytes: &[u8], case: &Case) {
+            super::reset_record_visits();
+            let mut records = case.records;
+            let mut headers = case.headers;
+            let fast = validate_batch(
+                bytes,
+                case.origin,
+                case.limits,
+                &mut records,
+                &mut headers,
+                case.read,
+                false,
+            );
+            let fast_visits = super::record_visits();
+            SKIP_PLAIN.with(|flag| flag.set(true));
+            super::reset_record_visits();
+            let mut slow_records = case.records;
+            let mut slow_headers = case.headers;
+            let slow = validate_batch(
+                bytes,
+                case.origin,
+                case.limits,
+                &mut slow_records,
+                &mut slow_headers,
+                case.read,
+                false,
+            );
+            let slow_visits = super::record_visits();
+            SKIP_PLAIN.with(|flag| flag.set(false));
+            assert_eq!(fast, slow, "case={:#x}", case.id);
+            assert_eq!(records, slow_records, "case={:#x}", case.id);
+            assert_eq!(headers, slow_headers, "case={:#x}", case.id);
+            assert_eq!(fast_visits, slow_visits, "case={:#x}", case.id);
+
+            let public = || {
+                if case.read {
+                    validate_read(bytes, case.limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count()))
+                } else {
+                    validate(bytes, case.limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count()))
+                }
+            };
+            let fast = public();
+            SKIP_PLAIN.with(|flag| flag.set(true));
+            let slow = public();
+            SKIP_PLAIN.with(|flag| flag.set(false));
+            assert_eq!(fast, slow, "public case={:#x}", case.id);
+
+            if !case.read {
+                let checked = || {
+                    validate_known_crc(bytes, case.limits)
+                        .map(|v| (v.batch_count(), v.record_count(), v.header_count()))
+                };
+                let fast = checked();
+                SKIP_PLAIN.with(|flag| flag.set(true));
+                let slow = checked();
+                SKIP_PLAIN.with(|flag| flag.set(false));
+                assert_eq!(fast, slow, "known CRC case={:#x}", case.id);
+            }
+        }
+
+        fn repair_frame(bytes: &mut [u8]) {
+            if bytes.len() >= batch::LEN {
+                let len = i32::try_from(bytes.len() - batch::PREFIX).unwrap();
+                bytes[batch::LENGTH..batch::LEADER_EPOCH].copy_from_slice(&len.to_be_bytes());
+                let crc = crc32c::crc32c(&bytes[batch::ATTRIBUTES..]);
+                bytes[batch::CRC..batch::ATTRIBUTES].copy_from_slice(&crc.to_be_bytes());
+            }
+        }
+
+        let sizes = [0_usize, 1, 63, 64, 127, 128];
+        let mut first_header_cases = 0;
+        let mut later_header_cases = 0;
+        let mut sparse_cases = 0;
+        let mut resumed_prefix_cases = 0;
+        for seed in 0..256_u64 {
+            for read in [false, true] {
+                let mut state = seed.wrapping_add(if read { 10_000 } else { 1 });
+                let count = 2 + (random(&mut state) % 7) as usize;
+                let sparse = read && seed % 3 == 0;
+                let base_time = match seed % 5 {
+                    0 => i64::MAX - 2,
+                    1 => i64::MIN + 2,
+                    2 => -1_000,
+                    _ => 1_000,
+                };
+                let mut samples = Vec::new();
+                let mut observed_max = i64::MIN;
+                for index in 0..count {
+                    let offset = if sparse { index * 2 } else { index };
+                    let mut record = sample(offset as i32, b"v");
+                    record.timestamp_delta = index as i64;
+                    observed_max = observed_max.max(
+                        base_time
+                            .checked_add(record.timestamp_delta)
+                            .unwrap_or(i64::MAX),
+                    );
+                    let key_len = sizes[(random(&mut state) % sizes.len() as u64) as usize];
+                    let value_len = sizes[(random(&mut state) % sizes.len() as u64) as usize];
+                    record.key = (seed + index as u64)
+                        .is_multiple_of(2)
+                        .then(|| vec![b'k'; key_len]);
+                    record.value = (seed + index as u64)
+                        .is_multiple_of(3)
+                        .then(|| vec![b'v'; value_len]);
+                    let header_count = match seed % 4 {
+                        0 => 1 + (random(&mut state) % 3) as usize,
+                        1 => usize::from(index == 0),
+                        2 => usize::from(index + 1 == count),
+                        _ => (random(&mut state) % 3) as usize,
+                    };
+                    for header in 0..header_count {
+                        let len = sizes[(random(&mut state) % sizes.len() as u64) as usize];
+                        let mut key = vec![b'h'; len];
+                        if seed % 13 == 0 && index + 1 == count && header == 0 {
+                            key.push(0xff);
+                        }
+                        let value = if (seed + header as u64).is_multiple_of(2) {
+                            Some(vec![
+                                b'x';
+                                sizes
+                                    [(random(&mut state) % sizes.len() as u64) as usize]
+                            ])
+                        } else {
+                            None
+                        };
+                        record.headers.push((key, value));
+                    }
+                    if seed % 19 == 0 && index + 1 == count {
+                        record.attributes = 1;
+                    }
+                    samples.push(record);
+                }
+                if !samples[0].headers.is_empty() {
+                    first_header_cases += 1;
+                } else if samples
+                    .iter()
+                    .skip(1)
+                    .any(|sample| !sample.headers.is_empty())
+                {
+                    later_header_cases += 1;
+                }
+                if sparse {
+                    sparse_cases += 1;
+                }
+                let last = if sparse { (count - 1) * 2 } else { count - 1 };
+                let max_time = if seed % 17 == 0 {
+                    observed_max.wrapping_add(1)
+                } else {
+                    observed_max
+                };
+                let bytes = encode(&samples, base_time, max_time, last as i32);
+                if first_record_has_headers(
+                    &bytes[batch::LEN..],
+                    last as i32,
+                    base_time,
+                    read,
+                    Limits::default(),
+                ) {
+                    let prefix = scan_header_prefix(
+                        &bytes[batch::LEN..],
+                        count,
+                        last as i32,
+                        base_time,
+                        read,
+                        Limits::default(),
+                        0,
+                    );
+                    if prefix.completed > 0 && !prefix.complete {
+                        resumed_prefix_cases += 1;
+                    }
+                }
+                let record_limit = 1 + (random(&mut state) % 12) as usize;
+                let header_limit = 1 + (random(&mut state) % 12) as usize;
+                let field_limit = [1, 63, 64, 127, 128, 512][(seed % 6) as usize];
+                let record_bytes = [7, 64, 256, 4_096][(seed % 4) as usize];
+                let input_bytes = if seed % 5 == 0 {
+                    bytes.len().saturating_sub(1).max(1)
+                } else {
+                    bytes.len()
+                };
+                let batch_bytes = if seed % 7 == 0 {
+                    bytes.len().saturating_sub(1).max(1)
+                } else {
+                    bytes.len()
+                };
+                let limits = Limits::new(
+                    input_bytes,
+                    batch_bytes,
+                    4,
+                    record_limit,
+                    record_bytes,
+                    field_limit,
+                    1 + (seed % 4) as usize,
+                    header_limit,
+                )
+                .unwrap();
+                let origin = (random(&mut state) % 1_000) as usize;
+                let records = (random(&mut state) as usize) % (record_limit + 1);
+                let headers = (random(&mut state) as usize) % (header_limit + 1);
+                for variant in 0..5_u64 {
+                    let mut input = bytes.clone();
+                    match variant {
+                        0 => {}
+                        1 => {
+                            let cut = (random(&mut state) as usize) % (input.len() + 1);
+                            input.truncate(cut);
+                        }
+                        2 => {
+                            let index = (random(&mut state) as usize) % input.len();
+                            input[index] ^= 0x80;
+                        }
+                        3 => {
+                            drop(input.splice(batch::LEN..batch::LEN + 1, [0x80, 0x00]));
+                        }
+                        _ => {
+                            drop(input.splice(
+                                batch::LEN..batch::LEN + 1,
+                                [0xff, 0xff, 0xff, 0xff, 0x10],
+                            ));
+                        }
+                    }
+                    repair_frame(&mut input);
+                    compare(
+                        &input,
+                        &Case {
+                            id: (seed << 4) | (u64::from(read) << 3) | variant,
+                            read,
+                            origin,
+                            records,
+                            headers,
+                            limits,
+                        },
+                    );
+                }
+            }
+        }
+        assert!(first_header_cases > 0);
+        assert!(later_header_cases > 0);
+        assert!(sparse_cases > 0);
+        assert!(resumed_prefix_cases > 0);
     }
 
     #[test]

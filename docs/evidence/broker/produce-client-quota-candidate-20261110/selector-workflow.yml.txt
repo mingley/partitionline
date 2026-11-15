@@ -1,0 +1,20 @@
+name: Client-label quota selector diagnostic
+on:
+  push:
+    branches: [qualification/client-quota-selector-perf-20261110]
+permissions:
+  contents: read
+jobs:
+  samples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record environment
+        run: |
+          uname -m
+          rustc --version
+          git rev-parse HEAD
+      - name: Run alternating selector samples
+        run: cargo test --locked --release --manifest-path partitionline-broker/Cargo.toml --lib metadata::bandwidth::tests::quota_selector_cost_samples -- --ignored --exact --nocapture

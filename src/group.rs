@@ -179,7 +179,7 @@ fn assign_sticky_from<'a>(
 
 /// How many sticky members to prepare before yielding.
 fn sticky_member_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 fn rebalance_counts<T: Clone>(out: &mut HashMap<String, Vec<T>>) {
@@ -408,12 +408,17 @@ async fn copy_topic_assignment(
     let mut walked = 0usize;
     for (member, partitions) in assigned {
         let Some(slot) = out.get_mut(&member) else {
+            walked = walked.saturating_add(1);
+            if walked == 2 * 1024 {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
             continue;
         };
         for partition in partitions {
             slot.push((topic.to_owned(), partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 2 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -422,7 +427,7 @@ async fn copy_topic_assignment(
 }
 
 fn range_member_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 async fn sort_member_names_cooperative(names: &mut Vec<&str>) {
@@ -561,7 +566,7 @@ async fn assign_range_names_cooperative(
     {
         sorted.push(partition);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -597,7 +602,7 @@ async fn assign_range_names_cooperative(
             }
             idx = idx.saturating_add(1);
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -814,7 +819,7 @@ pub fn resolve_sticky_owned_partitions_cooperative(
                     },
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -912,7 +917,7 @@ async fn assign_sticky_from_cooperative<'a>(
     {
         let _ = part_set.insert(partition);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -940,7 +945,7 @@ async fn assign_sticky_from_cooperative<'a>(
                 }
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -953,7 +958,7 @@ async fn assign_sticky_from_cooperative<'a>(
             remaining.push(*partition);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -981,7 +986,7 @@ async fn assign_sticky_from_cooperative<'a>(
         }
         let _ = load.insert((count.saturating_add(1), member));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -1021,7 +1026,7 @@ async fn cooperative_filter_cooperative<T: Eq + std::hash::Hash>(
                 let _ = slot.insert(member.as_str());
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -1038,7 +1043,7 @@ async fn cooperative_filter_cooperative<T: Eq + std::hash::Hash>(
                 kept.push(partition);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -1067,11 +1072,11 @@ fn members_by_topic(member_subs: &[(String, Vec<String>)]) -> HashMap<&str, Vec<
 }
 
 fn subscription_index_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 fn assignment_member_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Open one empty assignment list per member.
@@ -1153,7 +1158,7 @@ fn previous_partitions_by_topic(
 }
 
 fn previous_index_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Index previously owned partitions by topic and member.
@@ -2144,7 +2149,7 @@ impl ConsumerGroup {
                 .unwrap_or_else(|| OffsetAndMetadata::new(-1));
             listed.push((tp, md));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -2539,9 +2544,14 @@ impl ConsumerGroup {
             self.check_kip848_membership().await?;
             self.apply_pending_assignment().await?;
         }
-        let offsets = crate::offsets::collect_bounded_commits(
+        let mut offsets = crate::offsets::collect_bounded_commits(
             self.consumer.delivered_commit_offsets_cooperative().await,
         )?;
+        if self.coord.offset_commit_version < 6 {
+            for (_, md) in &mut offsets {
+                md.leader_epoch = None;
+            }
+        }
         self.commit_prepared_offsets(&offsets, timeout.saturating_sub(started.elapsed()))
             .await?;
         self.snapshot_delivered_positions_cooperative().await;
@@ -2573,11 +2583,16 @@ impl ConsumerGroup {
             return Err(Error::Wakeup);
         }
         let started = Instant::now();
+        let include_epochs = self.coord.offset_commit_version >= 6;
         let mut epochs = crate::cluster::EpochList::new();
         let items =
             crate::offsets::collect_bounded_commits(offsets.into_iter().map(|(tp, offset)| {
                 let tp = tp.into();
-                let epoch = epochs.epoch(self.consumer.cluster(), &tp.topic, tp.partition);
+                let epoch = if include_epochs {
+                    epochs.epoch(self.consumer.cluster(), &tp.topic, tp.partition)
+                } else {
+                    -1
+                };
                 (
                     tp,
                     OffsetAndMetadata::from_wire(offset, epoch, String::new()),
@@ -2585,6 +2600,14 @@ impl ConsumerGroup {
             }))?;
         self.commit_with_metadata_timeout(items, timeout.saturating_sub(started.elapsed()))
             .await
+    }
+
+    fn auto_commit_epoch(&self, topic: &str, partition: i32) -> i32 {
+        if self.coord.offset_commit_version >= 6 {
+            self.consumer.position_epoch(topic, partition)
+        } else {
+            -1
+        }
     }
 
     /// Commit offsets with optional leader epoch and user metadata.
@@ -2632,7 +2655,7 @@ impl ConsumerGroup {
         } else {
             let mut topics = std::mem::take(&mut self.classic_commit_topics);
             refill_shared_offset_topics_cooperative(&mut topics, positions, |topic, partition| {
-                self.consumer.position_epoch(topic, partition)
+                self.auto_commit_epoch(topic, partition)
             })
             .await;
             if topics.is_empty() {
@@ -2848,7 +2871,7 @@ impl ConsumerGroup {
         let timeout = self.cfg.request_timeout;
         let mut topics = std::mem::take(&mut self.classic_commit_topics);
         refill_shared_offset_topics_cooperative(&mut topics, &to_commit, |topic, partition| {
-            self.consumer.position_epoch(topic, partition)
+            self.auto_commit_epoch(topic, partition)
         })
         .await;
         if topics.is_empty() {
@@ -2955,13 +2978,13 @@ impl ConsumerGroup {
                 let mut owned = Vec::with_capacity(to_commit.len());
                 let mut walked = 0usize;
                 for (topic, partition, offset) in &to_commit {
-                    let epoch = self.consumer.position_epoch(topic, *partition);
+                    let epoch = self.auto_commit_epoch(topic, *partition);
                     owned.push((
                         TopicPartition::new(topic.as_ref(), *partition),
                         OffsetAndMetadata::from_wire(*offset, epoch, String::new()),
                     ));
                     walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
+                    if walked == 1024 {
                         walked = 0;
                         tokio::task::yield_now().await;
                     }
@@ -3234,12 +3257,13 @@ impl ConsumerGroup {
             if let Some(heartbeat) = heartbeat {
                 finish_heartbeat_task(heartbeat, deadline).await;
             }
+            self.coord.close();
+            self.coord.release_if_closed().await;
+            self.consumer.close_open_sockets().await;
             // The member socket drops with this group. Yield so the broker
             // observes that close before leave returns.
             drop(self);
-            for _ in 0..8 {
-                tokio::task::yield_now().await;
-            }
+            crate::net::settle_closed_socket().await;
             return Ok(());
         }
         self.flush_async_commits(deadline).await;
@@ -3277,12 +3301,13 @@ impl ConsumerGroup {
         if let Some(heartbeat) = heartbeat {
             finish_heartbeat_task(heartbeat, deadline).await;
         }
+        self.coord.close();
+        self.coord.release_if_closed().await;
+        self.consumer.close_open_sockets().await;
         // Member and coordinator sockets drop with this group. Yield so the
         // broker observes that close before leave returns.
         drop(self);
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         out
     }
 
@@ -3450,15 +3475,11 @@ impl ConsumerGroup {
         Ok(out)
     }
 
-    #[expect(
-        clippy::manual_async_fn,
-        reason = "The explicit Send future avoids lifetime inference failures"
-    )]
     fn rejoin_once(
         &mut self,
         deadline: Instant,
     ) -> impl std::future::Future<Output = Result<Vec<(String, i32)>>> + Send + '_ {
-        async move {
+        Box::pin(async move {
             let entries = self.join_protocol_entries().await?;
             let protocols: Vec<JoinGroupProtocol<'_>> = entries
                 .iter()
@@ -3729,45 +3750,86 @@ impl ConsumerGroup {
                 &mut self.prior_coords,
                 timeout,
             );
-            let synced = if let Some(flight) = flight.as_mut() {
-                let (synced, ()) = tokio::join!(sync_fut, flight);
-                synced
+            let synced = if let Some(flight_ref) = flight.as_mut() {
+                tokio::pin!(sync_fut);
+                let mut dials_done = false;
+                loop {
+                    tokio::select! {
+                        biased;
+                        synced = &mut sync_fut => break synced,
+                        () = &mut *flight_ref, if !dials_done => {
+                            dials_done = true;
+                        }
+                    }
+                }
             } else {
                 sync_fut.await
             };
-            if let Some(flight) = flight {
-                flight.store(&mut self.consumer);
-            }
-            let (version, body) = synced?;
-            let (err, assignment, ..) = decode_sync_group_response(&mut body.clone(), version)
-                .map_err(|e| group_decode_context(e, "SyncGroup", version, body.len()))?;
+            let (version, body) = match synced {
+                Ok(pair) => pair,
+                Err(error) => {
+                    if let Some(flight) = flight {
+                        self.keep_leader_flight(flight, deadline).await;
+                    }
+                    return Err(error);
+                }
+            };
+            let (err, assignment, ..) = match decode_sync_group_response(&mut body.clone(), version)
+            {
+                Ok(decoded) => decoded,
+                Err(error) => {
+                    if let Some(flight) = flight {
+                        self.keep_leader_flight(flight, deadline).await;
+                    }
+                    return Err(group_decode_context(
+                        error,
+                        "SyncGroup",
+                        version,
+                        body.len(),
+                    ));
+                }
+            };
             if err != 0 {
+                if let Some(flight) = flight {
+                    self.keep_leader_flight(flight, deadline).await;
+                }
                 return Err(Error::broker(err, "SyncGroup"));
             }
-            let assigned = decode_assignment_cooperative(&assignment)
-                .await
-                .map_err(|e| {
-                    group_decode_context(
-                        e,
+            let assigned = match decode_assignment_cooperative(&assignment).await {
+                Ok(assigned) => assigned,
+                Err(error) => {
+                    if let Some(flight) = flight {
+                        self.keep_leader_flight(flight, deadline).await;
+                    }
+                    return Err(group_decode_context(
+                        error,
                         "ConsumerProtocol assignment",
                         version,
                         assignment.len(),
-                    )
-                })?;
+                    ));
+                }
+            };
+            if flight.as_ref().is_some_and(LeaderDialFlight::is_ready) {
+                if let Some(done) = flight.take() {
+                    done.store(&mut self.consumer);
+                }
+            }
             let wanted = expand_topic_partitions_cooperative(assigned).await;
-            let revoked = self.assign_committed(&wanted, deadline, false).await?;
+            let revoked = self
+                .assign_committed(&wanted, deadline, false, flight)
+                .await?;
             self.hb_generation
                 .store(self.generation_id, Ordering::SeqCst);
             self.hb_err.store(0, Ordering::SeqCst);
             Ok(revoked)
-        }
+        })
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
         let deadline = Instant::now()
             .checked_add(self.cfg.request_timeout)
             .ok_or(Error::Timeout)?;
-        self.heartbeat_join_within(deadline).await
+        Box::pin(self.heartbeat_join_within(deadline)).await
     }
 
     async fn heartbeat_join_within(&mut self, deadline: Instant) -> Result<()> {
@@ -3914,6 +3976,17 @@ impl ConsumerGroup {
             return Err(error);
         }
         let assignment = resp.assignment.unwrap_or_default();
+        if metadata_refresh.is_none()
+            && assignment_has_unknown_topic_id(&assignment, self.consumer.topic_id_names()).await
+        {
+            let timeout = deadline.saturating_duration_since(Instant::now());
+            if timeout.is_zero() {
+                return Err(Error::Timeout);
+            }
+            self.consumer
+                .refresh_metadata_timeout(Some(&self.topics), timeout)
+                .await?;
+        }
         let names = self.consumer.topic_id_names();
         if (self.coord.offset_commit_version == 10 || self.coord.offset_fetch_version == 10)
             && assignment_has_unknown_topic_id(&assignment, names).await
@@ -3923,7 +3996,9 @@ impl ConsumerGroup {
             ));
         }
         let wanted = wanted_from_kip848(&self.topics, names, &assignment).await;
-        let _ = self.assign_committed(&wanted, deadline, false).await?;
+        let _ = self
+            .assign_committed(&wanted, deadline, false, None)
+            .await?;
         *self.hb_ack.lock() = Some(assignment);
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
@@ -4022,7 +4097,7 @@ impl ConsumerGroup {
             return Ok(());
         }
         let _revoked = self
-            .assign_committed(&wanted, deadline, overlap_metadata)
+            .assign_committed(&wanted, deadline, overlap_metadata, None)
             .await?;
         {
             let mut pending = self.hb_assignment.lock();
@@ -4039,17 +4114,14 @@ impl ConsumerGroup {
         flight.finish(&mut self.consumer, deadline).await;
     }
 
-    #[expect(
-        clippy::manual_async_fn,
-        reason = "The explicit Send future avoids lifetime inference failures"
-    )]
     fn assign_committed<'a>(
         &'a mut self,
         wanted: &'a [(String, i32)],
         deadline: Instant,
         overlap_metadata: bool,
+        mut pre_flight: Option<LeaderDialFlight>,
     ) -> impl std::future::Future<Output = Result<Vec<(String, i32)>>> + Send + 'a {
-        async move {
+        Box::pin(async move {
             let identities = clone_topic_ids(self.consumer.topic_name_ids()).await;
             let all_current = self.consumer.assigned_offsets().to_vec();
             let mut current: HashMap<String, HashMap<i32, i64>> = HashMap::new();
@@ -4064,7 +4136,7 @@ impl ConsumerGroup {
                     remember_i64(&mut current, topic.as_ref(), *partition, *offset);
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -4083,7 +4155,7 @@ impl ConsumerGroup {
                         revoked.push((topic.clone(), *partition));
                     }
                     walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
+                    if walked == 1024 {
                         walked = 0;
                         tokio::task::yield_now().await;
                     }
@@ -4104,7 +4176,7 @@ impl ConsumerGroup {
                 let positions = self.consumer.positions_cooperative().await;
                 let to_commit = revoked_commits(
                     positions,
-                    |topic, partition| self.consumer.position_epoch(topic, partition),
+                    |topic, partition| self.auto_commit_epoch(topic, partition),
                     |tp, offset| {
                         position_is_committable(offset)
                             && revoked_contains(&revoked_parts, &tp.topic, tp.partition)
@@ -4114,9 +4186,17 @@ impl ConsumerGroup {
                 if !to_commit.is_empty() {
                     let timeout = deadline.saturating_duration_since(Instant::now());
                     if timeout.is_zero() {
+                        if let Some(flight) = pre_flight {
+                            self.keep_leader_flight(flight, deadline).await;
+                        }
                         return Err(Error::Timeout);
                     }
-                    self.commit_metadata_offsets(to_commit, timeout).await?;
+                    if let Err(error) = self.commit_metadata_offsets(to_commit, timeout).await {
+                        if let Some(flight) = pre_flight {
+                            self.keep_leader_flight(flight, deadline).await;
+                        }
+                        return Err(error);
+                    }
                 }
             }
             let mut kept_epochs: HashMap<String, HashMap<i32, i32>> = HashMap::new();
@@ -4131,7 +4211,7 @@ impl ConsumerGroup {
                     );
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -4143,7 +4223,7 @@ impl ConsumerGroup {
                     added.push((topic.clone(), *partition));
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -4151,7 +4231,25 @@ impl ConsumerGroup {
             let reset = self.cfg.auto_offset_reset;
             let mut warm_leaders = false;
             let fetched = if added.is_empty() {
-                if overlap_metadata {
+                if let Some(mut flight) = pre_flight.take() {
+                    if overlap_metadata {
+                        let timeout = deadline.saturating_duration_since(Instant::now());
+                        if timeout.is_zero() {
+                            self.keep_leader_flight(flight, deadline).await;
+                            return Err(Error::Timeout);
+                        }
+                        let (refreshed, ()) = tokio::join!(
+                            self.consumer
+                                .refresh_metadata_timeout(Some(&self.topics), timeout),
+                            &mut flight,
+                        );
+                        flight.store(&mut self.consumer);
+                        refreshed?;
+                    } else {
+                        (&mut flight).await;
+                        flight.store(&mut self.consumer);
+                    }
+                } else if overlap_metadata {
                     let timeout = deadline.saturating_duration_since(Instant::now());
                     if timeout.is_zero() {
                         return Err(Error::Timeout);
@@ -4167,11 +4265,18 @@ impl ConsumerGroup {
                 let timeout = deadline.saturating_duration_since(Instant::now());
                 if timeout.is_zero() {
                     self.classic_fetch_topics = topics;
+                    if let Some(flight) = pre_flight.take() {
+                        self.keep_leader_flight(flight, deadline).await;
+                    }
                     return Err(Error::Timeout);
                 }
                 let overlap_dials = self.coord.offset_fetch_version != 10
                     && !matches!(reset, AutoOffsetReset::None);
                 if !overlap_dials {
+                    if let Some(mut flight) = pre_flight.take() {
+                        (&mut flight).await;
+                        flight.store(&mut self.consumer);
+                    }
                     if overlap_metadata {
                         self.consumer
                             .refresh_metadata_timeout(Some(&self.topics), timeout)
@@ -4186,16 +4291,20 @@ impl ConsumerGroup {
                     self.classic_fetch_topics = topics;
                     fetched?
                 } else if overlap_metadata {
-                    let mut leaders = Vec::new();
-                    let mut seen_leaders = HashSet::new();
-                    remember_partition_leaders(
-                        self.consumer.cluster(),
-                        &added,
-                        &mut leaders,
-                        &mut seen_leaders,
-                    )
-                    .await;
-                    let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
+                    let mut dials = if let Some(flight) = pre_flight.take() {
+                        flight
+                    } else {
+                        let mut leaders = Vec::new();
+                        let mut seen_leaders = HashSet::new();
+                        remember_partition_leaders(
+                            self.consumer.cluster(),
+                            &added,
+                            &mut leaders,
+                            &mut seen_leaders,
+                        )
+                        .await;
+                        self.consumer.start_leader_dials(&leaders, deadline).await
+                    };
                     let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
                     let member_epoch = if self.kip848 { self.generation_id } else { -1 };
                     let member_id = if self.kip848 {
@@ -4300,7 +4409,7 @@ impl ConsumerGroup {
                                 break;
                             }
                             walked = walked.saturating_add(1);
-                            if walked == 8 * 1024 {
+                            if walked == 1024 {
                                 walked = 0;
                                 tokio::task::yield_now().await;
                             }
@@ -4314,16 +4423,20 @@ impl ConsumerGroup {
                     self.classic_fetch_topics = topics;
                     fetched
                 } else {
-                    let mut leaders = Vec::new();
-                    let mut seen_leaders = HashSet::new();
-                    remember_partition_leaders(
-                        self.consumer.cluster(),
-                        &added,
-                        &mut leaders,
-                        &mut seen_leaders,
-                    )
-                    .await;
-                    let mut dials = self.consumer.start_leader_dials(&leaders, deadline).await;
+                    let mut dials = if let Some(flight) = pre_flight.take() {
+                        flight
+                    } else {
+                        let mut leaders = Vec::new();
+                        let mut seen_leaders = HashSet::new();
+                        remember_partition_leaders(
+                            self.consumer.cluster(),
+                            &added,
+                            &mut leaders,
+                            &mut seen_leaders,
+                        )
+                        .await;
+                        self.consumer.start_leader_dials(&leaders, deadline).await
+                    };
                     let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
                     let member_epoch = if self.kip848 { self.generation_id } else { -1 };
                     let member_id = if self.kip848 {
@@ -4410,7 +4523,7 @@ impl ConsumerGroup {
                                 break;
                             }
                             walked = walked.saturating_add(1);
-                            if walked == 8 * 1024 {
+                            if walked == 1024 {
                                 walked = 0;
                                 tokio::task::yield_now().await;
                             }
@@ -4495,7 +4608,11 @@ impl ConsumerGroup {
                 apply_reset_offsets(&mut starts, &reset_slots, listed).await?;
             }
             let starts = flatten_reset_starts(starts).await;
-            self.consumer.assign_all(&starts).await?;
+            let verify_uuid =
+                self.coord.offset_fetch_version == 10 || self.coord.offset_commit_version == 10;
+            self.consumer
+                .assign_all_opts(&starts, verify_uuid, true)
+                .await?;
             if assignment_topic_ids_changed(
                 wanted,
                 |topic, partition| self.consumer.assigned_topic_id(topic, partition),
@@ -4542,7 +4659,7 @@ impl ConsumerGroup {
                 self.cfg.rebalance.call(&revoked_parts, &added_parts);
             }
             Ok(revoked)
-        }
+        })
     }
 
     fn spawn_heartbeat_consumer(
@@ -5052,9 +5169,7 @@ async fn finish_heartbeat_task(task: Arc<tokio::task::JoinHandle<()>>, deadline:
     }
     // The abort drops the coordinator when the task is polled. The idle watch
     // then has to run before the broker sees that close.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 pub(crate) fn copy_member_id(dest: &mut String, source: &str) {
@@ -5075,7 +5190,7 @@ fn reuse_topic_names(dest: &mut Option<Vec<String>>, topics: &[String]) {
 }
 
 fn reused_name_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Copy subscribed topic names into the heartbeat when they changed.
@@ -5152,7 +5267,7 @@ fn reuse_topic_partitions(
 }
 
 fn reused_partition_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Copy the heartbeat assignment when it changed.
@@ -5554,7 +5669,7 @@ async fn assignment_topic_ids_changed(
             return true;
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -5569,12 +5684,15 @@ async fn assignment_topic_ids_changed(
 ///
 /// Each cached name stays on its existing allocation.
 async fn clone_topic_ids(ids: &HashMap<Arc<str>, [u8; 16]>) -> HashMap<Arc<str>, [u8; 16]> {
-    let mut out = HashMap::with_capacity(ids.len());
+    let mut out = HashMap::with_capacity(ids.len().min(4096));
     let mut walked = 0usize;
     for (name, id) in ids {
+        if out.len() == out.capacity() {
+            out.reserve(ids.len().saturating_sub(out.len()).min(4096));
+        }
         let _stored = out.insert(Arc::clone(name), *id);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -5598,7 +5716,7 @@ async fn assignment_has_unknown_topic_id<V>(
             return true;
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -5646,7 +5764,7 @@ async fn wanted_from_kip848<I: AsRef<str>>(
                 out.push((name.to_owned(), *p));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -5729,7 +5847,7 @@ pub(crate) fn clone_names(
         for name in names {
             out.push(name.clone());
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -5739,7 +5857,7 @@ pub(crate) fn clone_names(
 }
 
 fn matching_topic_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Keep topic names that match a subscription, then sort them.
@@ -5909,7 +6027,7 @@ async fn apply_reset_offsets(
         };
         *entry = Some((tp.topic, tp.partition, start));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -5931,7 +6049,7 @@ async fn flatten_reset_starts(starts: Vec<Option<(String, i32, i64)>>) -> Vec<(S
             out.push(start);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -5964,7 +6082,7 @@ async fn revoked_commits(
             ));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -5990,7 +6108,7 @@ async fn clone_delivered_positions(
     for (topic, partition, offset) in positions {
         out.push((Arc::clone(topic), *partition, *offset));
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6011,22 +6129,37 @@ async fn retain_interval_commits(
     mut assigned: impl FnMut(&str, i32) -> bool,
     mut topic_id: impl FnMut(&str, i32) -> Option<[u8; 16]>,
 ) {
-    let pending = std::mem::take(positions);
+    let mut write = 0usize;
+    let len = positions.len();
     let mut walked = 0usize;
-    for (topic, partition, offset) in pending {
-        let stored = ids
-            .get(topic.as_ref())
-            .and_then(|parts| parts.get(&partition))
-            .copied();
-        if position_is_committable(offset)
-            && assigned(topic.as_ref(), partition)
-            && stored == topic_id(topic.as_ref(), partition)
-        {
-            positions.push((topic, partition, offset));
+    for read in 0..len {
+        let keep = if let Some((topic, partition, offset)) = positions.get(read) {
+            let stored = ids
+                .get(topic.as_ref())
+                .and_then(|parts| parts.get(partition))
+                .copied();
+            position_is_committable(*offset)
+                && assigned(topic.as_ref(), *partition)
+                && stored == topic_id(topic.as_ref(), *partition)
+        } else {
+            false
+        };
+        if keep {
+            if write != read {
+                positions.swap(write, read);
+            }
+            write = write.saturating_add(1);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    while positions.len() > write {
+        let next_len = positions.len().saturating_sub(8 * 1024).max(write);
+        positions.truncate(next_len);
+        if positions.len() > write {
             tokio::task::yield_now().await;
         }
     }
@@ -6119,7 +6252,7 @@ async fn refill_shared_offset_topics_cooperative(
             used = used.saturating_add(1);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6220,7 +6353,7 @@ pub(crate) async fn group_borrowed_offset_topics_cooperative(
             },
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6324,7 +6457,7 @@ async fn refill_offset_topics_cooperative(
             },
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6395,7 +6528,7 @@ pub(crate) async fn group_borrowed_offset_fetch_topics_cooperative(
             tp.partition,
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6479,7 +6612,7 @@ fn refill_offset_fetch_topics_cooperative<'a>(
         for (topic, part) in wanted {
             place_fetched_partition(topics, &mut seen, &mut slots, &mut used, topic, *part);
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -6506,7 +6639,7 @@ async fn refill_topic_partitions_cooperative(
             tp.partition,
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6539,7 +6672,7 @@ async fn index_revoked(revoked: &[(String, i32)]) -> HashMap<&str, HashSet<i32>>
         }
         index = index.saturating_add(1);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6561,7 +6694,7 @@ async fn remember_current_partitions(
     for (topic, partition, _) in parts {
         remember_partition(map, topic.as_ref(), *partition);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6576,7 +6709,7 @@ async fn remember_wanted_partitions(
     for (topic, partition) in parts {
         remember_partition(map, topic, *partition);
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6614,7 +6747,7 @@ fn remember_partition_leaders<'a, T: AsRef<str> + Sync>(
                 crate::consumer::Consumer::remember_node(leaders, seen, node);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -6719,7 +6852,7 @@ async fn refresh_delivered_topic_ids_cooperative(
             remember_shared_topic_id(ids, topic, *partition, id);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6735,7 +6868,7 @@ async fn clear_delivered_topic_ids_cooperative(map: &mut DeliveredTopicIds) {
             let taken = std::mem::take(&mut parts);
             for _entry in taken {
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -6743,7 +6876,7 @@ async fn clear_delivered_topic_ids_cooperative(map: &mut DeliveredTopicIds) {
         } else {
             parts.clear();
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -6760,7 +6893,7 @@ async fn drop_empty_delivered_topic_ids(ids: &mut DeliveredTopicIds) {
             let _ = ids.insert(topic, parts);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6818,7 +6951,7 @@ pub(crate) async fn index_fetched_offsets_cooperative(
                 let _ = index.insert((topic.topic.as_str(), partition.partition), partition);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -6898,7 +7031,7 @@ async fn insert_committed_cooperative(
             ),
         );
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6926,7 +7059,7 @@ pub(crate) async fn committed_offset_map_cooperative(
             let _ = map.insert(topic.topic.clone(), parts);
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -6981,7 +7114,7 @@ fn remember_existing_topics<'a>(
         for name in topics {
             let _ = seen.insert(name.clone());
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -7007,7 +7140,7 @@ fn extend_unique_topics<'a>(
                 topics.push(owned);
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -7048,7 +7181,7 @@ async fn expand_topic_partitions_cooperative(
             };
             out.push((name, partition));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -7091,7 +7224,7 @@ pub(crate) async fn committed_offset_pairs_cooperative(
             };
             out.push((TopicPartition::new(name, partition), md));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 2 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -7200,10 +7333,6 @@ type MemberCoordinatorConnection = (Consumer, Result<(BrokerConn, Vec<ApiVersion
 ///
 /// The member dial is required first when both fail. A coordinator error is
 /// returned only after the member socket has connected.
-#[expect(
-    clippy::manual_async_fn,
-    reason = "The explicit Send future avoids lifetime inference failures"
-)]
 pub(crate) fn connect_member_and_coordinator<'a>(
     cfg: &'a ConsumerConfig,
     group_id: &'a str,
@@ -7211,7 +7340,7 @@ pub(crate) fn connect_member_and_coordinator<'a>(
     prefetch_all: bool,
     deadline: Instant,
 ) -> impl std::future::Future<Output = Result<MemberCoordinatorConnection>> + Send + 'a {
-    async move {
+    Box::pin(async move {
         let started = async {
     let member = Consumer::connect_within(cfg.clone(), deadline);
     let coordinator = async move {
@@ -7299,11 +7428,9 @@ pub(crate) fn connect_member_and_coordinator<'a>(
     ))
     }
     .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         started
-    }
+    })
 }
 
 /// Wait until the coordinator closes `conn`.
@@ -7445,9 +7572,7 @@ pub(crate) async fn discover_coord_with_versions(
         }
     }
     .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
     discovered
 }
 
@@ -7559,9 +7684,7 @@ async fn finish_aborted_group_handshakes(
     }
     // A cancelled group handshake drops its socket when the task is polled.
     // The idle watch then has to run before that broker sees the close.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 async fn discover_coord_raced(
@@ -7877,14 +8000,6 @@ fn take_ready_handshake(
     ready.get_mut(index)?.take()?.ok()
 }
 
-/// Open and negotiate a replacement TCP socket to the coordinator.
-pub(crate) async fn reopen_known_coord(
-    cfg: &ConsumerConfig,
-    previous: &BrokerConn,
-) -> Result<BrokerConn> {
-    connect_known_coord(cfg, &KnownCoord::capture(previous)).await
-}
-
 /// Versions already learned for one coordinator address.
 #[derive(Clone)]
 pub(crate) struct KnownCoord {
@@ -7953,6 +8068,79 @@ impl KnownCoord {
     }
 }
 
+/// Owns a newly opened coordinator until negotiation and authentication finish.
+/// A canceled handshake must not leave a partially initialized socket reusable.
+struct PendingCoordinatorReplacement<'a> {
+    conn: &'a mut BrokerConn,
+    known: KnownCoord,
+    offset_commit_range: Option<(i16, i16)>,
+    offset_fetch_range: Option<(i16, i16)>,
+    ready: bool,
+}
+
+impl Drop for PendingCoordinatorReplacement<'_> {
+    fn drop(&mut self) {
+        if !self.ready {
+            self.known.apply(self.conn);
+            self.conn.offset_commit_range = self.offset_commit_range;
+            self.conn.offset_fetch_range = self.offset_fetch_range;
+            self.conn.clear_sasl_session();
+            let _retired = self.conn.try_retire_physical();
+        }
+    }
+}
+
+/// Retire the old coordinator before opening and negotiating its replacement.
+/// On failure or cancellation, the slot remains closed and can be retried.
+async fn replace_known_coord(
+    coord: &mut BrokerConn,
+    cfg: &ConsumerConfig,
+    deadline: crate::net::Deadline,
+) -> Result<()> {
+    let known = KnownCoord::capture(coord);
+    let offset_commit_range = coord.offset_commit_range;
+    let offset_fetch_range = coord.offset_fetch_range;
+    coord.clear_sasl_session();
+    coord.retire_physical_deadline(deadline).await?;
+    let remaining = deadline.remaining()?;
+    let replacement = tokio::time::timeout_at(
+        deadline.target(),
+        BrokerConn::connect_tls(
+            &known.addr,
+            &cfg.client_id,
+            cfg.connect_timeout.min(remaining),
+            cfg.tls.as_ref(),
+        ),
+    )
+    .await
+    .map_err(|_| Error::Timeout)??;
+
+    // Install the new socket before the first handshake await. The guard owns
+    // cleanup if this future is dropped while ApiVersions or SASL is pending.
+    *coord = replacement;
+    let mut pending = PendingCoordinatorReplacement {
+        conn: coord,
+        known,
+        offset_commit_range,
+        offset_fetch_range,
+        ready: false,
+    };
+    pending.known.apply(pending.conn);
+    let remaining = deadline.remaining()?;
+    let response = tokio::time::timeout_at(
+        deadline.target(),
+        crate::protocol::api::negotiate_api_versions(pending.conn, remaining),
+    )
+    .await
+    .map_err(|_| Error::Timeout)??;
+    deadline.check_expired()?;
+    let _version = stamp_coord_versions(pending.conn, &response)?;
+    authenticate_coord(pending.conn, cfg, deadline).await?;
+    deadline.check_expired()?;
+    pending.ready = true;
+    Ok(())
+}
+
 /// Dial `known.addr` and negotiate versions on the new socket.
 pub(crate) async fn connect_known_coord(
     cfg: &ConsumerConfig,
@@ -8003,9 +8191,7 @@ pub(crate) async fn connect_known_coord(
     }
     .await;
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -8148,10 +8334,9 @@ pub(crate) async fn rediscover_known_coord(
         }
         let remaining = bounded_coord_config(cfg, crate::net::Deadline::from_std(deadline))?;
         open_discovered_coord(&remaining, &addr, known, prior).await
-    }    .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
     }
+    .await;
+    crate::net::settle_closed_socket().await;
     match discovered {
         Ok(conn) => finish_reused_lookup(conn, crate::net::Deadline::from_std(deadline)).await,
         Err(error) => Err(error),
@@ -8271,9 +8456,7 @@ async fn rediscover_coord(
         Ok(open_coord_with_find_version(&bounded, &addr).await?.0)
     }
     .await;
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
     discovered
 }
 
@@ -8441,9 +8624,7 @@ async fn open_coord_with_find_version(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -8451,10 +8632,6 @@ async fn open_coord_with_find_version(
 #[expect(
     clippy::too_many_arguments,
     reason = "coordinator RPC carries the learned bootstrap versions"
-)]
-#[expect(
-    clippy::manual_async_fn,
-    reason = "The explicit Send future avoids lifetime inference failures"
 )]
 pub(crate) fn coord_roundtrip_with_bootstrap<'a, F>(
     coord: &'a mut BrokerConn,
@@ -8471,7 +8648,7 @@ pub(crate) fn coord_roundtrip_with_bootstrap<'a, F>(
 where
     F: FnMut(i16, &mut BytesMut) -> Result<()> + Send + 'a,
 {
-    async move {
+    Box::pin(async move {
         let deadline = crate::net::Deadline::from_std(
             Instant::now()
                 .checked_add(request_timeout)
@@ -8495,10 +8672,7 @@ where
             .await;
         }
         if coord.idle_expired(cfg.connections_max_idle) {
-            let bounded = bounded_coord_config(cfg, deadline)?;
-            let replacement = reopen_known_coord(&bounded, coord).await?;
-            let previous = std::mem::replace(coord, replacement);
-            retire_lookup_conn(previous).await;
+            replace_known_coord(coord, cfg, deadline).await?;
         }
         let version = negotiated_coord_version(coord, api_key)?;
         let body = match coord
@@ -8506,11 +8680,8 @@ where
             .await
         {
             Ok(body) => body,
-            Err(e) if e.is_retriable() => {
-                let bounded = bounded_coord_config(cfg, deadline)?;
-                let replacement = reopen_known_coord(&bounded, coord).await?;
-                let previous = std::mem::replace(coord, replacement);
-                retire_lookup_conn(previous).await;
+            Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {
+                replace_known_coord(coord, cfg, deadline).await?;
                 let version = negotiated_coord_version(coord, api_key)?;
                 let body = coord
                     .roundtrip_deadline(api_key, version, |buf| encode_body(version, buf), deadline)
@@ -8548,7 +8719,7 @@ where
             deadline,
         )
         .await
-    }
+    })
 }
 
 fn bounded_coord_config(
@@ -9070,12 +9241,18 @@ mod tests {
             .map(|index| (Arc::clone(&topic), index, 1))
             .collect();
         let mut topics = Vec::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = refill_shared_offset_topics_cooperative(&mut topics, &items, |_, _| 0) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(refill_shared_offset_topics_cooperative(
+                &mut topics,
+                &items,
+                |_, _| 0
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "refilling shared offsets held the caller for {elapsed:?}"
@@ -9113,17 +9290,24 @@ mod tests {
             })
             .collect();
         let mut topics = Vec::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = refill_offset_topics_cooperative(&mut topics, &items) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
+        let finished = {
+            let mut work = std::pin::pin!(refill_offset_topics_cooperative(&mut topics, &items));
+            let started = std::time::Instant::now();
+            let (done, elapsed) = tokio::select! {
+                () = &mut work => (true, started.elapsed()),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => (false, started.elapsed()),
+            };
+            assert!(
+                elapsed < std::time::Duration::from_millis(80),
+                "refilling offset topics held the caller for {elapsed:?}"
+            );
+            done
+        };
+        if !finished {
+            topics.clear();
+            refill_offset_topics_cooperative(&mut topics, &items).await;
         }
-        let elapsed = started.elapsed();
         assert_eq!(topics.len(), 8_192);
-        assert!(
-            elapsed < std::time::Duration::from_millis(80),
-            "refilling offset topics held the caller for {elapsed:?}"
-        );
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -9132,12 +9316,14 @@ mod tests {
         // A longer walk still has to pause after membership is a set.
         let items = commit_items(500_000);
         let mut topics = Vec::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = refill_offset_topics_cooperative(&mut topics, &items) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(refill_offset_topics_cooperative(&mut topics, &items));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "refilling offset-commit partitions held the caller for {elapsed:?}"
@@ -9367,12 +9553,14 @@ mod tests {
     async fn pairing_many_committed_offsets_does_not_hold_the_caller() {
         // 1_500_000 offsets: cloning the topic name held the caller 241ms.
         let map = offset_map(1_500_000);
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = committed_offset_pairs_cooperative(map) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(committed_offset_pairs_cooperative(map));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "pairing committed offsets held the caller for {elapsed:?}"
@@ -9436,12 +9624,14 @@ mod tests {
             let _ = out.insert(member.clone(), Vec::new());
             let _ = assigned.insert(member, vec![index]);
         }
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = copy_topic_assignment(&mut out, "orders", assigned) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(copy_topic_assignment(&mut out, "orders", assigned));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                () = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "copying assigned members held the caller for {elapsed:?}"
@@ -9490,12 +9680,18 @@ mod tests {
         let member_refs: Vec<&str> = members.iter().map(String::as_str).collect();
         let partitions: Vec<i32> = (0..8_192).collect();
         let prev = [("m0000", partitions.as_slice())];
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = assign_sticky_from_cooperative(&member_refs, &partitions, prev) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(assign_sticky_from_cooperative(
+                &member_refs,
+                &partitions,
+                prev
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "rebalancing sticky members held the caller for {elapsed:?}"
@@ -9568,12 +9764,14 @@ mod tests {
             owned.push(("orders".to_string(), index));
         }
         let claims = vec![("member".to_string(), owned, 1)];
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = resolve_sticky_owned_partitions_cooperative(&claims) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(resolve_sticky_owned_partitions_cooperative(&claims));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "resolving owned partitions held the caller for {elapsed:?}"
@@ -9604,12 +9802,47 @@ mod tests {
         find_body[4..6].copy_from_slice(&42i16.to_be_bytes());
         let find_body = find_body.freeze();
         let first_peer = tokio::spawn(async move {
+            use crate::protocol::api::{encode_api_versions_response, ApiVersionsResponse};
             use tokio::io::AsyncWriteExt;
             let Ok((mut socket, _)) = first.accept().await else {
                 return;
             };
             let _started = first_flag.fetch_add(1, Ordering::SeqCst);
             let mut size_buf = [0u8; 4];
+            if socket.read_exact(&mut size_buf).await.is_ok() {
+                let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
+                    .expect("nonnegative test frame size fits usize");
+                let mut request = vec![0u8; size];
+                if socket.read_exact(&mut request).await.is_ok() {
+                    if let Some(bytes) = request.get(4..8) {
+                        let mut versions_body = bytes::BytesMut::new();
+                        encode_api_versions_response(
+                            &mut versions_body,
+                            4,
+                            &ApiVersionsResponse {
+                                error_code: 0,
+                                api_keys: vec![ApiVersion {
+                                    api_key: FIND_COORDINATOR,
+                                    min_version: 1,
+                                    max_version: 1,
+                                }],
+                                throttle_time_ms: 0,
+                                supported_features: Vec::new(),
+                                finalized_features_epoch: None,
+                                finalized_features: Vec::new(),
+                                zk_migration_ready: false,
+                            },
+                        )
+                        .unwrap();
+                        let len = i32::try_from(4 + versions_body.len()).unwrap_or(0);
+                        let mut reply = Vec::new();
+                        reply.extend_from_slice(&len.to_be_bytes());
+                        reply.extend_from_slice(bytes);
+                        reply.extend_from_slice(&versions_body);
+                        let _wrote = socket.write_all(&reply).await;
+                    }
+                }
+            }
             if socket.read_exact(&mut size_buf).await.is_ok() {
                 let size = usize::try_from(i32::from_be_bytes(size_buf).max(0))
                     .expect("nonnegative test frame size fits usize");
@@ -10965,12 +11198,18 @@ mod tests {
         let positions: Vec<(TopicPartition, i64)> = (0..2_000_000)
             .map(|partition| (TopicPartition::new("orders", partition), 1))
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = revoked_commits(positions, |_topic, _partition| 4, |_tp, offset| offset >= 0) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(revoked_commits(
+                positions,
+                |_topic, _partition| 4,
+                |_tp, offset| offset >= 0,
+            ));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "collecting revoked commits held the caller for {elapsed:?}"
@@ -11062,12 +11301,14 @@ mod tests {
                 (Arc::from(format!("topic-{index}")), id)
             })
             .collect();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = clone_topic_ids(&identities) => {}
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(clone_topic_ids(&identities));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "cloning topic ids held the caller for {elapsed:?}"
@@ -11197,12 +11438,14 @@ mod tests {
         for index in 0..160_000 {
             let _ = prev.insert(format!("m{index}"), vec![(format!("topic-{index}"), index)]);
         }
-        let started = std::time::Instant::now();
-        tokio::select! {
-            _ = previous_partitions_by_topic_cooperative(&prev) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        let elapsed = {
+            let mut work = std::pin::pin!(previous_partitions_by_topic_cooperative(&prev));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                _ = &mut work => started.elapsed(),
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
+            }
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "indexing previous members held the caller for {elapsed:?}"
@@ -11472,6 +11715,480 @@ mod tests {
             },
         );
         assert_eq!(names, vec!["a-1".to_string(), "z-a".to_string()]);
+    }
+}
+
+#[cfg(test)]
+mod coordinator_replacement_tests {
+    use super::replace_known_coord;
+    use crate::net::{BrokerConn, Deadline};
+    use crate::protocol::api::{encode_api_versions_response, ApiVersion, ApiVersionsResponse};
+    use crate::protocol::api_keys::{
+        API_VERSIONS, FIND_COORDINATOR, HEARTBEAT, OFFSET_COMMIT, OFFSET_FETCH, SASL_AUTHENTICATE,
+        SASL_HANDSHAKE,
+    };
+    use crate::protocol::header::{decode_request_header, encode_response_header, RequestHeader};
+    use crate::{ConsumerConfig, Error};
+    use bytes::{Bytes, BytesMut};
+    use std::time::Duration;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::{TcpListener, TcpStream};
+
+    async fn read_request(socket: &mut TcpStream) -> RequestHeader {
+        let size = socket.read_i32().await.unwrap();
+        assert!((8..=4096).contains(&size));
+        let mut frame = vec![0; usize::try_from(size).unwrap()];
+        let _read = socket.read_exact(&mut frame).await.unwrap();
+        decode_request_header(&mut Bytes::from(frame)).unwrap()
+    }
+
+    async fn reply(socket: &mut TcpStream, request: &RequestHeader, body: &[u8]) {
+        let mut frame = BytesMut::new();
+        encode_response_header(
+            &mut frame,
+            request.api_key,
+            request.api_version,
+            request.correlation_id,
+        )
+        .unwrap();
+        frame.extend_from_slice(body);
+        socket
+            .write_i32(i32::try_from(frame.len()).unwrap())
+            .await
+            .unwrap();
+        socket.write_all(&frame).await.unwrap();
+    }
+
+    async fn reply_to_versions(socket: &mut TcpStream, request: &RequestHeader) {
+        assert_eq!((request.api_key, request.api_version), (API_VERSIONS, 4));
+        let api_keys = [
+            (FIND_COORDINATOR, 0, 6),
+            (HEARTBEAT, 0, 4),
+            (OFFSET_FETCH, 1, 8),
+            (OFFSET_COMMIT, 2, 8),
+            (SASL_HANDSHAKE, 0, 1),
+            (SASL_AUTHENTICATE, 0, 2),
+        ]
+        .into_iter()
+        .map(|(api_key, min_version, max_version)| ApiVersion {
+            api_key,
+            min_version,
+            max_version,
+        })
+        .collect();
+        let mut body = BytesMut::new();
+        encode_api_versions_response(
+            &mut body,
+            4,
+            &ApiVersionsResponse {
+                api_keys,
+                ..ApiVersionsResponse::default()
+            },
+        )
+        .unwrap();
+        reply(socket, request, &body).await;
+    }
+
+    async fn assert_peer_retired(socket: &mut TcpStream) {
+        let mut byte = [0u8; 1];
+        let result = tokio::time::timeout(Duration::from_secs(3), socket.read(&mut byte))
+            .await
+            .expect("peer did not observe socket retirement");
+        match result {
+            Ok(0) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {}
+            other => panic!("expected EOF or a reset, got {other:?}"),
+        }
+    }
+
+    fn remember_old_versions(conn: &mut BrokerConn) {
+        conn.heartbeat_version = 1;
+        conn.sync_group_version = 2;
+        conn.join_group_version = 4;
+        conn.leave_group_version = 1;
+        conn.consumer_group_heartbeat_version = 1;
+        conn.share_group_heartbeat_version = 1;
+        conn.sasl_handshake_version = 0;
+        conn.sasl_authenticate_version = 1;
+        conn.offset_fetch_version = 7;
+        conn.offset_fetch_range = Some((1, 7));
+        conn.offset_commit_version = 6;
+        conn.offset_commit_range = Some((2, 6));
+        conn.find_coordinator_version = 1;
+        conn.record_sasl_session_lifetime(60_000);
+        assert_eq!(conn.session_lifetime_ms(), Some(60_000));
+    }
+
+    fn assert_old_versions(conn: &BrokerConn, address: &str) {
+        assert_eq!(conn.addr(), address);
+        assert_eq!(conn.heartbeat_version, 1);
+        assert_eq!(conn.sync_group_version, 2);
+        assert_eq!(conn.join_group_version, 4);
+        assert_eq!(conn.leave_group_version, 1);
+        assert_eq!(conn.consumer_group_heartbeat_version, 1);
+        assert_eq!(conn.share_group_heartbeat_version, 1);
+        assert_eq!(conn.sasl_handshake_version, 0);
+        assert_eq!(conn.sasl_authenticate_version, 1);
+        assert_eq!(conn.offset_fetch_version, 7);
+        assert_eq!(conn.offset_fetch_range, Some((1, 7)));
+        assert_eq!(conn.offset_commit_version, 6);
+        assert_eq!(conn.offset_commit_range, Some((2, 6)));
+        assert_eq!(conn.find_coordinator_version, 1);
+        assert_eq!(conn.session_lifetime_ms(), None);
+        assert_eq!(conn.authenticated_at(), None);
+        assert_eq!(conn.session_expiry(), None);
+        assert_eq!(conn.reauth_at(), None);
+        assert_eq!(conn.in_flight(), 0);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn canceled_versions_retires_both_sockets_and_can_retry() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "replace", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut first, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        let (received_tx, received_rx) = tokio::sync::oneshot::channel();
+        let peer = tokio::spawn(async move {
+            assert_peer_retired(&mut first).await;
+            let (mut second, _) = listener.accept().await.unwrap();
+            let request = read_request(&mut second).await;
+            assert_eq!((request.api_key, request.api_version), (API_VERSIONS, 4));
+            received_tx.send(()).unwrap();
+            assert_peer_retired(&mut second).await;
+
+            let (mut third, _) = listener.accept().await.unwrap();
+            let request = read_request(&mut third).await;
+            reply_to_versions(&mut third, &request).await;
+            assert_peer_retired(&mut third).await;
+        });
+        let cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        let mut replacement = Box::pin(replace_known_coord(
+            &mut conn,
+            &cfg,
+            Deadline::from_timeout(Duration::from_secs(5)),
+        ));
+        tokio::select! {
+            result = &mut replacement => panic!("handshake ended before cancellation: {result:?}"),
+            received = tokio::time::timeout(Duration::from_secs(3), received_rx) => {
+                received.unwrap().unwrap();
+            }
+        }
+        drop(replacement);
+        assert!(conn.is_closed());
+        assert!(
+            conn.physically_retired_for_test(),
+            "handshake cancellation must release its I/O guard before retirement"
+        );
+        assert_old_versions(&conn, &addr);
+
+        replace_known_coord(
+            &mut conn,
+            &cfg,
+            Deadline::from_timeout(Duration::from_secs(5)),
+        )
+        .await
+        .unwrap();
+        assert!(!conn.is_closed());
+        assert_eq!(conn.heartbeat_version, 4);
+        assert_eq!(conn.offset_fetch_version, 8);
+        assert_eq!(conn.offset_fetch_range, Some((1, 8)));
+        assert_eq!(conn.offset_commit_version, 8);
+        assert_eq!(conn.offset_commit_range, Some((2, 8)));
+        conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(3)))
+            .await
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(3), peer)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn canceled_sasl_restores_versions_and_retires_replacement() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "replace-sasl", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut first, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        let (received_tx, received_rx) = tokio::sync::oneshot::channel();
+        let peer = tokio::spawn(async move {
+            assert_peer_retired(&mut first).await;
+            let (mut second, _) = listener.accept().await.unwrap();
+            let request = read_request(&mut second).await;
+            reply_to_versions(&mut second, &request).await;
+            let request = read_request(&mut second).await;
+            assert_eq!((request.api_key, request.api_version), (SASL_HANDSHAKE, 1));
+            received_tx.send(()).unwrap();
+            assert_peer_retired(&mut second).await;
+        });
+        let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        let mut replacement = Box::pin(replace_known_coord(
+            &mut conn,
+            &cfg,
+            Deadline::from_timeout(Duration::from_secs(5)),
+        ));
+        tokio::select! {
+            result = &mut replacement => panic!("SASL ended before cancellation: {result:?}"),
+            received = tokio::time::timeout(Duration::from_secs(3), received_rx) => {
+                received.unwrap().unwrap();
+            }
+        }
+        drop(replacement);
+        assert!(conn.is_closed());
+        assert!(
+            conn.physically_retired_for_test(),
+            "handshake cancellation must release its I/O guard before retirement"
+        );
+        assert_old_versions(&conn, &addr);
+        tokio::time::timeout(Duration::from_secs(3), peer)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn rejected_sasl_restores_retry_metadata_and_retires_replacement() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "rejected-sasl", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut first, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        let peer = tokio::spawn(async move {
+            assert_peer_retired(&mut first).await;
+            let (mut second, _) = listener.accept().await.unwrap();
+            let request = read_request(&mut second).await;
+            reply_to_versions(&mut second, &request).await;
+            let request = read_request(&mut second).await;
+            assert_eq!((request.api_key, request.api_version), (SASL_HANDSHAKE, 1));
+            let mut body = BytesMut::new();
+            crate::protocol::sasl::encode_sasl_handshake_response(&mut body, 1, 0, &["PLAIN"])
+                .unwrap();
+            reply(&mut second, &request, &body).await;
+            let request = read_request(&mut second).await;
+            assert_eq!(
+                (request.api_key, request.api_version),
+                (SASL_AUTHENTICATE, 2)
+            );
+            body.clear();
+            crate::protocol::sasl::encode_sasl_authenticate_response(
+                &mut body,
+                2,
+                58,
+                Some("denied"),
+                &[],
+                120_000,
+            )
+            .unwrap();
+            reply(&mut second, &request, &body).await;
+            assert_peer_retired(&mut second).await;
+        });
+        let mut cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        let result = replace_known_coord(
+            &mut conn,
+            &cfg,
+            Deadline::from_timeout(Duration::from_secs(5)),
+        )
+        .await;
+        assert!(matches!(result, Err(Error::Broker { code: 58, .. })));
+        assert!(conn.is_closed());
+        assert_old_versions(&conn, &addr);
+        tokio::time::timeout(Duration::from_secs(3), peer)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn aborted_replacement_discards_provisional_sasl_session() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "provisional-session", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        let known = super::KnownCoord::capture(&conn);
+        let offset_commit_range = conn.offset_commit_range;
+        let offset_fetch_range = conn.offset_fetch_range;
+        conn.clear_sasl_session();
+        let pending = super::PendingCoordinatorReplacement {
+            conn: &mut conn,
+            known,
+            offset_commit_range,
+            offset_fetch_range,
+            ready: false,
+        };
+        pending.conn.heartbeat_version = 4;
+        pending.conn.sync_group_version = 5;
+        pending.conn.join_group_version = 9;
+        pending.conn.leave_group_version = 5;
+        pending.conn.consumer_group_heartbeat_version = 0;
+        pending.conn.share_group_heartbeat_version = 0;
+        pending.conn.sasl_handshake_version = 1;
+        pending.conn.sasl_authenticate_version = 2;
+        pending.conn.offset_fetch_version = 10;
+        pending.conn.offset_fetch_range = Some((10, 10));
+        pending.conn.offset_commit_version = 10;
+        pending.conn.offset_commit_range = Some((10, 10));
+        pending.conn.find_coordinator_version = 6;
+        pending.conn.record_sasl_session_lifetime(30_000);
+        assert_eq!(pending.conn.session_lifetime_ms(), Some(30_000));
+        drop(pending);
+
+        assert!(conn.is_closed());
+        assert_old_versions(&conn, &addr);
+        assert_peer_retired(&mut peer).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn successful_replacement_records_the_new_sasl_session() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "new-session", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut first, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        let peer = tokio::spawn(async move {
+            assert_peer_retired(&mut first).await;
+            let (mut second, _) = listener.accept().await.unwrap();
+            let request = read_request(&mut second).await;
+            reply_to_versions(&mut second, &request).await;
+
+            let request = read_request(&mut second).await;
+            assert_eq!((request.api_key, request.api_version), (SASL_HANDSHAKE, 1));
+            let mut body = BytesMut::new();
+            crate::protocol::sasl::encode_sasl_handshake_response(&mut body, 1, 0, &["PLAIN"])
+                .unwrap();
+            reply(&mut second, &request, &body).await;
+
+            let request = read_request(&mut second).await;
+            assert_eq!(
+                (request.api_key, request.api_version),
+                (SASL_AUTHENTICATE, 2)
+            );
+            body.clear();
+            crate::protocol::sasl::encode_sasl_authenticate_response(
+                &mut body,
+                2,
+                0,
+                None,
+                &[],
+                120_000,
+            )
+            .unwrap();
+            reply(&mut second, &request, &body).await;
+            assert_peer_retired(&mut second).await;
+        });
+        let mut cfg = ConsumerConfig::bootstrap([addr]);
+        cfg.sasl_plain = Some(("user".into(), "pass".into()));
+        replace_known_coord(
+            &mut conn,
+            &cfg,
+            Deadline::from_timeout(Duration::from_secs(5)),
+        )
+        .await
+        .unwrap();
+        assert!(!conn.is_closed());
+        assert_eq!(conn.session_lifetime_ms(), Some(120_000));
+        assert!(conn.authenticated_at().is_some());
+        assert!(conn.session_expiry().is_some());
+        assert!(conn.reauth_at().is_some());
+        conn.retire_physical_deadline(Deadline::from_timeout(Duration::from_secs(3)))
+            .await
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(3), peer)
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn failed_replacement_dial_discards_the_old_sasl_session() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "failed-dial", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut peer, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        drop(listener);
+        let cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        let result = replace_known_coord(
+            &mut conn,
+            &cfg,
+            Deadline::from_timeout(Duration::from_secs(3)),
+        )
+        .await;
+        assert!(matches!(result, Err(Error::Io(_))), "{result:?}");
+        assert!(conn.is_closed());
+        assert_old_versions(&conn, &addr);
+        assert_peer_retired(&mut peer).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn expired_replacement_retires_old_socket_without_dialing() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "expired-replacement", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut first, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        let cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        let result =
+            replace_known_coord(&mut conn, &cfg, Deadline::from_timeout(Duration::ZERO)).await;
+        assert!(matches!(result, Err(Error::Timeout)));
+        assert!(conn.is_closed());
+        assert_old_versions(&conn, &addr);
+        assert_peer_retired(&mut first).await;
+        assert!(
+            tokio::time::timeout(Duration::from_millis(30), listener.accept())
+                .await
+                .is_err(),
+            "an expired replacement must not start a dial"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stalled_replacement_obeys_deadline_and_retires_socket() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let mut conn = BrokerConn::connect(&addr, "deadline-replacement", Duration::from_secs(3))
+            .await
+            .unwrap();
+        let (mut first, _) = listener.accept().await.unwrap();
+        remember_old_versions(&mut conn);
+        let peer = tokio::spawn(async move {
+            assert_peer_retired(&mut first).await;
+            let (mut second, _) = listener.accept().await.unwrap();
+            let request = read_request(&mut second).await;
+            assert_eq!((request.api_key, request.api_version), (API_VERSIONS, 4));
+            assert_peer_retired(&mut second).await;
+        });
+        let cfg = ConsumerConfig::bootstrap([addr.clone()]);
+        let result = replace_known_coord(
+            &mut conn,
+            &cfg,
+            Deadline::from_timeout(Duration::from_secs(1)),
+        )
+        .await;
+        assert!(matches!(result, Err(Error::Timeout)));
+        assert!(conn.is_closed());
+        assert_old_versions(&conn, &addr);
+        tokio::time::timeout(Duration::from_secs(3), peer)
+            .await
+            .unwrap()
+            .unwrap();
     }
 }
 

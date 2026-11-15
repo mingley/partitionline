@@ -1,0 +1,137 @@
+name: Producer assembly broad and Kafka checks
+on:
+  push:
+    branches: [qualification/producer-assembly-broad-live-20261110]
+permissions:
+  contents: read
+jobs:
+  broad:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run matched broad profiles
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          cargo -V
+          git worktree add --detach "$RUNNER_TEMP/assembly-broad-baseline" "5cd53d3c84eb23671b1d74f2c488d95ba69208e5"
+          git worktree add --detach "$RUNNER_TEMP/assembly-broad-candidate" "561d3235471dddd6ac87d048f586b53c47dd9430"
+          for arm in baseline candidate; do
+            tree="$RUNNER_TEMP/assembly-broad-$arm"
+            cp examples/producer_assembly_qualification.rs "$tree/examples/producer_assembly_qualification.rs"
+            printf 'ASSEMBLY_BROAD_SOURCE %s ' "$arm"
+            git -C "$tree" rev-parse HEAD
+            sha256sum "$tree/src/producer.rs" "$tree/examples/producer_assembly_qualification.rs"
+          done
+          failed=0
+          set +e
+          for arm in baseline candidate; do
+            tree="$RUNNER_TEMP/assembly-broad-$arm"
+            for profile in default all-features; do
+              args=()
+              if [ "$profile" = all-features ]; then args+=(--all-features); fi
+              log="$RUNNER_TEMP/assembly-broad-$arm-$profile.log"
+              (
+                cd "$tree"
+                CARGO_TARGET_DIR="$RUNNER_TEMP/assembly-broad-target-$arm" timeout 900s cargo test --locked --all-targets "${args[@]}" > "$log" 2>&1
+              )
+              code=$?
+              python3 - "$arm" "$profile" "$code" "$log" <<'PY'
+          import re,sys
+          arm,profile,code,path=sys.argv[1:]
+          lines=open(path,encoding='utf-8',errors='replace').read().splitlines()
+          results=[re.sub(r'\x1b\[[0-9;]*m','',line) for line in lines if 'test result:' in line]
+          print('ASSEMBLY_BROAD',arm,profile,'exit='+code,'result_lines='+str(len(results)),flush=True)
+          for line in results:
+              print('ASSEMBLY_BROAD_RESULT',arm,profile,line,flush=True)
+          if not results:
+              print('ASSEMBLY_BROAD_NO_RESULTS',arm,profile,flush=True)
+              sys.exit(1)
+          PY
+              parse_code=$?
+              if [ "$code" -ne 0 ] || [ "$parse_code" -ne 0 ]; then failed=1; fi
+            done
+          done
+          exit "$failed"
+  kafka:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Start pinned Apache Kafka
+        run: |
+          set -eu
+          docker run -d --name assembly-kafka -p 9092:9092 apache/kafka@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837
+          docker image inspect apache/kafka@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837 --format '{{.Id}} {{json .RepoDigests}}'
+          ready=0
+          for i in $(seq 1 90); do
+            if docker exec assembly-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" -eq 1
+          for arm in baseline candidate; do
+            for topic in 0 1 2 3; do
+              docker exec assembly-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic "assembly-$arm-$topic" --partitions 1 --replication-factor 1
+            done
+          done
+      - name: Run both acknowledged producers and independently read values
+        run: |
+          set -euo pipefail
+          rustc -Vv
+          git worktree add --detach "$RUNNER_TEMP/assembly-live-baseline" "5cd53d3c84eb23671b1d74f2c488d95ba69208e5"
+          git worktree add --detach "$RUNNER_TEMP/assembly-live-candidate" "561d3235471dddd6ac87d048f586b53c47dd9430"
+          failed=0
+          set +e
+          for arm in baseline candidate; do
+            tree="$RUNNER_TEMP/assembly-live-$arm"
+            cp examples/producer_assembly_qualification.rs "$tree/examples/producer_assembly_qualification.rs"
+            printf 'ASSEMBLY_LIVE_SOURCE %s ' "$arm"
+            git -C "$tree" rev-parse HEAD
+            sha256sum "$tree/src/producer.rs" "$tree/examples/producer_assembly_qualification.rs"
+            (
+              cd "$tree"
+              ASSEMBLY_SMOKE_BOOTSTRAP=127.0.0.1:9092 ASSEMBLY_SMOKE_PREFIX="assembly-$arm" CARGO_TARGET_DIR="$RUNNER_TEMP/assembly-live-target-$arm" timeout 180s cargo run --locked --example producer_assembly_qualification
+            )
+            code=$?
+            printf 'ASSEMBLY_LIVE_PRODUCER %s exit=%s\n' "$arm" "$code"
+            if [ "$code" -ne 0 ]; then
+              failed=1
+              continue
+            fi
+            for topic in 0 1 2 3; do
+              timeout 40s docker exec assembly-kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic "assembly-$arm-$topic" --partition 0 --offset earliest --max-messages 64 --timeout-ms 10000 > "$RUNNER_TEMP/assembly-$arm-$topic.txt"
+              code=$?
+              if [ "$code" -ne 0 ]; then
+                printf 'ASSEMBLY_LIVE_READBACK %s topic=%s exit=%s\n' "$arm" "$topic" "$code"
+                failed=1
+              fi
+            done
+            python3 - "$arm" "$RUNNER_TEMP" <<'PY'
+          from pathlib import Path
+          import sys
+          arm,root=sys.argv[1:]
+          prefix='assembly-'+arm
+          for topic in range(4):
+              values=(Path(root)/f'{prefix}-{topic}.txt').read_text().splitlines()
+              expected=[f'{prefix}:{index}' for index in range(topic,256,4)]
+              if values != expected:
+                  raise ValueError(f'{arm} topic {topic} readback mismatch: observed {len(values)}')
+          print(f'ASSEMBLY_LIVE_READBACK {arm} records=256 ordered=true',flush=True)
+          PY
+            code=$?
+            if [ "$code" -ne 0 ]; then failed=1; fi
+          done
+          exit "$failed"
+      - name: Stop Kafka
+        if: always()
+        run: docker rm -f assembly-kafka || true

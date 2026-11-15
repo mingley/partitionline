@@ -1,3 +1,7 @@
+> The descriptor counts below describe the earlier source recorded here. Current
+> Unix journal ownership retains additional descriptors. See [file descriptor
+> sizing](../../../../partitionline-broker/README.md#file-descriptors).
+
 KL11-09 implements explicit bounded rolling storage for the ordinary broker data
 Router. `produce::Config::segment_limits = Some(...)` selects it; the existing
 default monolithic constructors, layout and seven-entry API profile remain.

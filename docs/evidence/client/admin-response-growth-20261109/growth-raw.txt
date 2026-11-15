@@ -1,0 +1,400 @@
+2026-11-09T20:15:04.0132415Z ARM_OBSERVATION profile=default case=named pair=1 arm=baseline
+2026-11-09T20:15:05.2268971Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=58375658 before_polls=4 total_polls=62 longest_poll=57 longest_ns=241278927 longest_cpu_ticks=24
+2026-11-09T20:15:05.6597861Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=58375658 before_polls=4 total_polls=62 longest_poll=57 longest_ns=241278927 longest_cpu_ticks=24
+2026-11-09T20:15:05.6613510Z ARM_OBSERVATION profile=default case=named pair=1 arm=growth
+2026-11-09T20:15:05.7452571Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW case=named poll=1 old_capacity=0 new_capacity=3 wall_ns=51055 cpu_ticks=0
+2026-11-09T20:15:05.7453804Z ADMIN_GROW case=named poll=1 old_capacity=3 new_capacity=7 wall_ns=11867 cpu_ticks=0
+2026-11-09T20:15:05.7454597Z ADMIN_GROW case=named poll=1 old_capacity=7 new_capacity=14 wall_ns=3215 cpu_ticks=0
+2026-11-09T20:15:05.7455887Z ADMIN_GROW case=named poll=1 old_capacity=14 new_capacity=28 wall_ns=5428 cpu_ticks=0
+2026-11-09T20:15:05.7456425Z ADMIN_GROW case=named poll=1 old_capacity=28 new_capacity=56 wall_ns=9014 cpu_ticks=0
+2026-11-09T20:15:05.7456941Z ADMIN_GROW case=named poll=1 old_capacity=56 new_capacity=112 wall_ns=24036 cpu_ticks=0
+2026-11-09T20:15:05.7457460Z ADMIN_GROW case=named poll=1 old_capacity=112 new_capacity=224 wall_ns=43764 cpu_ticks=0
+2026-11-09T20:15:05.7457997Z ADMIN_GROW case=named poll=1 old_capacity=224 new_capacity=448 wall_ns=81661 cpu_ticks=0
+2026-11-09T20:15:05.7458528Z ADMIN_GROW case=named poll=1 old_capacity=448 new_capacity=896 wall_ns=149219 cpu_ticks=0
+2026-11-09T20:15:05.7459061Z ADMIN_GROW case=named poll=1 old_capacity=896 new_capacity=1792 wall_ns=293993 cpu_ticks=0
+2026-11-09T20:15:05.7459608Z ADMIN_GROW case=named poll=1 old_capacity=1792 new_capacity=3584 wall_ns=594695 cpu_ticks=0
+2026-11-09T20:15:05.7460161Z ADMIN_GROW case=named poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1241206 cpu_ticks=0
+2026-11-09T20:15:05.7460738Z ADMIN_GROW case=named poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2546958 cpu_ticks=0
+2026-11-09T20:15:05.7590627Z ADMIN_GROW case=named poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5181265 cpu_ticks=0
+2026-11-09T20:15:05.7871598Z ADMIN_GROW case=named poll=4 old_capacity=28672 new_capacity=57344 wall_ns=10771642 cpu_ticks=1
+2026-11-09T20:15:05.8469293Z ADMIN_GROW case=named poll=8 old_capacity=57344 new_capacity=114688 wall_ns=23990535 cpu_ticks=2
+2026-11-09T20:15:05.9646239Z ADMIN_GROW case=named poll=15 old_capacity=114688 new_capacity=229376 wall_ns=52902374 cpu_ticks=5
+2026-11-09T20:15:06.2134411Z ADMIN_GROW case=named poll=29 old_capacity=229376 new_capacity=458752 wall_ns=113734837 cpu_ticks=11
+2026-11-09T20:15:06.7213136Z ADMIN_GROW case=named poll=57 old_capacity=458752 new_capacity=917504 wall_ns=231063064 cpu_ticks=22
+2026-11-09T20:15:06.7622555Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=55340542 before_polls=4 total_polls=62 longest_poll=57 longest_ns=241335651 longest_cpu_ticks=23
+2026-11-09T20:15:07.1930605Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=55340542 before_polls=4 total_polls=62 longest_poll=57 longest_ns=241335651 longest_cpu_ticks=23
+2026-11-09T20:15:07.1962275Z ARM_OBSERVATION profile=default case=named pair=2 arm=growth
+2026-11-09T20:15:07.2858949Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW case=named poll=1 old_capacity=0 new_capacity=3 wall_ns=57805 cpu_ticks=0
+2026-11-09T20:15:07.2859882Z ADMIN_GROW case=named poll=1 old_capacity=3 new_capacity=7 wall_ns=16475 cpu_ticks=0
+2026-11-09T20:15:07.2860744Z ADMIN_GROW case=named poll=1 old_capacity=7 new_capacity=14 wall_ns=3044 cpu_ticks=0
+2026-11-09T20:15:07.2861258Z ADMIN_GROW case=named poll=1 old_capacity=14 new_capacity=28 wall_ns=5067 cpu_ticks=0
+2026-11-09T20:15:07.2861771Z ADMIN_GROW case=named poll=1 old_capacity=28 new_capacity=56 wall_ns=9283 cpu_ticks=0
+2026-11-09T20:15:07.2862302Z ADMIN_GROW case=named poll=1 old_capacity=56 new_capacity=112 wall_ns=25137 cpu_ticks=0
+2026-11-09T20:15:07.2863111Z ADMIN_GROW case=named poll=1 old_capacity=112 new_capacity=224 wall_ns=44495 cpu_ticks=0
+2026-11-09T20:15:07.2863637Z ADMIN_GROW case=named poll=1 old_capacity=224 new_capacity=448 wall_ns=79787 cpu_ticks=0
+2026-11-09T20:15:07.2864155Z ADMIN_GROW case=named poll=1 old_capacity=448 new_capacity=896 wall_ns=153225 cpu_ticks=0
+2026-11-09T20:15:07.2864681Z ADMIN_GROW case=named poll=1 old_capacity=896 new_capacity=1792 wall_ns=297908 cpu_ticks=0
+2026-11-09T20:15:07.2865220Z ADMIN_GROW case=named poll=1 old_capacity=1792 new_capacity=3584 wall_ns=613934 cpu_ticks=0
+2026-11-09T20:15:07.2865954Z ADMIN_GROW case=named poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1221818 cpu_ticks=1
+2026-11-09T20:15:07.2866509Z ADMIN_GROW case=named poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2538556 cpu_ticks=0
+2026-11-09T20:15:07.2997067Z ADMIN_GROW case=named poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5223647 cpu_ticks=1
+2026-11-09T20:15:07.3281968Z ADMIN_GROW case=named poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11059126 cpu_ticks=1
+2026-11-09T20:15:07.3893118Z ADMIN_GROW case=named poll=8 old_capacity=57344 new_capacity=114688 wall_ns=25150974 cpu_ticks=2
+2026-11-09T20:15:07.5094782Z ADMIN_GROW case=named poll=15 old_capacity=114688 new_capacity=229376 wall_ns=54659409 cpu_ticks=6
+2026-11-09T20:15:07.7603327Z ADMIN_GROW case=named poll=29 old_capacity=229376 new_capacity=458752 wall_ns=114226210 cpu_ticks=12
+2026-11-09T20:15:08.2705532Z ADMIN_GROW case=named poll=57 old_capacity=458752 new_capacity=917504 wall_ns=231359209 cpu_ticks=23
+2026-11-09T20:15:08.3117687Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=56233797 before_polls=4 total_polls=62 longest_poll=57 longest_ns=241710163 longest_cpu_ticks=24
+2026-11-09T20:15:08.7507747Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=56233797 before_polls=4 total_polls=62 longest_poll=57 longest_ns=241710163 longest_cpu_ticks=24
+2026-11-09T20:15:08.7537374Z ARM_OBSERVATION profile=default case=named pair=2 arm=baseline
+2026-11-09T20:15:09.8682063Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=57703760 before_polls=4 total_polls=62 longest_poll=57 longest_ns=238309537 longest_cpu_ticks=24
+2026-11-09T20:15:10.3098497Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=57703760 before_polls=4 total_polls=62 longest_poll=57 longest_ns=238309537 longest_cpu_ticks=24
+2026-11-09T20:15:10.3114120Z ARM_OBSERVATION profile=default case=named pair=3 arm=baseline
+2026-11-09T20:15:11.4263193Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=56637972 before_polls=4 total_polls=62 longest_poll=57 longest_ns=240689540 longest_cpu_ticks=24
+2026-11-09T20:15:11.8631405Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=56637972 before_polls=4 total_polls=62 longest_poll=57 longest_ns=240689540 longest_cpu_ticks=24
+2026-11-09T20:15:11.8647946Z ARM_OBSERVATION profile=default case=named pair=3 arm=growth
+2026-11-09T20:15:11.9474316Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW case=named poll=1 old_capacity=0 new_capacity=3 wall_ns=52347 cpu_ticks=0
+2026-11-09T20:15:11.9475473Z ADMIN_GROW case=named poll=1 old_capacity=3 new_capacity=7 wall_ns=12178 cpu_ticks=0
+2026-11-09T20:15:11.9476024Z ADMIN_GROW case=named poll=1 old_capacity=7 new_capacity=14 wall_ns=3034 cpu_ticks=0
+2026-11-09T20:15:11.9476572Z ADMIN_GROW case=named poll=1 old_capacity=14 new_capacity=28 wall_ns=5148 cpu_ticks=0
+2026-11-09T20:15:11.9477084Z ADMIN_GROW case=named poll=1 old_capacity=28 new_capacity=56 wall_ns=8963 cpu_ticks=0
+2026-11-09T20:15:11.9477620Z ADMIN_GROW case=named poll=1 old_capacity=56 new_capacity=112 wall_ns=24096 cpu_ticks=0
+2026-11-09T20:15:11.9478161Z ADMIN_GROW case=named poll=1 old_capacity=112 new_capacity=224 wall_ns=44366 cpu_ticks=0
+2026-11-09T20:15:11.9478669Z ADMIN_GROW case=named poll=1 old_capacity=224 new_capacity=448 wall_ns=77525 cpu_ticks=0
+2026-11-09T20:15:11.9479176Z ADMIN_GROW case=named poll=1 old_capacity=448 new_capacity=896 wall_ns=151383 cpu_ticks=0
+2026-11-09T20:15:11.9479712Z ADMIN_GROW case=named poll=1 old_capacity=896 new_capacity=1792 wall_ns=295515 cpu_ticks=0
+2026-11-09T20:15:11.9490876Z ADMIN_GROW case=named poll=1 old_capacity=1792 new_capacity=3584 wall_ns=587204 cpu_ticks=0
+2026-11-09T20:15:11.9491708Z ADMIN_GROW case=named poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1234697 cpu_ticks=0
+2026-11-09T20:15:11.9492487Z ADMIN_GROW case=named poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2509353 cpu_ticks=0
+2026-11-09T20:15:11.9619891Z ADMIN_GROW case=named poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5271058 cpu_ticks=1
+2026-11-09T20:15:11.9917509Z ADMIN_GROW case=named poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11161387 cpu_ticks=1
+2026-11-09T20:15:12.0561704Z ADMIN_GROW case=named poll=8 old_capacity=57344 new_capacity=114688 wall_ns=26036732 cpu_ticks=3
+2026-11-09T20:15:12.1786731Z ADMIN_GROW case=named poll=15 old_capacity=114688 new_capacity=229376 wall_ns=55848589 cpu_ticks=6
+2026-11-09T20:15:12.4279522Z ADMIN_GROW case=named poll=29 old_capacity=229376 new_capacity=458752 wall_ns=113521744 cpu_ticks=12
+2026-11-09T20:15:12.9384305Z ADMIN_GROW case=named poll=57 old_capacity=458752 new_capacity=917504 wall_ns=232024890 cpu_ticks=23
+2026-11-09T20:15:12.9818098Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=58013356 before_polls=4 total_polls=62 longest_poll=57 longest_ns=242970200 longest_cpu_ticks=24
+2026-11-09T20:15:13.4312589Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=58013356 before_polls=4 total_polls=62 longest_poll=57 longest_ns=242970200 longest_cpu_ticks=24
+2026-11-09T20:15:13.4343023Z ARM_OBSERVATION profile=default case=named pair=4 arm=growth
+2026-11-09T20:15:13.5172857Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW case=named poll=1 old_capacity=0 new_capacity=3 wall_ns=53279 cpu_ticks=0
+2026-11-09T20:15:13.5174148Z ADMIN_GROW case=named poll=1 old_capacity=3 new_capacity=7 wall_ns=13460 cpu_ticks=0
+2026-11-09T20:15:13.5175015Z ADMIN_GROW case=named poll=1 old_capacity=7 new_capacity=14 wall_ns=3075 cpu_ticks=0
+2026-11-09T20:15:13.5175875Z ADMIN_GROW case=named poll=1 old_capacity=14 new_capacity=28 wall_ns=5248 cpu_ticks=0
+2026-11-09T20:15:13.5176716Z ADMIN_GROW case=named poll=1 old_capacity=28 new_capacity=56 wall_ns=8833 cpu_ticks=0
+2026-11-09T20:15:13.5177563Z ADMIN_GROW case=named poll=1 old_capacity=56 new_capacity=112 wall_ns=24226 cpu_ticks=0
+2026-11-09T20:15:13.5178430Z ADMIN_GROW case=named poll=1 old_capacity=112 new_capacity=224 wall_ns=47379 cpu_ticks=0
+2026-11-09T20:15:13.5179299Z ADMIN_GROW case=named poll=1 old_capacity=224 new_capacity=448 wall_ns=91174 cpu_ticks=0
+2026-11-09T20:15:13.5180502Z ADMIN_GROW case=named poll=1 old_capacity=448 new_capacity=896 wall_ns=148979 cpu_ticks=0
+2026-11-09T20:15:13.5181427Z ADMIN_GROW case=named poll=1 old_capacity=896 new_capacity=1792 wall_ns=310717 cpu_ticks=0
+2026-11-09T20:15:13.5182330Z ADMIN_GROW case=named poll=1 old_capacity=1792 new_capacity=3584 wall_ns=597018 cpu_ticks=0
+2026-11-09T20:15:13.5183387Z ADMIN_GROW case=named poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1223761 cpu_ticks=0
+2026-11-09T20:15:13.5184308Z ADMIN_GROW case=named poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2503094 cpu_ticks=0
+2026-11-09T20:15:13.5321837Z ADMIN_GROW case=named poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5287852 cpu_ticks=0
+2026-11-09T20:15:13.5623965Z ADMIN_GROW case=named poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11398707 cpu_ticks=0
+2026-11-09T20:15:13.6259890Z ADMIN_GROW case=named poll=8 old_capacity=57344 new_capacity=114688 wall_ns=26634511 cpu_ticks=2
+2026-11-09T20:15:13.7491843Z ADMIN_GROW case=named poll=15 old_capacity=114688 new_capacity=229376 wall_ns=55762453 cpu_ticks=6
+2026-11-09T20:15:13.9999171Z ADMIN_GROW case=named poll=29 old_capacity=229376 new_capacity=458752 wall_ns=113917006 cpu_ticks=12
+2026-11-09T20:15:14.5145146Z ADMIN_GROW case=named poll=57 old_capacity=458752 new_capacity=917504 wall_ns=232478848 cpu_ticks=24
+2026-11-09T20:15:14.5564710Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=38052236 before_polls=3 total_polls=62 longest_poll=57 longest_ns=242987685 longest_cpu_ticks=25
+2026-11-09T20:15:15.0029911Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=38052236 before_polls=3 total_polls=62 longest_poll=57 longest_ns=242987685 longest_cpu_ticks=25
+2026-11-09T20:15:15.0060144Z ARM_OBSERVATION profile=default case=named pair=4 arm=baseline
+2026-11-09T20:15:16.1266595Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=56951853 before_polls=4 total_polls=62 longest_poll=57 longest_ns=240624106 longest_cpu_ticks=23
+2026-11-09T20:15:16.5668915Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=56951853 before_polls=4 total_polls=62 longest_poll=57 longest_ns=240624106 longest_cpu_ticks=23
+2026-11-09T20:15:16.5698892Z ARM_OBSERVATION profile=default case=coordinator pair=1 arm=baseline
+2026-11-09T20:15:17.4504642Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=39001172 before_polls=5 total_polls=62 longest_poll=57 longest_ns=236314423 longest_cpu_ticks=24
+2026-11-09T20:15:17.6523527Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=39001172 before_polls=5 total_polls=62 longest_poll=57 longest_ns=236314423 longest_cpu_ticks=24
+2026-11-09T20:15:17.6539470Z ARM_OBSERVATION profile=default case=coordinator pair=1 arm=growth
+2026-11-09T20:15:17.8314826Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW case=coordinator poll=1 old_capacity=0 new_capacity=3 wall_ns=33289 cpu_ticks=0
+2026-11-09T20:15:17.8316244Z ADMIN_GROW case=coordinator poll=1 old_capacity=3 new_capacity=7 wall_ns=5778 cpu_ticks=0
+2026-11-09T20:15:17.8317171Z ADMIN_GROW case=coordinator poll=1 old_capacity=7 new_capacity=14 wall_ns=2924 cpu_ticks=0
+2026-11-09T20:15:17.8318101Z ADMIN_GROW case=coordinator poll=1 old_capacity=14 new_capacity=28 wall_ns=4947 cpu_ticks=0
+2026-11-09T20:15:17.8319048Z ADMIN_GROW case=coordinator poll=1 old_capacity=28 new_capacity=56 wall_ns=20631 cpu_ticks=0
+2026-11-09T20:15:17.8319977Z ADMIN_GROW case=coordinator poll=1 old_capacity=56 new_capacity=112 wall_ns=36664 cpu_ticks=0
+2026-11-09T20:15:17.8320910Z ADMIN_GROW case=coordinator poll=1 old_capacity=112 new_capacity=224 wall_ns=45037 cpu_ticks=0
+2026-11-09T20:15:17.8321892Z ADMIN_GROW case=coordinator poll=1 old_capacity=224 new_capacity=448 wall_ns=80879 cpu_ticks=0
+2026-11-09T20:15:17.8323005Z ADMIN_GROW case=coordinator poll=1 old_capacity=448 new_capacity=896 wall_ns=156100 cpu_ticks=0
+2026-11-09T20:15:17.8323983Z ADMIN_GROW case=coordinator poll=1 old_capacity=896 new_capacity=1792 wall_ns=324447 cpu_ticks=0
+2026-11-09T20:15:17.8324956Z ADMIN_GROW case=coordinator poll=1 old_capacity=1792 new_capacity=3584 wall_ns=632071 cpu_ticks=0
+2026-11-09T20:15:17.8325954Z ADMIN_GROW case=coordinator poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1277300 cpu_ticks=0
+2026-11-09T20:15:17.8326935Z ADMIN_GROW case=coordinator poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2595601 cpu_ticks=2
+2026-11-09T20:15:17.8409451Z ADMIN_GROW case=coordinator poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5406006 cpu_ticks=0
+2026-11-09T20:15:17.8606684Z ADMIN_GROW case=coordinator poll=4 old_capacity=28672 new_capacity=57344 wall_ns=12081932 cpu_ticks=1
+2026-11-09T20:15:17.9031597Z ADMIN_GROW case=coordinator poll=8 old_capacity=57344 new_capacity=114688 wall_ns=26110781 cpu_ticks=2
+2026-11-09T20:15:17.9903335Z ADMIN_GROW case=coordinator poll=15 old_capacity=114688 new_capacity=229376 wall_ns=56134540 cpu_ticks=6
+2026-11-09T20:15:18.1726233Z ADMIN_GROW case=coordinator poll=29 old_capacity=229376 new_capacity=458752 wall_ns=117006854 cpu_ticks=11
+2026-11-09T20:15:18.5453187Z ADMIN_GROW case=coordinator poll=57 old_capacity=458752 new_capacity=917504 wall_ns=237856683 cpu_ticks=23
+2026-11-09T20:15:18.5698751Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=42465832 before_polls=5 total_polls=62 longest_poll=57 longest_ns=243329629 longest_cpu_ticks=23
+2026-11-09T20:15:18.7670914Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=42465832 before_polls=5 total_polls=62 longest_poll=57 longest_ns=243329629 longest_cpu_ticks=23
+2026-11-09T20:15:18.7702072Z ARM_OBSERVATION profile=default case=coordinator pair=2 arm=growth
+2026-11-09T20:15:18.9299824Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW case=coordinator poll=1 old_capacity=0 new_capacity=3 wall_ns=30615 cpu_ticks=0
+2026-11-09T20:15:18.9301245Z ADMIN_GROW case=coordinator poll=1 old_capacity=3 new_capacity=7 wall_ns=5928 cpu_ticks=0
+2026-11-09T20:15:18.9302191Z ADMIN_GROW case=coordinator poll=1 old_capacity=7 new_capacity=14 wall_ns=2744 cpu_ticks=0
+2026-11-09T20:15:18.9303355Z ADMIN_GROW case=coordinator poll=1 old_capacity=14 new_capacity=28 wall_ns=4627 cpu_ticks=0
+2026-11-09T20:15:18.9304740Z ADMIN_GROW case=coordinator poll=1 old_capacity=28 new_capacity=56 wall_ns=13380 cpu_ticks=0
+2026-11-09T20:15:18.9305714Z ADMIN_GROW case=coordinator poll=1 old_capacity=56 new_capacity=112 wall_ns=23114 cpu_ticks=0
+2026-11-09T20:15:18.9306654Z ADMIN_GROW case=coordinator poll=1 old_capacity=112 new_capacity=224 wall_ns=59157 cpu_ticks=0
+2026-11-09T20:15:18.9307591Z ADMIN_GROW case=coordinator poll=1 old_capacity=224 new_capacity=448 wall_ns=79507 cpu_ticks=0
+2026-11-09T20:15:18.9308525Z ADMIN_GROW case=coordinator poll=1 old_capacity=448 new_capacity=896 wall_ns=153996 cpu_ticks=0
+2026-11-09T20:15:18.9309497Z ADMIN_GROW case=coordinator poll=1 old_capacity=896 new_capacity=1792 wall_ns=303056 cpu_ticks=0
+2026-11-09T20:15:18.9310532Z ADMIN_GROW case=coordinator poll=1 old_capacity=1792 new_capacity=3584 wall_ns=605451 cpu_ticks=0
+2026-11-09T20:15:18.9311510Z ADMIN_GROW case=coordinator poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1250039 cpu_ticks=0
+2026-11-09T20:15:18.9312498Z ADMIN_GROW case=coordinator poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2571335 cpu_ticks=0
+2026-11-09T20:15:18.9393222Z ADMIN_GROW case=coordinator poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5305299 cpu_ticks=1
+2026-11-09T20:15:18.9577768Z ADMIN_GROW case=coordinator poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11131374 cpu_ticks=1
+2026-11-09T20:15:18.9973318Z ADMIN_GROW case=coordinator poll=8 old_capacity=57344 new_capacity=114688 wall_ns=23667564 cpu_ticks=1
+2026-11-09T20:15:19.0812106Z ADMIN_GROW case=coordinator poll=15 old_capacity=114688 new_capacity=229376 wall_ns=53122587 cpu_ticks=6
+2026-11-09T20:15:19.2589252Z ADMIN_GROW case=coordinator poll=29 old_capacity=229376 new_capacity=458752 wall_ns=113529836 cpu_ticks=12
+2026-11-09T20:15:19.6249306Z ADMIN_GROW case=coordinator poll=57 old_capacity=458752 new_capacity=917504 wall_ns=231724740 cpu_ticks=23
+2026-11-09T20:15:19.6493547Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=37007668 before_polls=4 total_polls=62 longest_poll=57 longest_ns=237212636 longest_cpu_ticks=24
+2026-11-09T20:15:19.8438164Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=37007668 before_polls=4 total_polls=62 longest_poll=57 longest_ns=237212636 longest_cpu_ticks=24
+2026-11-09T20:15:19.8470724Z ARM_OBSERVATION profile=default case=coordinator pair=2 arm=baseline
+2026-11-09T20:15:20.7497975Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=39062911 before_polls=5 total_polls=62 longest_poll=57 longest_ns=237365097 longest_cpu_ticks=23
+2026-11-09T20:15:20.9547448Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=39062911 before_polls=5 total_polls=62 longest_poll=57 longest_ns=237365097 longest_cpu_ticks=23
+2026-11-09T20:15:20.9564285Z ARM_OBSERVATION profile=default case=coordinator pair=3 arm=baseline
+2026-11-09T20:15:21.8630186Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=41775232 before_polls=5 total_polls=62 longest_poll=57 longest_ns=237728353 longest_cpu_ticks=24
+2026-11-09T20:15:22.0661692Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=41775232 before_polls=5 total_polls=62 longest_poll=57 longest_ns=237728353 longest_cpu_ticks=24
+2026-11-09T20:15:22.0677581Z ARM_OBSERVATION profile=default case=coordinator pair=3 arm=growth
+2026-11-09T20:15:22.2272235Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW case=coordinator poll=1 old_capacity=0 new_capacity=3 wall_ns=31416 cpu_ticks=0
+2026-11-09T20:15:22.2273854Z ADMIN_GROW case=coordinator poll=1 old_capacity=3 new_capacity=7 wall_ns=6049 cpu_ticks=0
+2026-11-09T20:15:22.2274912Z ADMIN_GROW case=coordinator poll=1 old_capacity=7 new_capacity=14 wall_ns=2935 cpu_ticks=0
+2026-11-09T20:15:22.2275840Z ADMIN_GROW case=coordinator poll=1 old_capacity=14 new_capacity=28 wall_ns=4917 cpu_ticks=1
+2026-11-09T20:15:22.2276774Z ADMIN_GROW case=coordinator poll=1 old_capacity=28 new_capacity=56 wall_ns=13110 cpu_ticks=0
+2026-11-09T20:15:22.2277710Z ADMIN_GROW case=coordinator poll=1 old_capacity=56 new_capacity=112 wall_ns=24095 cpu_ticks=0
+2026-11-09T20:15:22.2278643Z ADMIN_GROW case=coordinator poll=1 old_capacity=112 new_capacity=224 wall_ns=43274 cpu_ticks=0
+2026-11-09T20:15:22.2279578Z ADMIN_GROW case=coordinator poll=1 old_capacity=224 new_capacity=448 wall_ns=79426 cpu_ticks=0
+2026-11-09T20:15:22.2280515Z ADMIN_GROW case=coordinator poll=1 old_capacity=448 new_capacity=896 wall_ns=160316 cpu_ticks=0
+2026-11-09T20:15:22.2281468Z ADMIN_GROW case=coordinator poll=1 old_capacity=896 new_capacity=1792 wall_ns=322144 cpu_ticks=0
+2026-11-09T20:15:22.2282452Z ADMIN_GROW case=coordinator poll=1 old_capacity=1792 new_capacity=3584 wall_ns=617939 cpu_ticks=0
+2026-11-09T20:15:22.2283613Z ADMIN_GROW case=coordinator poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1271281 cpu_ticks=0
+2026-11-09T20:15:22.2284609Z ADMIN_GROW case=coordinator poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2587689 cpu_ticks=1
+2026-11-09T20:15:22.2365294Z ADMIN_GROW case=coordinator poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5358827 cpu_ticks=1
+2026-11-09T20:15:22.2552852Z ADMIN_GROW case=coordinator poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11203198 cpu_ticks=1
+2026-11-09T20:15:22.2983806Z ADMIN_GROW case=coordinator poll=8 old_capacity=57344 new_capacity=114688 wall_ns=25961669 cpu_ticks=3
+2026-11-09T20:15:22.3864179Z ADMIN_GROW case=coordinator poll=15 old_capacity=114688 new_capacity=229376 wall_ns=55897537 cpu_ticks=6
+2026-11-09T20:15:22.5686264Z ADMIN_GROW case=coordinator poll=29 old_capacity=229376 new_capacity=458752 wall_ns=115796130 cpu_ticks=12
+2026-11-09T20:15:22.9433740Z ADMIN_GROW case=coordinator poll=57 old_capacity=458752 new_capacity=917504 wall_ns=237434580 cpu_ticks=23
+2026-11-09T20:15:22.9687082Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=41051286 before_polls=5 total_polls=62 longest_poll=57 longest_ns=243160297 longest_cpu_ticks=24
+2026-11-09T20:15:23.1796810Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=41051286 before_polls=5 total_polls=62 longest_poll=57 longest_ns=243160297 longest_cpu_ticks=24
+2026-11-09T20:15:23.1828041Z ARM_OBSERVATION profile=default case=coordinator pair=4 arm=growth
+2026-11-09T20:15:23.3429034Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW case=coordinator poll=1 old_capacity=0 new_capacity=3 wall_ns=30435 cpu_ticks=0
+2026-11-09T20:15:23.3430457Z ADMIN_GROW case=coordinator poll=1 old_capacity=3 new_capacity=7 wall_ns=6139 cpu_ticks=0
+2026-11-09T20:15:23.3431408Z ADMIN_GROW case=coordinator poll=1 old_capacity=7 new_capacity=14 wall_ns=2845 cpu_ticks=0
+2026-11-09T20:15:23.3432325Z ADMIN_GROW case=coordinator poll=1 old_capacity=14 new_capacity=28 wall_ns=4837 cpu_ticks=0
+2026-11-09T20:15:23.3433460Z ADMIN_GROW case=coordinator poll=1 old_capacity=28 new_capacity=56 wall_ns=12729 cpu_ticks=0
+2026-11-09T20:15:23.3434387Z ADMIN_GROW case=coordinator poll=1 old_capacity=56 new_capacity=112 wall_ns=27310 cpu_ticks=0
+2026-11-09T20:15:23.3435332Z ADMIN_GROW case=coordinator poll=1 old_capacity=112 new_capacity=224 wall_ns=43253 cpu_ticks=0
+2026-11-09T20:15:23.3436273Z ADMIN_GROW case=coordinator poll=1 old_capacity=224 new_capacity=448 wall_ns=83683 cpu_ticks=0
+2026-11-09T20:15:23.3437237Z ADMIN_GROW case=coordinator poll=1 old_capacity=448 new_capacity=896 wall_ns=154457 cpu_ticks=0
+2026-11-09T20:15:23.3438216Z ADMIN_GROW case=coordinator poll=1 old_capacity=896 new_capacity=1792 wall_ns=301834 cpu_ticks=0
+2026-11-09T20:15:23.3439186Z ADMIN_GROW case=coordinator poll=1 old_capacity=1792 new_capacity=3584 wall_ns=614815 cpu_ticks=0
+2026-11-09T20:15:23.3440163Z ADMIN_GROW case=coordinator poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1266063 cpu_ticks=0
+2026-11-09T20:15:23.3441147Z ADMIN_GROW case=coordinator poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2566226 cpu_ticks=0
+2026-11-09T20:15:23.3524009Z ADMIN_GROW case=coordinator poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5535116 cpu_ticks=1
+2026-11-09T20:15:23.3715800Z ADMIN_GROW case=coordinator poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11507947 cpu_ticks=1
+2026-11-09T20:15:23.4151524Z ADMIN_GROW case=coordinator poll=8 old_capacity=57344 new_capacity=114688 wall_ns=26635871 cpu_ticks=2
+2026-11-09T20:15:23.5041823Z ADMIN_GROW case=coordinator poll=15 old_capacity=114688 new_capacity=229376 wall_ns=57104782 cpu_ticks=7
+2026-11-09T20:15:23.6872156Z ADMIN_GROW case=coordinator poll=29 old_capacity=229376 new_capacity=458752 wall_ns=116497082 cpu_ticks=11
+2026-11-09T20:15:24.0623495Z ADMIN_GROW case=coordinator poll=57 old_capacity=458752 new_capacity=917504 wall_ns=238104877 cpu_ticks=24
+2026-11-09T20:15:24.0881727Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=37860481 before_polls=4 total_polls=62 longest_poll=57 longest_ns=243771586 longest_cpu_ticks=24
+2026-11-09T20:15:24.2972496Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=37860481 before_polls=4 total_polls=62 longest_poll=57 longest_ns=243771586 longest_cpu_ticks=24
+2026-11-09T20:15:24.3003727Z ARM_OBSERVATION profile=default case=coordinator pair=4 arm=baseline
+2026-11-09T20:15:25.2033349Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=39549837 before_polls=5 total_polls=62 longest_poll=57 longest_ns=238367193 longest_cpu_ticks=24
+2026-11-09T20:15:25.4118613Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=39549837 before_polls=5 total_polls=62 longest_poll=57 longest_ns=238367193 longest_cpu_ticks=24
+2026-11-09T20:15:25.4148970Z ARM_OBSERVATION profile=all case=named pair=1 arm=baseline
+2026-11-09T20:15:26.5650213Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=58918412 before_polls=4 total_polls=62 longest_poll=57 longest_ns=243680382 longest_cpu_ticks=24
+2026-11-09T20:15:27.0207760Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=58918412 before_polls=4 total_polls=62 longest_poll=57 longest_ns=243680382 longest_cpu_ticks=24
+2026-11-09T20:15:27.0224096Z ARM_OBSERVATION profile=all case=named pair=1 arm=growth
+2026-11-09T20:15:27.1124299Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW case=named poll=1 old_capacity=0 new_capacity=3 wall_ns=59989 cpu_ticks=0
+2026-11-09T20:15:27.1125597Z ADMIN_GROW case=named poll=1 old_capacity=3 new_capacity=7 wall_ns=19128 cpu_ticks=0
+2026-11-09T20:15:27.1126452Z ADMIN_GROW case=named poll=1 old_capacity=7 new_capacity=14 wall_ns=3175 cpu_ticks=0
+2026-11-09T20:15:27.1127294Z ADMIN_GROW case=named poll=1 old_capacity=14 new_capacity=28 wall_ns=5318 cpu_ticks=0
+2026-11-09T20:15:27.1128145Z ADMIN_GROW case=named poll=1 old_capacity=28 new_capacity=56 wall_ns=9163 cpu_ticks=0
+2026-11-09T20:15:27.1129003Z ADMIN_GROW case=named poll=1 old_capacity=56 new_capacity=112 wall_ns=25888 cpu_ticks=0
+2026-11-09T20:15:27.1129922Z ADMIN_GROW case=named poll=1 old_capacity=112 new_capacity=224 wall_ns=45367 cpu_ticks=0
+2026-11-09T20:15:27.1130780Z ADMIN_GROW case=named poll=1 old_capacity=224 new_capacity=448 wall_ns=94379 cpu_ticks=0
+2026-11-09T20:15:27.1131639Z ADMIN_GROW case=named poll=1 old_capacity=448 new_capacity=896 wall_ns=152915 cpu_ticks=0
+2026-11-09T20:15:27.1132519Z ADMIN_GROW case=named poll=1 old_capacity=896 new_capacity=1792 wall_ns=308143 cpu_ticks=0
+2026-11-09T20:15:27.1133601Z ADMIN_GROW case=named poll=1 old_capacity=1792 new_capacity=3584 wall_ns=589057 cpu_ticks=0
+2026-11-09T20:15:27.1134524Z ADMIN_GROW case=named poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1227967 cpu_ticks=0
+2026-11-09T20:15:27.1135449Z ADMIN_GROW case=named poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2505257 cpu_ticks=0
+2026-11-09T20:15:27.1271240Z ADMIN_GROW case=named poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5262545 cpu_ticks=0
+2026-11-09T20:15:27.1573399Z ADMIN_GROW case=named poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11982225 cpu_ticks=1
+2026-11-09T20:15:27.2220937Z ADMIN_GROW case=named poll=8 old_capacity=57344 new_capacity=114688 wall_ns=27288762 cpu_ticks=3
+2026-11-09T20:15:27.3457337Z ADMIN_GROW case=named poll=15 old_capacity=114688 new_capacity=229376 wall_ns=56315181 cpu_ticks=5
+2026-11-09T20:15:27.5976930Z ADMIN_GROW case=named poll=29 old_capacity=229376 new_capacity=458752 wall_ns=114512518 cpu_ticks=12
+2026-11-09T20:15:28.1106380Z ADMIN_GROW case=named poll=57 old_capacity=458752 new_capacity=917504 wall_ns=232538387 cpu_ticks=23
+2026-11-09T20:15:28.1523251Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=58837663 before_polls=4 total_polls=62 longest_poll=57 longest_ns=243003159 longest_cpu_ticks=24
+2026-11-09T20:15:28.5983181Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=58837663 before_polls=4 total_polls=62 longest_poll=57 longest_ns=243003159 longest_cpu_ticks=24
+2026-11-09T20:15:28.6014293Z ARM_OBSERVATION profile=all case=named pair=2 arm=growth
+2026-11-09T20:15:28.6910392Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW case=named poll=1 old_capacity=0 new_capacity=3 wall_ns=61120 cpu_ticks=0
+2026-11-09T20:15:28.6911691Z ADMIN_GROW case=named poll=1 old_capacity=3 new_capacity=7 wall_ns=18277 cpu_ticks=0
+2026-11-09T20:15:28.6912539Z ADMIN_GROW case=named poll=1 old_capacity=7 new_capacity=14 wall_ns=3115 cpu_ticks=0
+2026-11-09T20:15:28.6913572Z ADMIN_GROW case=named poll=1 old_capacity=14 new_capacity=28 wall_ns=5167 cpu_ticks=0
+2026-11-09T20:15:28.6914410Z ADMIN_GROW case=named poll=1 old_capacity=28 new_capacity=56 wall_ns=9113 cpu_ticks=0
+2026-11-09T20:15:28.6915302Z ADMIN_GROW case=named poll=1 old_capacity=56 new_capacity=112 wall_ns=25137 cpu_ticks=0
+2026-11-09T20:15:28.6916173Z ADMIN_GROW case=named poll=1 old_capacity=112 new_capacity=224 wall_ns=44836 cpu_ticks=0
+2026-11-09T20:15:28.6917048Z ADMIN_GROW case=named poll=1 old_capacity=224 new_capacity=448 wall_ns=79837 cpu_ticks=0
+2026-11-09T20:15:28.6917913Z ADMIN_GROW case=named poll=1 old_capacity=448 new_capacity=896 wall_ns=152645 cpu_ticks=0
+2026-11-09T20:15:28.6918785Z ADMIN_GROW case=named poll=1 old_capacity=896 new_capacity=1792 wall_ns=295775 cpu_ticks=0
+2026-11-09T20:15:28.6919685Z ADMIN_GROW case=named poll=1 old_capacity=1792 new_capacity=3584 wall_ns=610949 cpu_ticks=0
+2026-11-09T20:15:28.6920608Z ADMIN_GROW case=named poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1226335 cpu_ticks=0
+2026-11-09T20:15:28.6921524Z ADMIN_GROW case=named poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2512278 cpu_ticks=0
+2026-11-09T20:15:28.7052918Z ADMIN_GROW case=named poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5201115 cpu_ticks=1
+2026-11-09T20:15:28.7349181Z ADMIN_GROW case=named poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11694342 cpu_ticks=1
+2026-11-09T20:15:28.7982346Z ADMIN_GROW case=named poll=8 old_capacity=57344 new_capacity=114688 wall_ns=26190176 cpu_ticks=3
+2026-11-09T20:15:28.9207053Z ADMIN_GROW case=named poll=15 old_capacity=114688 new_capacity=229376 wall_ns=55256005 cpu_ticks=7
+2026-11-09T20:15:29.1715733Z ADMIN_GROW case=named poll=29 old_capacity=229376 new_capacity=458752 wall_ns=113810185 cpu_ticks=12
+2026-11-09T20:15:29.6864405Z ADMIN_GROW case=named poll=57 old_capacity=458752 new_capacity=917504 wall_ns=234967012 cpu_ticks=23
+2026-11-09T20:15:29.7279152Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=36809846 before_polls=3 total_polls=62 longest_poll=57 longest_ns=245444263 longest_cpu_ticks=24
+2026-11-09T20:15:30.1791757Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=36809846 before_polls=3 total_polls=62 longest_poll=57 longest_ns=245444263 longest_cpu_ticks=24
+2026-11-09T20:15:30.1822324Z ARM_OBSERVATION profile=all case=named pair=2 arm=baseline
+2026-11-09T20:15:31.3055565Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=36133261 before_polls=3 total_polls=62 longest_poll=57 longest_ns=243181081 longest_cpu_ticks=24
+2026-11-09T20:15:31.7445826Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=36133261 before_polls=3 total_polls=62 longest_poll=57 longest_ns=243181081 longest_cpu_ticks=24
+2026-11-09T20:15:31.7462125Z ARM_OBSERVATION profile=all case=named pair=3 arm=baseline
+2026-11-09T20:15:32.8589525Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=58089866 before_polls=4 total_polls=62 longest_poll=57 longest_ns=242550483 longest_cpu_ticks=24
+2026-11-09T20:15:33.3028873Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=58089866 before_polls=4 total_polls=62 longest_poll=57 longest_ns=242550483 longest_cpu_ticks=24
+2026-11-09T20:15:33.3044895Z ARM_OBSERVATION profile=all case=named pair=3 arm=growth
+2026-11-09T20:15:33.3953772Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW case=named poll=1 old_capacity=0 new_capacity=3 wall_ns=65547 cpu_ticks=0
+2026-11-09T20:15:33.3954624Z ADMIN_GROW case=named poll=1 old_capacity=3 new_capacity=7 wall_ns=15773 cpu_ticks=0
+2026-11-09T20:15:33.3955193Z ADMIN_GROW case=named poll=1 old_capacity=7 new_capacity=14 wall_ns=3104 cpu_ticks=0
+2026-11-09T20:15:33.3955725Z ADMIN_GROW case=named poll=1 old_capacity=14 new_capacity=28 wall_ns=5408 cpu_ticks=0
+2026-11-09T20:15:33.3956280Z ADMIN_GROW case=named poll=1 old_capacity=28 new_capacity=56 wall_ns=9103 cpu_ticks=0
+2026-11-09T20:15:33.3956784Z ADMIN_GROW case=named poll=1 old_capacity=56 new_capacity=112 wall_ns=25428 cpu_ticks=0
+2026-11-09T20:15:33.3957303Z ADMIN_GROW case=named poll=1 old_capacity=112 new_capacity=224 wall_ns=46779 cpu_ticks=0
+2026-11-09T20:15:33.3957814Z ADMIN_GROW case=named poll=1 old_capacity=224 new_capacity=448 wall_ns=85225 cpu_ticks=0
+2026-11-09T20:15:33.3958323Z ADMIN_GROW case=named poll=1 old_capacity=448 new_capacity=896 wall_ns=150311 cpu_ticks=0
+2026-11-09T20:15:33.3958851Z ADMIN_GROW case=named poll=1 old_capacity=896 new_capacity=1792 wall_ns=310637 cpu_ticks=0
+2026-11-09T20:15:33.3959390Z ADMIN_GROW case=named poll=1 old_capacity=1792 new_capacity=3584 wall_ns=606123 cpu_ticks=0
+2026-11-09T20:15:33.3959930Z ADMIN_GROW case=named poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1272252 cpu_ticks=0
+2026-11-09T20:15:33.3960472Z ADMIN_GROW case=named poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2504516 cpu_ticks=1
+2026-11-09T20:15:33.4098391Z ADMIN_GROW case=named poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5354641 cpu_ticks=0
+2026-11-09T20:15:33.4396137Z ADMIN_GROW case=named poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11831464 cpu_ticks=1
+2026-11-09T20:15:33.5061054Z ADMIN_GROW case=named poll=8 old_capacity=57344 new_capacity=114688 wall_ns=27748650 cpu_ticks=4
+2026-11-09T20:15:33.6306873Z ADMIN_GROW case=named poll=15 old_capacity=114688 new_capacity=229376 wall_ns=56226043 cpu_ticks=6
+2026-11-09T20:15:33.8849096Z ADMIN_GROW case=named poll=29 old_capacity=229376 new_capacity=458752 wall_ns=115224316 cpu_ticks=12
+2026-11-09T20:15:34.4024274Z ADMIN_GROW case=named poll=57 old_capacity=458752 new_capacity=917504 wall_ns=234505443 cpu_ticks=24
+2026-11-09T20:15:34.4442002Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=37207652 before_polls=3 total_polls=62 longest_poll=57 longest_ns=245008802 longest_cpu_ticks=25
+2026-11-09T20:15:34.8894052Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=37207652 before_polls=3 total_polls=62 longest_poll=57 longest_ns=245008802 longest_cpu_ticks=25
+2026-11-09T20:15:34.8924494Z ARM_OBSERVATION profile=all case=named pair=4 arm=growth
+2026-11-09T20:15:34.9751592Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW case=named poll=1 old_capacity=0 new_capacity=3 wall_ns=57064 cpu_ticks=0
+2026-11-09T20:15:34.9752443Z ADMIN_GROW case=named poll=1 old_capacity=3 new_capacity=7 wall_ns=11897 cpu_ticks=0
+2026-11-09T20:15:34.9753236Z ADMIN_GROW case=named poll=1 old_capacity=7 new_capacity=14 wall_ns=2975 cpu_ticks=0
+2026-11-09T20:15:34.9753817Z ADMIN_GROW case=named poll=1 old_capacity=14 new_capacity=28 wall_ns=5448 cpu_ticks=0
+2026-11-09T20:15:34.9754332Z ADMIN_GROW case=named poll=1 old_capacity=28 new_capacity=56 wall_ns=9384 cpu_ticks=0
+2026-11-09T20:15:34.9754842Z ADMIN_GROW case=named poll=1 old_capacity=56 new_capacity=112 wall_ns=23975 cpu_ticks=0
+2026-11-09T20:15:34.9755366Z ADMIN_GROW case=named poll=1 old_capacity=112 new_capacity=224 wall_ns=43294 cpu_ticks=0
+2026-11-09T20:15:34.9755876Z ADMIN_GROW case=named poll=1 old_capacity=224 new_capacity=448 wall_ns=77194 cpu_ticks=0
+2026-11-09T20:15:34.9756398Z ADMIN_GROW case=named poll=1 old_capacity=448 new_capacity=896 wall_ns=153005 cpu_ticks=0
+2026-11-09T20:15:34.9756948Z ADMIN_GROW case=named poll=1 old_capacity=896 new_capacity=1792 wall_ns=308173 cpu_ticks=0
+2026-11-09T20:15:34.9757485Z ADMIN_GROW case=named poll=1 old_capacity=1792 new_capacity=3584 wall_ns=600013 cpu_ticks=0
+2026-11-09T20:15:34.9758032Z ADMIN_GROW case=named poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1224342 cpu_ticks=0
+2026-11-09T20:15:34.9758589Z ADMIN_GROW case=named poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2526869 cpu_ticks=0
+2026-11-09T20:15:34.9894943Z ADMIN_GROW case=named poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5234684 cpu_ticks=0
+2026-11-09T20:15:35.0193868Z ADMIN_GROW case=named poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11284248 cpu_ticks=0
+2026-11-09T20:15:35.0824441Z ADMIN_GROW case=named poll=8 old_capacity=57344 new_capacity=114688 wall_ns=25975110 cpu_ticks=2
+2026-11-09T20:15:35.2058890Z ADMIN_GROW case=named poll=15 old_capacity=114688 new_capacity=229376 wall_ns=56053549 cpu_ticks=6
+2026-11-09T20:15:35.4571688Z ADMIN_GROW case=named poll=29 old_capacity=229376 new_capacity=458752 wall_ns=113864264 cpu_ticks=12
+2026-11-09T20:15:35.9728019Z ADMIN_GROW case=named poll=57 old_capacity=458752 new_capacity=917504 wall_ns=233699960 cpu_ticks=24
+2026-11-09T20:15:36.0144245Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=57964532 before_polls=4 total_polls=62 longest_poll=57 longest_ns=244245613 longest_cpu_ticks=25
+2026-11-09T20:15:36.4709623Z ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=57964532 before_polls=4 total_polls=62 longest_poll=57 longest_ns=244245613 longest_cpu_ticks=25
+2026-11-09T20:15:36.4739938Z ARM_OBSERVATION profile=all case=named pair=4 arm=baseline
+2026-11-09T20:15:37.5978533Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=56999385 before_polls=4 total_polls=62 longest_poll=57 longest_ns=242892451 longest_cpu_ticks=23
+2026-11-09T20:15:38.0431446Z test admin::admin_growth_observer::named_transform_finishes ... ADMIN_GROW_OBSERVE case=named timer_won=true timer_ns=56999385 before_polls=4 total_polls=62 longest_poll=57 longest_ns=242892451 longest_cpu_ticks=23
+2026-11-09T20:15:38.0462006Z ARM_OBSERVATION profile=all case=coordinator pair=1 arm=baseline
+2026-11-09T20:15:38.9484293Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=39735144 before_polls=5 total_polls=62 longest_poll=57 longest_ns=239631291 longest_cpu_ticks=24
+2026-11-09T20:15:39.1512850Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=39735144 before_polls=5 total_polls=62 longest_poll=57 longest_ns=239631291 longest_cpu_ticks=24
+2026-11-09T20:15:39.1528330Z ARM_OBSERVATION profile=all case=coordinator pair=1 arm=growth
+2026-11-09T20:15:39.3146086Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW case=coordinator poll=1 old_capacity=0 new_capacity=3 wall_ns=38016 cpu_ticks=0
+2026-11-09T20:15:39.3146977Z ADMIN_GROW case=coordinator poll=1 old_capacity=3 new_capacity=7 wall_ns=5498 cpu_ticks=0
+2026-11-09T20:15:39.3147604Z ADMIN_GROW case=coordinator poll=1 old_capacity=7 new_capacity=14 wall_ns=2764 cpu_ticks=0
+2026-11-09T20:15:39.3148175Z ADMIN_GROW case=coordinator poll=1 old_capacity=14 new_capacity=28 wall_ns=4737 cpu_ticks=0
+2026-11-09T20:15:39.3148833Z ADMIN_GROW case=coordinator poll=1 old_capacity=28 new_capacity=56 wall_ns=13329 cpu_ticks=0
+2026-11-09T20:15:39.3149395Z ADMIN_GROW case=coordinator poll=1 old_capacity=56 new_capacity=112 wall_ns=23614 cpu_ticks=0
+2026-11-09T20:15:39.3149989Z ADMIN_GROW case=coordinator poll=1 old_capacity=112 new_capacity=224 wall_ns=43454 cpu_ticks=0
+2026-11-09T20:15:39.3150547Z ADMIN_GROW case=coordinator poll=1 old_capacity=224 new_capacity=448 wall_ns=78986 cpu_ticks=0
+2026-11-09T20:15:39.3151111Z ADMIN_GROW case=coordinator poll=1 old_capacity=448 new_capacity=896 wall_ns=169700 cpu_ticks=0
+2026-11-09T20:15:39.3151696Z ADMIN_GROW case=coordinator poll=1 old_capacity=896 new_capacity=1792 wall_ns=308454 cpu_ticks=0
+2026-11-09T20:15:39.3152619Z ADMIN_GROW case=coordinator poll=1 old_capacity=1792 new_capacity=3584 wall_ns=606182 cpu_ticks=0
+2026-11-09T20:15:39.3153570Z ADMIN_GROW case=coordinator poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1244031 cpu_ticks=0
+2026-11-09T20:15:39.3154163Z ADMIN_GROW case=coordinator poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2525778 cpu_ticks=1
+2026-11-09T20:15:39.3241404Z ADMIN_GROW case=coordinator poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5749602 cpu_ticks=1
+2026-11-09T20:15:39.3430531Z ADMIN_GROW case=coordinator poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11167817 cpu_ticks=0
+2026-11-09T20:15:39.3835175Z ADMIN_GROW case=coordinator poll=8 old_capacity=57344 new_capacity=114688 wall_ns=24291713 cpu_ticks=2
+2026-11-09T20:15:39.4685184Z ADMIN_GROW case=coordinator poll=15 old_capacity=114688 new_capacity=229376 wall_ns=53939220 cpu_ticks=5
+2026-11-09T20:15:39.6457357Z ADMIN_GROW case=coordinator poll=29 old_capacity=229376 new_capacity=458752 wall_ns=112372155 cpu_ticks=12
+2026-11-09T20:15:40.0119093Z ADMIN_GROW case=coordinator poll=57 old_capacity=458752 new_capacity=917504 wall_ns=232019958 cpu_ticks=23
+2026-11-09T20:15:40.0364775Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=37537329 before_polls=4 total_polls=62 longest_poll=57 longest_ns=237580793 longest_cpu_ticks=24
+2026-11-09T20:15:40.2373449Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=37537329 before_polls=4 total_polls=62 longest_poll=57 longest_ns=237580793 longest_cpu_ticks=24
+2026-11-09T20:15:40.2405012Z ARM_OBSERVATION profile=all case=coordinator pair=2 arm=growth
+2026-11-09T20:15:40.4156058Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW case=coordinator poll=1 old_capacity=0 new_capacity=3 wall_ns=38586 cpu_ticks=0
+2026-11-09T20:15:40.4157083Z ADMIN_GROW case=coordinator poll=1 old_capacity=3 new_capacity=7 wall_ns=2223 cpu_ticks=0
+2026-11-09T20:15:40.4157714Z ADMIN_GROW case=coordinator poll=1 old_capacity=7 new_capacity=14 wall_ns=2724 cpu_ticks=0
+2026-11-09T20:15:40.4158301Z ADMIN_GROW case=coordinator poll=1 old_capacity=14 new_capacity=28 wall_ns=4687 cpu_ticks=0
+2026-11-09T20:15:40.4158867Z ADMIN_GROW case=coordinator poll=1 old_capacity=28 new_capacity=56 wall_ns=14261 cpu_ticks=0
+2026-11-09T20:15:40.4159438Z ADMIN_GROW case=coordinator poll=1 old_capacity=56 new_capacity=112 wall_ns=24866 cpu_ticks=0
+2026-11-09T20:15:40.4160010Z ADMIN_GROW case=coordinator poll=1 old_capacity=112 new_capacity=224 wall_ns=53609 cpu_ticks=0
+2026-11-09T20:15:40.4160578Z ADMIN_GROW case=coordinator poll=1 old_capacity=224 new_capacity=448 wall_ns=84885 cpu_ticks=0
+2026-11-09T20:15:40.4161163Z ADMIN_GROW case=coordinator poll=1 old_capacity=448 new_capacity=896 wall_ns=172544 cpu_ticks=0
+2026-11-09T20:15:40.4161753Z ADMIN_GROW case=coordinator poll=1 old_capacity=896 new_capacity=1792 wall_ns=307533 cpu_ticks=0
+2026-11-09T20:15:40.4162341Z ADMIN_GROW case=coordinator poll=1 old_capacity=1792 new_capacity=3584 wall_ns=638269 cpu_ticks=0
+2026-11-09T20:15:40.4163215Z ADMIN_GROW case=coordinator poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1253555 cpu_ticks=0
+2026-11-09T20:15:40.4163806Z ADMIN_GROW case=coordinator poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2589411 cpu_ticks=0
+2026-11-09T20:15:40.4245204Z ADMIN_GROW case=coordinator poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5356353 cpu_ticks=0
+2026-11-09T20:15:40.4443057Z ADMIN_GROW case=coordinator poll=4 old_capacity=28672 new_capacity=57344 wall_ns=12055193 cpu_ticks=1
+2026-11-09T20:15:40.4885912Z ADMIN_GROW case=coordinator poll=8 old_capacity=57344 new_capacity=114688 wall_ns=27026399 cpu_ticks=3
+2026-11-09T20:15:40.5771361Z ADMIN_GROW case=coordinator poll=15 old_capacity=114688 new_capacity=229376 wall_ns=56259205 cpu_ticks=5
+2026-11-09T20:15:40.7584781Z ADMIN_GROW case=coordinator poll=29 old_capacity=229376 new_capacity=458752 wall_ns=115693343 cpu_ticks=12
+2026-11-09T20:15:41.1267202Z ADMIN_GROW case=coordinator poll=57 old_capacity=458752 new_capacity=917504 wall_ns=233037946 cpu_ticks=24
+2026-11-09T20:15:41.1515025Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=37987932 before_polls=4 total_polls=62 longest_poll=57 longest_ns=238506735 longest_cpu_ticks=24
+2026-11-09T20:15:41.3543746Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=37987932 before_polls=4 total_polls=62 longest_poll=57 longest_ns=238506735 longest_cpu_ticks=24
+2026-11-09T20:15:41.3574239Z ARM_OBSERVATION profile=all case=coordinator pair=2 arm=baseline
+2026-11-09T20:15:42.2384636Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=35186760 before_polls=4 total_polls=62 longest_poll=57 longest_ns=237448509 longest_cpu_ticks=24
+2026-11-09T20:15:42.4350943Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=35186760 before_polls=4 total_polls=62 longest_poll=57 longest_ns=237448509 longest_cpu_ticks=24
+2026-11-09T20:15:42.4366908Z ARM_OBSERVATION profile=all case=coordinator pair=3 arm=baseline
+2026-11-09T20:15:43.3372446Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=36089228 before_polls=4 total_polls=62 longest_poll=57 longest_ns=237972239 longest_cpu_ticks=23
+2026-11-09T20:15:43.5410730Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=36089228 before_polls=4 total_polls=62 longest_poll=57 longest_ns=237972239 longest_cpu_ticks=23
+2026-11-09T20:15:43.5426965Z ARM_OBSERVATION profile=all case=coordinator pair=3 arm=growth
+2026-11-09T20:15:43.7037324Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW case=coordinator poll=1 old_capacity=0 new_capacity=3 wall_ns=34581 cpu_ticks=0
+2026-11-09T20:15:43.7038314Z ADMIN_GROW case=coordinator poll=1 old_capacity=3 new_capacity=7 wall_ns=5559 cpu_ticks=0
+2026-11-09T20:15:43.7038890Z ADMIN_GROW case=coordinator poll=1 old_capacity=7 new_capacity=14 wall_ns=2644 cpu_ticks=0
+2026-11-09T20:15:43.7039470Z ADMIN_GROW case=coordinator poll=1 old_capacity=14 new_capacity=28 wall_ns=4817 cpu_ticks=0
+2026-11-09T20:15:43.7040036Z ADMIN_GROW case=coordinator poll=1 old_capacity=28 new_capacity=56 wall_ns=13370 cpu_ticks=0
+2026-11-09T20:15:43.7040621Z ADMIN_GROW case=coordinator poll=1 old_capacity=56 new_capacity=112 wall_ns=23926 cpu_ticks=0
+2026-11-09T20:15:43.7041509Z ADMIN_GROW case=coordinator poll=1 old_capacity=112 new_capacity=224 wall_ns=43224 cpu_ticks=0
+2026-11-09T20:15:43.7042072Z ADMIN_GROW case=coordinator poll=1 old_capacity=224 new_capacity=448 wall_ns=91935 cpu_ticks=0
+2026-11-09T20:15:43.7042632Z ADMIN_GROW case=coordinator poll=1 old_capacity=448 new_capacity=896 wall_ns=157242 cpu_ticks=0
+2026-11-09T20:15:43.7043470Z ADMIN_GROW case=coordinator poll=1 old_capacity=896 new_capacity=1792 wall_ns=298650 cpu_ticks=0
+2026-11-09T20:15:43.7044053Z ADMIN_GROW case=coordinator poll=1 old_capacity=1792 new_capacity=3584 wall_ns=599081 cpu_ticks=0
+2026-11-09T20:15:43.7044924Z ADMIN_GROW case=coordinator poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1252433 cpu_ticks=0
+2026-11-09T20:15:43.7045719Z ADMIN_GROW case=coordinator poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2525837 cpu_ticks=0
+2026-11-09T20:15:43.7123439Z ADMIN_GROW case=coordinator poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5169087 cpu_ticks=0
+2026-11-09T20:15:43.7300602Z ADMIN_GROW case=coordinator poll=4 old_capacity=28672 new_capacity=57344 wall_ns=10683533 cpu_ticks=1
+2026-11-09T20:15:43.7672122Z ADMIN_GROW case=coordinator poll=8 old_capacity=57344 new_capacity=114688 wall_ns=22285436 cpu_ticks=3
+2026-11-09T20:15:43.8515022Z ADMIN_GROW case=coordinator poll=15 old_capacity=114688 new_capacity=229376 wall_ns=53403630 cpu_ticks=5
+2026-11-09T20:15:44.0288736Z ADMIN_GROW case=coordinator poll=29 old_capacity=229376 new_capacity=458752 wall_ns=112514901 cpu_ticks=11
+2026-11-09T20:15:44.3914440Z ADMIN_GROW case=coordinator poll=57 old_capacity=458752 new_capacity=917504 wall_ns=228996990 cpu_ticks=23
+2026-11-09T20:15:44.4152448Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=38821842 before_polls=5 total_polls=62 longest_poll=57 longest_ns=234406862 longest_cpu_ticks=24
+2026-11-09T20:15:44.6112503Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=38821842 before_polls=5 total_polls=62 longest_poll=57 longest_ns=234406862 longest_cpu_ticks=24
+2026-11-09T20:15:44.6143581Z ARM_OBSERVATION profile=all case=coordinator pair=4 arm=growth
+2026-11-09T20:15:44.7759552Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW case=coordinator poll=1 old_capacity=0 new_capacity=3 wall_ns=37155 cpu_ticks=0
+2026-11-09T20:15:44.7760450Z ADMIN_GROW case=coordinator poll=1 old_capacity=3 new_capacity=7 wall_ns=5258 cpu_ticks=0
+2026-11-09T20:15:44.7761033Z ADMIN_GROW case=coordinator poll=1 old_capacity=7 new_capacity=14 wall_ns=2734 cpu_ticks=0
+2026-11-09T20:15:44.7761647Z ADMIN_GROW case=coordinator poll=1 old_capacity=14 new_capacity=28 wall_ns=4787 cpu_ticks=0
+2026-11-09T20:15:44.7762238Z ADMIN_GROW case=coordinator poll=1 old_capacity=28 new_capacity=56 wall_ns=13079 cpu_ticks=0
+2026-11-09T20:15:44.7763083Z ADMIN_GROW case=coordinator poll=1 old_capacity=56 new_capacity=112 wall_ns=23665 cpu_ticks=0
+2026-11-09T20:15:44.7763650Z ADMIN_GROW case=coordinator poll=1 old_capacity=112 new_capacity=224 wall_ns=54830 cpu_ticks=0
+2026-11-09T20:15:44.7764209Z ADMIN_GROW case=coordinator poll=1 old_capacity=224 new_capacity=448 wall_ns=79467 cpu_ticks=0
+2026-11-09T20:15:44.7764785Z ADMIN_GROW case=coordinator poll=1 old_capacity=448 new_capacity=896 wall_ns=159345 cpu_ticks=0
+2026-11-09T20:15:44.7765363Z ADMIN_GROW case=coordinator poll=1 old_capacity=896 new_capacity=1792 wall_ns=301123 cpu_ticks=0
+2026-11-09T20:15:44.7765955Z ADMIN_GROW case=coordinator poll=1 old_capacity=1792 new_capacity=3584 wall_ns=603608 cpu_ticks=0
+2026-11-09T20:15:44.7766544Z ADMIN_GROW case=coordinator poll=1 old_capacity=3584 new_capacity=7168 wall_ns=1236299 cpu_ticks=0
+2026-11-09T20:15:44.7767464Z ADMIN_GROW case=coordinator poll=1 old_capacity=7168 new_capacity=14336 wall_ns=2559627 cpu_ticks=0
+2026-11-09T20:15:44.7847879Z ADMIN_GROW case=coordinator poll=2 old_capacity=14336 new_capacity=28672 wall_ns=5234884 cpu_ticks=0
+2026-11-09T20:15:44.8033588Z ADMIN_GROW case=coordinator poll=4 old_capacity=28672 new_capacity=57344 wall_ns=11043912 cpu_ticks=2
+2026-11-09T20:15:44.8460099Z ADMIN_GROW case=coordinator poll=8 old_capacity=57344 new_capacity=114688 wall_ns=25789223 cpu_ticks=2
+2026-11-09T20:15:44.9326765Z ADMIN_GROW case=coordinator poll=15 old_capacity=114688 new_capacity=229376 wall_ns=55386719 cpu_ticks=6
+2026-11-09T20:15:45.1100413Z ADMIN_GROW case=coordinator poll=29 old_capacity=229376 new_capacity=458752 wall_ns=112724529 cpu_ticks=12
+2026-11-09T20:15:45.4762011Z ADMIN_GROW case=coordinator poll=57 old_capacity=458752 new_capacity=917504 wall_ns=231798172 cpu_ticks=23
+2026-11-09T20:15:45.5003716Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=40506851 before_polls=5 total_polls=62 longest_poll=57 longest_ns=237258038 longest_cpu_ticks=23
+2026-11-09T20:15:45.6996895Z ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=40506851 before_polls=5 total_polls=62 longest_poll=57 longest_ns=237258038 longest_cpu_ticks=23
+2026-11-09T20:15:45.7027767Z ARM_OBSERVATION profile=all case=coordinator pair=4 arm=baseline
+2026-11-09T20:15:46.5829664Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=35024623 before_polls=4 total_polls=62 longest_poll=57 longest_ns=235950233 longest_cpu_ticks=23
+2026-11-09T20:15:46.7795149Z test admin::admin_growth_observer::coordinator_transform_finishes ... ADMIN_GROW_OBSERVE case=coordinator timer_won=true timer_ns=35024623 before_polls=4 total_polls=62 longest_poll=57 longest_ns=235950233 longest_cpu_ticks=23

@@ -1,0 +1,120 @@
+name: Adaptive JSON AVL promotion comparison
+on:
+  push:
+    branches:
+      - qualification/schema-json-avl-adaptive-20261110
+permissions:
+  contents: read
+jobs:
+  correctness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Record toolchain and source
+        run: |
+          rustc --version
+          git rev-parse HEAD
+          git hash-object partitionline-schema/src/registry.rs qualification/schema-json-avl/baseline.rs.txt
+      - name: Progressive-index controls
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml --lib json_key_index -- --nocapture
+      - name: Default feature suite
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml
+      - name: All feature suite
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml --all-features
+      - name: No default features
+        if: always()
+        run: cargo test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features
+      - name: Formatting
+        if: always()
+        run: cargo fmt --manifest-path partitionline-schema/Cargo.toml -- --check
+      - name: Clippy
+        if: always()
+        run: cargo clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings
+      - name: Rustdoc
+        if: always()
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --manifest-path partitionline-schema/Cargo.toml --all-features --no-deps
+      - name: Show formatting diff
+        if: failure()
+        run: |
+          cargo fmt --manifest-path partitionline-schema/Cargo.toml
+          git diff -- partitionline-schema/src/registry.rs
+  correctness32:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Prepare 32-key candidate
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import shutil
+          source = Path("partitionline-schema")
+          dest = Path(os.environ["RUNNER_TEMP"]) / "schema-json-avl32"
+          shutil.copytree(source, dest)
+          fixtures = dest.parent / "tests" / "fixtures"
+          fixtures.mkdir(parents=True, exist_ok=True)
+          for name in ("generic_schema_header", "json_schema_selected_codec", "avro_selected_codec"):
+              shutil.copytree(Path("tests/fixtures") / name, fixtures / name)
+          path = dest / "src" / "registry.rs"
+          text = path.read_text()
+          promotion = (
+              "            // Catch up gradually, then keep at most 32 keys in the linear tail.\n"
+              "            if entries.len().saturating_sub(index.nodes.len()) > 32 {\n"
+              "                index.insert_next(&entries)?;\n"
+              "            }\n"
+          )
+          if text.count(promotion) != 1:
+              raise ValueError("promotion marker")
+          text = text.replace(promotion, "", 1)
+          before = "const JSON_LINEAR_TAIL: usize = 64;"
+          if text.count(before) != 1:
+              raise ValueError("threshold marker")
+          path.write_text(text.replace(before, "const JSON_LINEAR_TAIL: usize = 32;", 1))
+          PY
+          git hash-object "$RUNNER_TEMP/schema-json-avl32/src/registry.rs"
+          rustc --version
+      - name: Progressive-index controls
+        run: cargo test --locked --manifest-path "$RUNNER_TEMP/schema-json-avl32/Cargo.toml" --lib json_key_index -- --nocapture
+      - name: Default feature suite
+        if: always()
+        run: cargo test --locked --manifest-path "$RUNNER_TEMP/schema-json-avl32/Cargo.toml"
+      - name: All feature suite
+        if: always()
+        run: cargo test --locked --manifest-path "$RUNNER_TEMP/schema-json-avl32/Cargo.toml" --all-features
+      - name: No default features
+        if: always()
+        run: cargo test --locked --manifest-path "$RUNNER_TEMP/schema-json-avl32/Cargo.toml" --no-default-features
+      - name: Formatting
+        if: always()
+        run: cargo fmt --manifest-path "$RUNNER_TEMP/schema-json-avl32/Cargo.toml" -- --check
+      - name: Clippy
+        if: always()
+        run: cargo clippy --locked --manifest-path "$RUNNER_TEMP/schema-json-avl32/Cargo.toml" --all-targets --all-features -- -D warnings
+      - name: Rustdoc
+        if: always()
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --manifest-path "$RUNNER_TEMP/schema-json-avl32/Cargo.toml" --all-features --no-deps
+  comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Paired in-process parse samples
+        run: |
+          rustc --version
+          git rev-parse HEAD
+          python3 qualification/schema-json-avl/compare.py

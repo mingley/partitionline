@@ -1,0 +1,63 @@
+name: Producer admission across orderly close
+
+on:
+  push:
+    branches: [qualification/producer-admit-seal-v4-20261109]
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .cargo
+            src
+            tests
+            examples
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Verify source and run admission and close controls
+        shell: bash
+        run: |
+          set -uo pipefail
+          rustc -Vv
+          test "$(git hash-object src/producer.rs)" = f2a0384c0da06860f24d26c78745c9100757e513 || exit 1
+          test "$(git hash-object src/producer/owned.rs)" = 268c05d44c782647977ad82dafa7745c66f34786 || exit 1
+          test "$(git hash-object tests/producer_owner_close_retry.rs)" = 472c4b4e67c4fa3e988563003b27a15b57aad798 || exit 1
+          failures=0
+          check() {
+            printf '\nCHECK: %s\n' "$*"
+            if "$@"; then
+              printf 'CHECK_RESULT=pass\n'
+            else
+              code=$?
+              printf 'CHECK_RESULT=fail:%s\n' "$code"
+              failures=$((failures + 1))
+            fi
+          }
+          check timeout 300 cargo test --locked --lib producer::owned::tests::sealed_owner_accepts_only_previously_admitted_retries -- --exact --nocapture
+          check timeout 300 cargo test --locked --all-features --lib producer::owned::tests::sealed_owner_accepts_only_previously_admitted_retries -- --exact --nocapture
+          check timeout 300 cargo test --locked --test producer_owner_close_retry -- --nocapture
+          check timeout 300 cargo test --locked --all-features --test producer_owner_close_retry -- --nocapture
+          check timeout 300 cargo test --locked --test producer_owner_bounded_controls -- --nocapture --test-threads=1
+          check timeout 300 cargo test --locked --all-features --test producer_owner_bounded_controls -- --nocapture --test-threads=1
+          check timeout 300 cargo test --locked --test producer_owner_close_callback -- --nocapture
+          check timeout 300 cargo test --locked --all-features --test producer_owner_close_callback -- --nocapture
+          check timeout 300 cargo test --locked --test buffer_ownership
+          check timeout 300 cargo test --locked --all-features --test producer_close_errors
+          check timeout 300 cargo clippy --locked --all-targets --all-features -- -D warnings
+          check cargo fmt --all -- --check
+          printf '\nFAILED_COMMANDS=%s\n' "$failures"
+          test "$failures" -eq 0

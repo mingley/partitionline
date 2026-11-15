@@ -91,7 +91,7 @@ impl Backend {
         payload: &[u8],
         checksum: u32,
         grouped: bool,
-    ) -> Result<std::fs::File, Error> {
+    ) -> Result<journal::SyncFile, Error> {
         match self {
             Self::Journal(log) if grouped => {
                 Ok(log.append_staged_grouped(count, payload, checksum)?)
@@ -160,7 +160,7 @@ impl Backend {
 /// A monolithic journal write waiting for `sync_data` on `file`.
 pub(crate) struct StagedWrite {
     /// Cloned descriptor. Synchronize this before [`Partition::commit_staged`].
-    pub file: std::fs::File,
+    pub file: journal::SyncFile,
     /// Batches in the staged input.
     pub batch_count: usize,
 }

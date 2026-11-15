@@ -140,3 +140,30 @@ leader or replicas, and Produce and Fetch are unavailable. The configured
 limits retain at most 64 metadata positions and 1 MiB of source payload; the
 mode does not automatically prune that history. This mode does not run a
 replicated Kafka data plane or interoperate with Kafka KRaft.
+
+## Quota window
+
+`quotas::Window` is an in-memory utility. It does not throttle listener
+traffic or encode Kafka responses.
+
+`quotas::Error::code()` now returns `None` for `Throttled`; earlier
+revisions returned `Some(89)`. Handle a local refusal according to the
+operation, rather than automatically sending a Kafka error. The
+`THROTTLING_QUOTA_EXCEEDED` constant remains 89 for APIs that define it.
+The broker crate is not published; users building from Git should update
+any code that relied on the earlier mapping.
+
+## File descriptors
+
+On Unix, an idle flat partition store keeps two file descriptors: its journal
+and an inode pin. An idle rolling store keeps those two plus a directory pin.
+Other journals, catalog files, sockets, temporary readers and replacements need
+additional descriptors. Each staged flat-log partition also keeps a sync
+descriptor. The storage actor can group up to eight Produce requests, each
+limited by `max_partitions`.
+
+`max_stores` limits the number of partition stores, and `max_sync_concurrency`
+limits concurrent sync workers. Neither setting limits the process's total file
+descriptors. Size the operating-system limit for stores and peak work. If the
+limit is reached, opening or staging can fail; a complete unacknowledged write
+may still appear after recovery.

@@ -30,6 +30,33 @@ magic. Decode borrows the payload; encode returns a caller-owned vector. This
 checks the five-byte header contract. Protobuf indexes and codec validation
 have separate tests, and the companion remains unpublished.
 
+## HTTP response limits
+
+The client reads informational HTTP responses before the final response.
+It treats HTTP 101 as an unsupported status, and does not wait for a body
+after 101, 204 or 304. It supports a single `chunked` transfer coding;
+other or repeated transfer codings are rejected.
+
+The configured body limit applies to decoded bytes for Content-Length,
+chunked and close-delimited responses. The combined informational and final
+headers, each chunk-size line and the trailer section are each limited to
+64 KiB. Total chunk framing overhead is limited to five times the body limit
+plus 64 KiB.
+
+This allows many small chunks when their decoded body fits, subject to the
+framing limit. Earlier source counted the accumulated chunked wire bytes
+against the body limit plus 64 KiB. Size lines and trailers over 64 KiB,
+and response headers ending beyond 64 KiB, are now rejected.
+
+A continuously ready response reader yields to the executor after 1 MiB
+(64 KiB for chunked data) or 256 reads. This does not guarantee another task
+runs, and does not bound a single read or synchronous JSON parsing.
+
+Duplicate JSON object keys are rejected. Large objects use an index to avoid
+repeatedly scanning all previous keys, at the cost of extra memory. Parsing
+remains synchronous: the response body limit is not a time or process-memory
+limit.
+
 ## Cache limits and freshness
 
 Clones of one client share a cache for that URL and those credentials. A
@@ -50,6 +77,11 @@ Hard maximums are in [the companion guide](../docs/schema-companion.md).
 Other errors are not cached. Expiry is lazy. Eviction drops the least
 recently used entries. A successful schema that does not fit is returned
 and not stored.
+
+HTTP 429 retries honor the first `Retry-After` field when it is a decimal
+number of seconds, capped by the configured maximum backoff and overall
+request deadline. HTTP dates, malformed values, and overflow fall back to
+exponential backoff. Earlier repository revisions ignored the header.
 
 Two misses for the same key share one request. A different key proceeds
 on its own. Dropping a follower leaves the owner running. Dropping the

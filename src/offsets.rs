@@ -120,9 +120,7 @@ async fn open_offset_socket(
     // observes that close before the error returns. A successful dial keeps
     // the socket and does not wait.
     if opened.is_err() {
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
     opened
 }
@@ -159,9 +157,7 @@ async fn retire_dialing_offsets(dialing: &mut tokio::task::JoinSet<OffsetDial>) 
     }
     // A cancelled dial drops its socket when the task is polled. The idle
     // watch then has to run before that broker sees the close.
-    for _ in 0..8 {
-        tokio::task::yield_now().await;
-    }
+    crate::net::settle_closed_socket().await;
 }
 
 impl OffsetClient {
@@ -269,9 +265,7 @@ impl OffsetClient {
         }
         // A cancelled offset handshake drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     async fn finish_aborted_offset_dials(mut set: tokio::task::JoinSet<OffsetDial>) {
@@ -298,9 +292,7 @@ impl OffsetClient {
         }
         // A cancelled offset dial drops its socket when the task is polled.
         // The idle watch then has to run before that broker sees the close.
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
     }
 
     /// Validate connection settings without network I/O.
@@ -416,9 +408,7 @@ impl OffsetClient {
             Err(last)
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         finished
     }
 
@@ -454,9 +444,7 @@ impl OffsetClient {
             Err(last)
         }
         .await;
-        for _ in 0..8 {
-            tokio::task::yield_now().await;
-        }
+        crate::net::settle_closed_socket().await;
         finished
     }
 
@@ -1244,7 +1232,7 @@ async fn validate_commit(request: &OffsetCommitRequestData) -> Result<()> {
             return Err(Error::protocol("duplicate offset commit topic"));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
@@ -1254,7 +1242,7 @@ async fn validate_commit(request: &OffsetCommitRequestData) -> Result<()> {
                 return Err(Error::protocol("duplicate offset commit partition"));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -1285,7 +1273,7 @@ async fn validate_fetch(request: &OffsetFetchRequestData) -> Result<()> {
                         return Err(Error::protocol("duplicate offset fetch partition"));
                     }
                     walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
+                    if walked == 1024 {
                         walked = 0;
                         tokio::task::yield_now().await;
                     }
@@ -1308,7 +1296,7 @@ async fn validate_commit_response(
         for partition in &topic.partitions {
             let _ = wanted.insert((&topic.identity, partition.partition_index));
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -1329,7 +1317,7 @@ async fn validate_commit_response(
                 ));
             }
             walked = walked.saturating_add(1);
-            if walked == 8 * 1024 {
+            if walked == 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
@@ -1342,7 +1330,7 @@ async fn validate_commit_response(
 }
 
 fn offset_fetch_topic_chunk() -> usize {
-    8 * 1024
+    1024
 }
 
 /// Check an OffsetFetch response against the request.
@@ -1376,9 +1364,12 @@ async fn validate_fetch_response(
         let expected_topics = match &requested.topics {
             None => None,
             Some(wanted) => {
-                let mut index = HashMap::with_capacity(wanted.len());
+                let mut index = HashMap::with_capacity(wanted.len().min(4096));
                 let mut walked = 0usize;
                 for topic in wanted {
+                    if index.len() == index.capacity() {
+                        index.reserve(wanted.len().saturating_sub(index.len()).min(4096));
+                    }
                     if let std::collections::hash_map::Entry::Vacant(slot) =
                         index.entry(&topic.identity)
                     {
@@ -1412,7 +1403,7 @@ async fn validate_fetch_response(
                 for index in &expected.partition_indexes {
                     let _ = expected_indexes.insert(*index);
                     walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
+                    if walked == 1024 {
                         walked = 0;
                         tokio::task::yield_now().await;
                     }
@@ -1502,14 +1493,17 @@ mod tests {
             }],
             ..OffsetFetchResponseData::default()
         };
-        let started = std::time::Instant::now();
-        tokio::select! {
-            checked = validate_fetch_response(&request, &response) => {
-                checked.unwrap_or(());
+        let elapsed = {
+            let mut work = std::pin::pin!(validate_fetch_response(&request, &response));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                checked = &mut work => {
+                    checked.unwrap_or(());
+                    started.elapsed()
+                }
+                () = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "validating fetched offset topics held the caller for {elapsed:?}"
@@ -1731,14 +1725,17 @@ mod tests {
     async fn validating_many_fetch_requests_does_not_hold_the_caller() {
         // 1_000_000 partitions: checking the request held the caller 457ms.
         let (request, _) = offset_fetch_pair(1_000_000);
-        let started = std::time::Instant::now();
-        tokio::select! {
-            result = super::validate_fetch(&request) => {
-                result.unwrap_or_else(|error| panic!("{error}"));
+        let elapsed = {
+            let mut work = std::pin::pin!(super::validate_fetch(&request));
+            let started = std::time::Instant::now();
+            tokio::select! {
+                result = &mut work => {
+                    result.unwrap_or_else(|error| panic!("{error}"));
+                    started.elapsed()
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => started.elapsed(),
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        let elapsed = started.elapsed();
+        };
         assert!(
             elapsed < std::time::Duration::from_millis(80),
             "validating an offset fetch request held the caller for {elapsed:?}"

@@ -1,0 +1,176 @@
+2026-11-09T20:02:07.7054533Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=61193002
+2026-11-09T20:02:07.8239504Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=62254501
+2026-11-09T20:02:08.0087176Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=64936059
+2026-11-09T20:02:08.1980428Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=66193281
+2026-11-09T20:02:08.3211604Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=60721382
+2026-11-09T20:02:08.4442483Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=60779580
+2026-11-09T20:02:08.6182346Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=63800629
+2026-11-09T20:02:08.8164903Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=88585215
+2026-11-09T20:02:08.9303903Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=60053443
+2026-11-09T20:02:09.0599973Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=66574108
+2026-11-09T20:02:09.2784969Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=66992198
+2026-11-09T20:02:09.4479904Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=62111366
+2026-11-09T20:02:09.5668483Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=59901283
+2026-11-09T20:02:09.6814719Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=57233260
+2026-11-09T20:02:09.8895320Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=87627210
+2026-11-09T20:02:10.0952094Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=87797677
+2026-11-09T20:02:10.2232414Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=66705636
+2026-11-09T20:02:10.3386360Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=59784117
+2026-11-09T20:02:10.5078008Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=61874290
+2026-11-09T20:02:10.6952813Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=81802806
+2026-11-09T20:02:10.8114405Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=57936350
+2026-11-09T20:02:10.9254062Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=57554464
+2026-11-09T20:02:11.1187984Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=85771250
+2026-11-09T20:02:11.3176981Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=87025923
+2026-11-09T20:02:11.4344852Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=57299109
+2026-11-09T20:02:11.5512474Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=58325967
+2026-11-09T20:02:11.7405343Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=82771928
+2026-11-09T20:02:11.9400206Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=82805478
+2026-11-09T20:02:12.0602134Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=61699816
+2026-11-09T20:02:12.1684061Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=52354902
+2026-11-09T20:02:12.3476296Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=74911652
+2026-11-09T20:02:12.5402927Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=79150815
+2026-11-09T20:02:12.6610423Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=63062081
+2026-11-09T20:02:12.7836635Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=63632381
+2026-11-09T20:02:12.9823167Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=81204511
+2026-11-09T20:02:13.1753371Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=84840706
+2026-11-09T20:02:13.3045460Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=67403216
+2026-11-09T20:02:13.4339068Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=68012655
+2026-11-09T20:02:13.6272183Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=84660513
+2026-11-09T20:02:13.7957074Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=62582295
+2026-11-09T20:02:13.9169636Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=66825425
+2026-11-09T20:02:14.0387721Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=63329793
+2026-11-09T20:02:14.2213901Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=64962776
+2026-11-09T20:02:14.4115247Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=73409825
+2026-11-09T20:02:14.5440855Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=69378616
+2026-11-09T20:02:14.6771733Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=63846422
+2026-11-09T20:02:14.8492184Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=62418818
+2026-11-09T20:02:15.0484604Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=82220614
+2026-11-09T20:02:15.1626364Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=62217956
+2026-11-09T20:02:15.2736925Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=53865309
+2026-11-09T20:02:15.4542923Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=76486997
+2026-11-09T20:02:15.6315937Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=73168572
+2026-11-09T20:02:15.7412576Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=52732951
+2026-11-09T20:02:15.8487103Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=52796627
+2026-11-09T20:02:16.0251558Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=72912014
+2026-11-09T20:02:16.2124689Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=81904297
+2026-11-09T20:02:16.3189810Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=52435382
+2026-11-09T20:02:16.4318272Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=57788635
+2026-11-09T20:02:16.6190448Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=81680930
+2026-11-09T20:02:16.8141698Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=80020596
+2026-11-09T20:02:16.9272622Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=56203886
+2026-11-09T20:02:17.0436237Z test admin::tests::grouping_many_named_results_does_not_hold_the_caller ... ADMIN_LEGACY case=named elapsed_ns=60089245
+2026-11-09T20:02:17.2429208Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=82477100
+2026-11-09T20:02:17.4336070Z test admin::tests::indexing_many_coordinators_does_not_hold_the_caller ... ADMIN_LEGACY case=coordinator elapsed_ns=82721719
+2026-11-09T20:02:17.4369423Z default,named,1,baseline,0,61193002
+2026-11-09T20:02:17.4369674Z default,named,1,observed,0,62254501
+2026-11-09T20:02:17.4369928Z default,coordinator,1,baseline,0,64936059
+2026-11-09T20:02:17.4370207Z default,coordinator,1,observed,0,66193281
+2026-11-09T20:02:17.4370476Z default,named,2,observed,0,60721382
+2026-11-09T20:02:17.4370730Z default,named,2,baseline,0,60779580
+2026-11-09T20:02:17.4370986Z default,coordinator,2,observed,0,63800629
+2026-11-09T20:02:17.4371502Z default,coordinator,2,baseline,101,88585215
+2026-11-09T20:02:17.4371772Z default,named,3,baseline,0,60053443
+2026-11-09T20:02:17.4372011Z default,named,3,observed,0,66574108
+2026-11-09T20:02:17.4372276Z default,coordinator,3,baseline,0,66992198
+2026-11-09T20:02:17.4372549Z default,coordinator,3,observed,0,62111366
+2026-11-09T20:02:17.4372815Z default,named,4,observed,0,59901283
+2026-11-09T20:02:17.4373074Z default,named,4,baseline,0,57233260
+2026-11-09T20:02:17.4373364Z default,coordinator,4,observed,101,87627210
+2026-11-09T20:02:17.4373640Z default,coordinator,4,baseline,101,87797677
+2026-11-09T20:02:17.4373833Z default,named,5,baseline,0,66705636
+2026-11-09T20:02:17.4374007Z default,named,5,observed,0,59784117
+2026-11-09T20:02:17.4374184Z default,coordinator,5,baseline,0,61874290
+2026-11-09T20:02:17.4374380Z default,coordinator,5,observed,101,81802806
+2026-11-09T20:02:17.4374559Z default,named,6,observed,0,57936350
+2026-11-09T20:02:17.4374719Z default,named,6,baseline,0,57554464
+2026-11-09T20:02:17.4375107Z default,coordinator,6,observed,101,85771250
+2026-11-09T20:02:17.4375281Z default,coordinator,6,baseline,101,87025923
+2026-11-09T20:02:17.4375446Z default,named,7,baseline,0,57299109
+2026-11-09T20:02:17.4375596Z default,named,7,observed,0,58325967
+2026-11-09T20:02:17.4375760Z default,coordinator,7,baseline,101,82771928
+2026-11-09T20:02:17.4375938Z default,coordinator,7,observed,101,82805478
+2026-11-09T20:02:17.4376229Z default,named,8,observed,0,61699816
+2026-11-09T20:02:17.4376383Z default,named,8,baseline,0,52354902
+2026-11-09T20:02:17.4376543Z default,coordinator,8,observed,0,74911652
+2026-11-09T20:02:17.4376718Z default,coordinator,8,baseline,0,79150815
+2026-11-09T20:02:17.4376886Z all,named,1,baseline,0,63062081
+2026-11-09T20:02:17.4377034Z all,named,1,observed,0,63632381
+2026-11-09T20:02:17.4377190Z all,coordinator,1,baseline,101,81204511
+2026-11-09T20:02:17.4377359Z all,coordinator,1,observed,101,84840706
+2026-11-09T20:02:17.4377523Z all,named,2,observed,0,67403216
+2026-11-09T20:02:17.4377671Z all,named,2,baseline,0,68012655
+2026-11-09T20:02:17.4377824Z all,coordinator,2,observed,101,84660513
+2026-11-09T20:02:17.4377992Z all,coordinator,2,baseline,0,62582295
+2026-11-09T20:02:17.4378153Z all,named,3,baseline,0,66825425
+2026-11-09T20:02:17.4378300Z all,named,3,observed,0,63329793
+2026-11-09T20:02:17.4378449Z all,coordinator,3,baseline,0,64962776
+2026-11-09T20:02:17.4378609Z all,coordinator,3,observed,0,73409825
+2026-11-09T20:02:17.4378768Z all,named,4,observed,0,69378616
+2026-11-09T20:02:17.4378913Z all,named,4,baseline,0,63846422
+2026-11-09T20:02:17.4379063Z all,coordinator,4,observed,0,62418818
+2026-11-09T20:02:17.4379226Z all,coordinator,4,baseline,101,82220614
+2026-11-09T20:02:17.4379385Z all,named,5,baseline,0,62217956
+2026-11-09T20:02:17.4379547Z all,named,5,observed,0,53865309
+2026-11-09T20:02:17.4379696Z all,coordinator,5,baseline,0,76486997
+2026-11-09T20:02:17.4379853Z all,coordinator,5,observed,0,73168572
+2026-11-09T20:02:17.4380005Z all,named,6,observed,0,52732951
+2026-11-09T20:02:17.4380149Z all,named,6,baseline,0,52796627
+2026-11-09T20:02:17.4380296Z all,coordinator,6,observed,0,72912014
+2026-11-09T20:02:17.4380457Z all,coordinator,6,baseline,101,81904297
+2026-11-09T20:02:17.4380615Z all,named,7,baseline,0,52435382
+2026-11-09T20:02:17.4380758Z all,named,7,observed,0,57788635
+2026-11-09T20:02:17.4380905Z all,coordinator,7,baseline,101,81680930
+2026-11-09T20:02:17.4381235Z all,coordinator,7,observed,101,80020596
+2026-11-09T20:02:17.4381405Z all,named,8,observed,0,56203886
+2026-11-09T20:02:17.4381545Z all,named,8,baseline,0,60089245
+2026-11-09T20:02:17.4381696Z all,coordinator,8,observed,101,82477100
+2026-11-09T20:02:17.4381857Z all,coordinator,8,baseline,101,82721719
+2026-11-09T20:02:17.4622806Z OBSERVATION profile=default case=named trial=1
+2026-11-09T20:02:18.1877148Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=40155372 before_polls=5 before_longest_ns=13693633 before_work_ns=39988161 before_items=40960 total_polls=62 longest_ns=161753523 total_work_ns=674161417 finished_ns=674887082
+2026-11-09T20:02:18.6306491Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=40155372 before_polls=5 before_longest_ns=13693633 before_work_ns=39988161 before_items=40960 total_polls=62 longest_ns=161753523 total_work_ns=674161417 finished_ns=674887082
+2026-11-09T20:02:18.6307616Z OBSERVATION profile=default case=named trial=2
+2026-11-09T20:02:19.3517512Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=37328368 before_polls=4 before_longest_ns=14351545 before_work_ns=37126684 before_items=32768 total_polls=62 longest_ns=158183199 total_work_ns=666317620 finished_ns=667184255
+2026-11-09T20:02:19.7812635Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=37328368 before_polls=4 before_longest_ns=14351545 before_work_ns=37126684 before_items=32768 total_polls=62 longest_ns=158183199 total_work_ns=666317620 finished_ns=667184255
+2026-11-09T20:02:19.7813762Z OBSERVATION profile=default case=named trial=3
+2026-11-09T20:02:20.5159332Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=39308575 before_polls=5 before_longest_ns=12756359 before_work_ns=39141522 before_items=40960 total_polls=62 longest_ns=160710080 total_work_ns=683320803 finished_ns=684046986
+2026-11-09T20:02:20.9446829Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=39308575 before_polls=5 before_longest_ns=12756359 before_work_ns=39141522 before_items=40960 total_polls=62 longest_ns=160710080 total_work_ns=683320803 finished_ns=684046986
+2026-11-09T20:02:20.9448048Z OBSERVATION profile=default case=named trial=4
+2026-11-09T20:02:21.6659877Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=35998601 before_polls=4 before_longest_ns=13223453 before_work_ns=35797749 before_items=32768 total_polls=62 longest_ns=157637642 total_work_ns=670485749 finished_ns=671399294
+2026-11-09T20:02:22.0921649Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=35998601 before_polls=4 before_longest_ns=13223453 before_work_ns=35797749 before_items=32768 total_polls=62 longest_ns=157637642 total_work_ns=670485749 finished_ns=671399294
+2026-11-09T20:02:22.0934096Z OBSERVATION profile=default case=coordinator trial=1
+2026-11-09T20:02:22.6786871Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=49932866 before_polls=8 before_longest_ns=19131133 before_work_ns=49697542 total_polls=62 longest_ns=156604725 total_work_ns=481125014 finished_ns=481819288
+2026-11-09T20:02:22.8476305Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=49932866 before_polls=8 before_longest_ns=19131133 before_work_ns=49697542 total_polls=62 longest_ns=156604725 total_work_ns=481125014 finished_ns=481819288
+2026-11-09T20:02:22.8477621Z OBSERVATION profile=default case=coordinator trial=2
+2026-11-09T20:02:23.4334946Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=47219304 before_polls=9 before_longest_ns=17439011 before_work_ns=46986443 total_polls=62 longest_ns=156439305 total_work_ns=481997570 finished_ns=482742581
+2026-11-09T20:02:23.6321464Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=47219304 before_polls=9 before_longest_ns=17439011 before_work_ns=46986443 total_polls=62 longest_ns=156439305 total_work_ns=481997570 finished_ns=482742581
+2026-11-09T20:02:23.6322710Z OBSERVATION profile=default case=coordinator trial=3
+2026-11-09T20:02:24.2023543Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=49395446 before_polls=9 before_longest_ns=18343184 before_work_ns=49151277 total_polls=62 longest_ns=153670970 total_work_ns=467759093 finished_ns=468442814
+2026-11-09T20:02:24.3634786Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=49395446 before_polls=9 before_longest_ns=18343184 before_work_ns=49151277 total_polls=62 longest_ns=153670970 total_work_ns=467759093 finished_ns=468442814
+2026-11-09T20:02:24.3636053Z OBSERVATION profile=default case=coordinator trial=4
+2026-11-09T20:02:24.9359787Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=48061885 before_polls=8 before_longest_ns=17865884 before_work_ns=47818898 total_polls=62 longest_ns=153343406 total_work_ns=469797156 finished_ns=470478165
+2026-11-09T20:02:25.1036901Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=48061885 before_polls=8 before_longest_ns=17865884 before_work_ns=47818898 total_polls=62 longest_ns=153343406 total_work_ns=469797156 finished_ns=470478165
+2026-11-09T20:02:25.1049694Z OBSERVATION profile=all case=named trial=1
+2026-11-09T20:02:25.8278577Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=41846852 before_polls=5 before_longest_ns=13815136 before_work_ns=41632719 before_items=40960 total_polls=62 longest_ns=159918312 total_work_ns=672380013 finished_ns=673337908
+2026-11-09T20:02:26.2531254Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=41846852 before_polls=5 before_longest_ns=13815136 before_work_ns=41632719 before_items=40960 total_polls=62 longest_ns=159918312 total_work_ns=672380013 finished_ns=673337908
+2026-11-09T20:02:26.2532343Z OBSERVATION profile=all case=named trial=2
+2026-11-09T20:02:26.9661957Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=39620654 before_polls=5 before_longest_ns=13582524 before_work_ns=39417957 before_items=40960 total_polls=62 longest_ns=158076604 total_work_ns=663923892 finished_ns=664840713
+2026-11-09T20:02:27.3903321Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=39620654 before_polls=5 before_longest_ns=13582524 before_work_ns=39417957 before_items=40960 total_polls=62 longest_ns=158076604 total_work_ns=663923892 finished_ns=664840713
+2026-11-09T20:02:27.3904310Z OBSERVATION profile=all case=named trial=3
+2026-11-09T20:02:28.1563770Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=31620528 before_polls=4 before_longest_ns=12063404 before_work_ns=31446407 before_items=32768 total_polls=62 longest_ns=156054435 total_work_ns=716709934 finished_ns=717819172
+2026-11-09T20:02:28.5819043Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=31620528 before_polls=4 before_longest_ns=12063404 before_work_ns=31446407 before_items=32768 total_polls=62 longest_ns=156054435 total_work_ns=716709934 finished_ns=717819172
+2026-11-09T20:02:28.5820116Z OBSERVATION profile=all case=named trial=4
+2026-11-09T20:02:29.3016548Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=41143781 before_polls=5 before_longest_ns=14006033 before_work_ns=40935576 before_items=40960 total_polls=62 longest_ns=159986398 total_work_ns=675074754 finished_ns=675983864
+2026-11-09T20:02:29.7260367Z test admin::admin_response_timing_diagnostics::observe_named_response_transform_to_completion ... ADMIN_OBSERVE case=named timer_won=true timer_ns=41143781 before_polls=5 before_longest_ns=14006033 before_work_ns=40935576 before_items=40960 total_polls=62 longest_ns=159986398 total_work_ns=675074754 finished_ns=675983864
+2026-11-09T20:02:29.7272130Z OBSERVATION profile=all case=coordinator trial=1
+2026-11-09T20:02:30.3027253Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=53314104 before_polls=9 before_longest_ns=19786184 before_work_ns=53075286 total_polls=62 longest_ns=157369225 total_work_ns=483326254 finished_ns=483974116
+2026-11-09T20:02:30.4659362Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=53314104 before_polls=9 before_longest_ns=19786184 before_work_ns=53075286 total_polls=62 longest_ns=157369225 total_work_ns=483326254 finished_ns=483974116
+2026-11-09T20:02:30.4660509Z OBSERVATION profile=all case=coordinator trial=2
+2026-11-09T20:02:31.0411773Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=46477472 before_polls=8 before_longest_ns=18780939 before_work_ns=46229618 total_polls=62 longest_ns=154272319 total_work_ns=471344204 finished_ns=472000263
+2026-11-09T20:02:31.2042081Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=46477472 before_polls=8 before_longest_ns=18780939 before_work_ns=46229618 total_polls=62 longest_ns=154272319 total_work_ns=471344204 finished_ns=472000263
+2026-11-09T20:02:31.2043500Z OBSERVATION profile=all case=coordinator trial=3
+2026-11-09T20:02:31.7742492Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=43234456 before_polls=8 before_longest_ns=16085708 before_work_ns=43036688 total_polls=62 longest_ns=155683295 total_work_ns=467275967 finished_ns=467857492
+2026-11-09T20:02:31.9389964Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=43234456 before_polls=8 before_longest_ns=16085708 before_work_ns=43036688 total_polls=62 longest_ns=155683295 total_work_ns=467275967 finished_ns=467857492
+2026-11-09T20:02:31.9391419Z OBSERVATION profile=all case=coordinator trial=4
+2026-11-09T20:02:32.5187653Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=45390575 before_polls=8 before_longest_ns=16809599 before_work_ns=45175582 total_polls=62 longest_ns=157334593 total_work_ns=484783590 finished_ns=485540807
+2026-11-09T20:02:32.6994718Z test admin::admin_response_timing_diagnostics::observe_coordinator_response_transform_to_completion ... ADMIN_OBSERVE case=coordinator timer_won=true timer_ns=45390575 before_polls=8 before_longest_ns=16809599 before_work_ns=45175582 total_polls=62 longest_ns=157334593 total_work_ns=484783590 finished_ns=485540807
