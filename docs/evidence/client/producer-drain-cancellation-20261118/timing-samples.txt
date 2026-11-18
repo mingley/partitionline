@@ -1,0 +1,74 @@
+DRAIN_SOURCE arm=baseline blob=14bf77b39bba6fadc4e14d151e285f126016f174 instrumented_sha256=ffba02c4ca5ea507357af5a6d276f2f91671471d0c8ba38f656a5db40fa346d4 production_sha256=9f468ec9d2cf0012c35aa7eaf710a8196dd6d7945e7990a8121ee8d22443461a
+DRAIN_SOURCE arm=candidate blob=d782fc29bd7e8076caf5ca82661eb11633033e19 instrumented_sha256=5244b950d1a65ce0517c6ea2621a0d2ca1a10205bc49b0c7a19a3b8feed4282f production_sha256=4cf4ae3d91fe16be398663ff50c451781efa5267b2cce425d6d6ad27523141b5
+DRAIN_BUILD_FILE Cargo.toml sha256=cd14d7fa421e960e14e8dd86dde33b7f4dae5510fbcfca5ab2798ec062d2b677
+DRAIN_BUILD_FILE Cargo.lock sha256=a3873c6f1009d2742501943132c1dc17c3b7fbf4eee2bd8f2d907a9251146e4d
+DRAIN_HOST arch=x86_64 cpu=0 available=4
+DRAIN_BINARY baseline=05351c9d9f0248a15858b87a3115d8f33394d79e208f2addcb2846fa6e928d1f candidate=d87a8a1c22c62a18825bf39e9b055638a8b6308f36348819f0261f01c778508e
+DRAIN_SAMPLE pair=1 arm=baseline case=whole-64 iterations=8000 ns=16025286
+DRAIN_SAMPLE pair=1 arm=baseline case=split-16-of-64 iterations=8000 ns=7445164
+DRAIN_SAMPLE pair=1 arm=baseline case=whole-8193 iterations=250 ns=60879205
+DRAIN_SAMPLE pair=1 arm=baseline case=header-suffix-8192 iterations=125 ns=36590271
+DRAIN_SAMPLE pair=1 arm=candidate case=whole-64 iterations=8000 ns=15165722
+DRAIN_SAMPLE pair=1 arm=candidate case=split-16-of-64 iterations=8000 ns=6309393
+DRAIN_SAMPLE pair=1 arm=candidate case=whole-8193 iterations=250 ns=60749081
+DRAIN_SAMPLE pair=1 arm=candidate case=header-suffix-8192 iterations=125 ns=10070966
+DRAIN_SAMPLE pair=2 arm=candidate case=whole-64 iterations=8000 ns=20079657
+DRAIN_SAMPLE pair=2 arm=candidate case=split-16-of-64 iterations=8000 ns=6051608
+DRAIN_SAMPLE pair=2 arm=candidate case=whole-8193 iterations=250 ns=60621084
+DRAIN_SAMPLE pair=2 arm=candidate case=header-suffix-8192 iterations=125 ns=8543413
+DRAIN_SAMPLE pair=2 arm=baseline case=whole-64 iterations=8000 ns=15301915
+DRAIN_SAMPLE pair=2 arm=baseline case=split-16-of-64 iterations=8000 ns=7387908
+DRAIN_SAMPLE pair=2 arm=baseline case=whole-8193 iterations=250 ns=74634165
+DRAIN_SAMPLE pair=2 arm=baseline case=header-suffix-8192 iterations=125 ns=36615534
+DRAIN_SAMPLE pair=3 arm=baseline case=whole-64 iterations=8000 ns=15506745
+DRAIN_SAMPLE pair=3 arm=baseline case=split-16-of-64 iterations=8000 ns=7524094
+DRAIN_SAMPLE pair=3 arm=baseline case=whole-8193 iterations=250 ns=60368390
+DRAIN_SAMPLE pair=3 arm=baseline case=header-suffix-8192 iterations=125 ns=36631628
+DRAIN_SAMPLE pair=3 arm=candidate case=whole-64 iterations=8000 ns=15087033
+DRAIN_SAMPLE pair=3 arm=candidate case=split-16-of-64 iterations=8000 ns=5412200
+DRAIN_SAMPLE pair=3 arm=candidate case=whole-8193 iterations=250 ns=60483949
+DRAIN_SAMPLE pair=3 arm=candidate case=header-suffix-8192 iterations=125 ns=8595216
+DRAIN_SAMPLE pair=4 arm=candidate case=whole-64 iterations=8000 ns=15085619
+DRAIN_SAMPLE pair=4 arm=candidate case=split-16-of-64 iterations=8000 ns=5365927
+DRAIN_SAMPLE pair=4 arm=candidate case=whole-8193 iterations=250 ns=60471486
+DRAIN_SAMPLE pair=4 arm=candidate case=header-suffix-8192 iterations=125 ns=8550426
+DRAIN_SAMPLE pair=4 arm=baseline case=whole-64 iterations=8000 ns=15333417
+DRAIN_SAMPLE pair=4 arm=baseline case=split-16-of-64 iterations=8000 ns=7438736
+DRAIN_SAMPLE pair=4 arm=baseline case=whole-8193 iterations=250 ns=60171604
+DRAIN_SAMPLE pair=4 arm=baseline case=header-suffix-8192 iterations=125 ns=36457753
+DRAIN_SAMPLE pair=5 arm=baseline case=whole-64 iterations=8000 ns=15241289
+DRAIN_SAMPLE pair=5 arm=baseline case=split-16-of-64 iterations=8000 ns=7426248
+DRAIN_SAMPLE pair=5 arm=baseline case=whole-8193 iterations=250 ns=60150319
+DRAIN_SAMPLE pair=5 arm=baseline case=header-suffix-8192 iterations=125 ns=36622915
+DRAIN_SAMPLE pair=5 arm=candidate case=whole-64 iterations=8000 ns=15061367
+DRAIN_SAMPLE pair=5 arm=candidate case=split-16-of-64 iterations=8000 ns=5412329
+DRAIN_SAMPLE pair=5 arm=candidate case=whole-8193 iterations=250 ns=60527719
+DRAIN_SAMPLE pair=5 arm=candidate case=header-suffix-8192 iterations=125 ns=8481976
+DRAIN_SAMPLE pair=6 arm=candidate case=whole-64 iterations=8000 ns=15115941
+DRAIN_SAMPLE pair=6 arm=candidate case=split-16-of-64 iterations=8000 ns=5420747
+DRAIN_SAMPLE pair=6 arm=candidate case=whole-8193 iterations=250 ns=60515063
+DRAIN_SAMPLE pair=6 arm=candidate case=header-suffix-8192 iterations=125 ns=8483311
+DRAIN_SAMPLE pair=6 arm=baseline case=whole-64 iterations=8000 ns=15275393
+DRAIN_SAMPLE pair=6 arm=baseline case=split-16-of-64 iterations=8000 ns=7474481
+DRAIN_SAMPLE pair=6 arm=baseline case=whole-8193 iterations=250 ns=60190684
+DRAIN_SAMPLE pair=6 arm=baseline case=header-suffix-8192 iterations=125 ns=36418401
+DRAIN_SAMPLE pair=7 arm=baseline case=whole-64 iterations=8000 ns=15439411
+DRAIN_SAMPLE pair=7 arm=baseline case=split-16-of-64 iterations=8000 ns=7388560
+DRAIN_SAMPLE pair=7 arm=baseline case=whole-8193 iterations=250 ns=60043509
+DRAIN_SAMPLE pair=7 arm=baseline case=header-suffix-8192 iterations=125 ns=36828757
+DRAIN_SAMPLE pair=7 arm=candidate case=whole-64 iterations=8000 ns=15047756
+DRAIN_SAMPLE pair=7 arm=candidate case=split-16-of-64 iterations=8000 ns=5377815
+DRAIN_SAMPLE pair=7 arm=candidate case=whole-8193 iterations=250 ns=60371709
+DRAIN_SAMPLE pair=7 arm=candidate case=header-suffix-8192 iterations=125 ns=8621678
+DRAIN_SAMPLE pair=8 arm=candidate case=whole-64 iterations=8000 ns=15121455
+DRAIN_SAMPLE pair=8 arm=candidate case=split-16-of-64 iterations=8000 ns=5452487
+DRAIN_SAMPLE pair=8 arm=candidate case=whole-8193 iterations=250 ns=60420136
+DRAIN_SAMPLE pair=8 arm=candidate case=header-suffix-8192 iterations=125 ns=8478271
+DRAIN_SAMPLE pair=8 arm=baseline case=whole-64 iterations=8000 ns=15394751
+DRAIN_SAMPLE pair=8 arm=baseline case=split-16-of-64 iterations=8000 ns=7462151
+DRAIN_SAMPLE pair=8 arm=baseline case=whole-8193 iterations=250 ns=60544219
+DRAIN_SAMPLE pair=8 arm=baseline case=header-suffix-8192 iterations=125 ns=36369327
+DRAIN_RATIO case=whole-64 median=0.9830 min=0.9464 max=1.3122
+DRAIN_RATIO case=split-16-of-64 median=0.7283 min=0.7193 max=0.8474
+DRAIN_RATIO case=whole-8193 median=1.0034 min=0.8122 max=1.0063
+DRAIN_RATIO case=header-suffix-8192 median=0.2337 min=0.2316 max=0.2752
