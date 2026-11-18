@@ -1,0 +1,30 @@
+name: Full release rehearsal tests
+on:
+  push:
+    branches: [qualification/release-tests-20261118]
+permissions:
+  contents: read
+jobs:
+  release-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Run the full release tests and rehearsal
+        run: |
+          git rev-parse HEAD
+          git hash-object .github/workflows/release.yml scripts/report-release-rehearsal.py tests/release/test_rehearsal.py
+          python3 -B -m unittest discover -s tests/release -p 'test_*.py'
+          bash scripts/rehearse-partial-release.sh --run target/release-rehearsal
+      - name: Retain rehearsal receipts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-tests-${{ github.sha }}
+          path: target/release-rehearsal
+          if-no-files-found: warn

@@ -27,7 +27,7 @@ class ReleaseRehearsal(unittest.TestCase):
         cls.temporary.cleanup()
 
     def test_complete_recovery_has_all_cases_and_no_release_claim(self):
-        self.assertEqual(len(self.result['scenarios']), 25)
+        self.assertEqual(len(self.result['scenarios']), 31)
         self.assertEqual(self.result['candidate_version'], rehearsal.candidate_version(ROOT))
         self.assertFalse(self.result['release_complete'])
         self.assertTrue(self.result['validation_success'])
@@ -188,7 +188,10 @@ class ReleaseRehearsal(unittest.TestCase):
                 path.parent.mkdir(parents=True,exist_ok=True)
                 shutil.copyfile(ROOT/name,path)
             path=root/'.github/workflows/release.yml'
-            path.write_text(path.read_text().replace('tag="${REF_NAME#v}"','tag="${{ secrets.NOT_ALLOWED }}"'))
+            text = path.read_text()
+            original = 'tag="${GITHUB_REF#refs/tags/}"'
+            self.assertEqual(text.count(original), 1, 'tag selection mutation must apply')
+            path.write_text(text.replace(original, 'tag="${{ secrets.NOT_ALLOWED }}"', 1))
             with self.assertRaisesRegex(ValueError,'unmodeled workflow expression'):
                 rehearsal.isolated_cases(Path(temporary)/'report',source_root=root)
 
