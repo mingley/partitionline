@@ -11,6 +11,13 @@ Unpublished repository work (`partitionline-broker` and `partitionline-schema`
 remain `publish = false`; see [`docs/STATUS.md`](docs/STATUS.md) and
 [`docs/RELEASE.md`](docs/RELEASE.md)).
 
+### Fixed
+
+- If batch selection is canceled during the producer's queue scan, the worker
+  keeps the queued records, their order and their accounting.
+- Release jobs check out the existing final tag and link GitHub release notes
+  to the registry, API docs and changelog.
+
 ## [0.2.0] - 2026-11-13
 
 Major protocol, performance, safety, and API milestone (3,750+ commits since

@@ -30,10 +30,11 @@ for the tag and registry result.
 
 ## Open work
 
-- **Producer.** Preserve accepted records, receipts and resource accounting
-  through cancellation and worker shutdown. Qualify ordering and ambiguous
-  retries against Kafka. The [ownership experiments](https://github.com/mingley/partitionline/blob/753a35b19cebad4155d37938a14eee219193d581/docs/evidence/client/producer-drain-staging-20261110/README.md)
-  isolate the drain boundary and the separate grouping failure.
+- **Producer.** Canceling the queue scan now leaves accepted records and
+  bookkeeping with the worker. Both feature profiles passed the
+  [drain controls](https://github.com/mingley/partitionline/actions/runs/44411433690).
+  Grouping, sticky selection, shutdown and ambiguous retries still need
+  separate ownership and Kafka delivery checks.
 - **Client compatibility.** The current Kafka profiles cover a finite
   single-broker scenario. Broader protocol support, older peer behavior,
   group churn, authentication renewal and transaction recovery need further

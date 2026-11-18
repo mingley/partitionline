@@ -56,12 +56,14 @@ open.
    A [drain-staging prototype](../evidence/client/producer-drain-staging-20261110/README.md)
    restores records when the drain future is dropped. Focused controls passed,
    but its broader producer tests failed and its cost is not yet measured; it
-   remains unapplied and does not cover the later grouping boundary.
+   remains unapplied. The [drain cancellation fix](../evidence/client/producer-drain-cancellation-20261118/README.md)
+   keeps records with the worker during the prefix and deadline scans.
+   Grouping and sticky batch selection remain separate work.
 
-2. **Client correctness and compatibility.** Work through the applicable
-   failing client and Kafka profiles using the task registry. Preserve record
-   ownership, ordering, deadlines and authentication across cancellation and
-   reconnects. Keep mock, live-broker and independent peer results distinct.
+2. **Client correctness and compatibility.** Extend the passing broker
+   profiles to cover more protocol options and failure histories. Preserve
+   record ownership, ordering, deadlines and authentication across
+   cancellation and reconnects.
    The [protocol gaps](../gaps.md) and [support matrix](../support.md) describe
    the current API and version boundaries. Offline fixtures cover selected
    Metadata [v13](../evidence/conformance/q-conf-metadatawire/README.md) and
