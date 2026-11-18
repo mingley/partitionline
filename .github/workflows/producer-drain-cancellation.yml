@@ -1,0 +1,109 @@
+name: Producer drain cancellation qualification
+
+on:
+  push:
+    branches: [qualification/producer-drain-cancellation-20261118]
+
+permissions:
+  contents: read
+
+jobs:
+  producer:
+    name: Producer tests (${{ matrix.arm }}, ${{ matrix.profile }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        arm: [baseline, candidate]
+        profile: [default, all-features]
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+      PROFILE: ${{ matrix.profile }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record source
+        run: |
+          rustc --version
+          git rev-parse HEAD
+          git hash-object src/producer.rs
+      - name: Apply the same regression tests to the pinned baseline
+        if: matrix.arm == 'baseline'
+        shell: bash
+        run: |
+          git show 753a35b19cebad4155d37938a14eee219193d581:src/producer.rs > "$RUNNER_TEMP/producer-baseline.rs"
+          test "$(git hash-object "$RUNNER_TEMP/producer-baseline.rs")" = 14bf77b39bba6fadc4e14d151e285f126016f174
+          python3 -B - <<'PY'
+          import os
+          from pathlib import Path
+
+          start = b"    type DrainReceipts = "
+          anchor = (
+              b'    #[tokio::test(flavor = "current_thread")]\n'
+              b"    async fn timestamp_freezing_at_existing_encode_yields() {"
+          )
+          path = Path("src/producer.rs")
+          candidate = path.read_bytes()
+          baseline = (Path(os.environ["RUNNER_TEMP"]) / "producer-baseline.rs").read_bytes()
+          if candidate.count(start) != 1 or candidate.count(anchor) != 1 or baseline.count(anchor) != 1:
+              raise ValueError("unique drain test anchors are required")
+          tests = candidate[candidate.index(start):candidate.index(anchor)]
+          path.write_bytes(baseline.replace(anchor, tests + anchor, 1))
+          PY
+          git hash-object src/producer.rs
+      - name: Candidate cancellation controls
+        if: matrix.arm == 'candidate'
+        shell: bash
+        run: |
+          features=()
+          if [[ "$PROFILE" == all-features ]]; then features+=(--all-features); fi
+          cargo test --locked "${features[@]}" --lib producer::tests::drain_pending_cancellation_ -- --test-threads=1
+      - name: Verify the two expected baseline failures
+        if: matrix.arm == 'baseline'
+        shell: bash
+        run: |
+          features=()
+          if [[ "$PROFILE" == all-features ]]; then features+=(--all-features); fi
+          log="$RUNNER_TEMP/drain-baseline.log"
+          if cargo test --locked "${features[@]}" --lib producer::tests::drain_pending_cancellation_ -- --test-threads=1 > "$log" 2>&1; then
+            cat "$log"
+            exit 1
+          else
+            code=$?
+          fi
+          tail -n 35 "$log"
+          test "$code" = 101
+          grep -Fx 'test producer::tests::drain_pending_cancellation_during_prefix_scan ... FAILED' "$log"
+          grep -Fx 'test producer::tests::drain_pending_cancellation_during_suffix_scan ... FAILED' "$log"
+          test "$(grep -Fc 'dropping drain closed a pending receipt' "$log")" = 2
+          grep -F 'test result: FAILED. 0 passed; 2 failed; 0 ignored' "$log"
+      - name: Existing producer tests
+        if: always()
+        shell: bash
+        run: |
+          features=()
+          if [[ "$PROFILE" == all-features ]]; then features+=(--all-features); fi
+          cargo test --locked "${features[@]}" --lib producer::tests:: -- --test-threads=1 --skip producer::tests::drain_pending_cancellation_
+
+  strict:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Strict lint
+        if: always()
+        run: cargo clippy --locked --all-features --lib --tests -- -D warnings
