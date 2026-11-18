@@ -1,17 +1,20 @@
 # Releases
 
-`partitionline` 0.1.0 is already published on crates.io. Never recut that
-version. Root `Cargo.toml`, [`CHANGELOG.md`](../CHANGELOG.md), and the packaged
-guides are prepared for **`partitionline` 0.2.0**; cutting `v0.2.0` requires
-landing the release candidate on `main` with a complete green `ci` run on that
-exact commit SHA. See [status](STATUS.md) for current validation records and
-ongoing production-qualification scope.
+Version 0.2.0 is published. The signed `v0.2.0` tag points to
+`87eb1b824c97943207d3de36c6683402fe52d316`. CI passed on that commit and
+the release workflow confirmed publication on 13 November 2026.
+See the [release](https://github.com/mingley/partitionline/releases/tag/v0.2.0),
+[CI run](https://github.com/mingley/partitionline/actions/runs/43431753659)
+and [publish run](https://github.com/mingley/partitionline/actions/runs/43437873262).
+An [external consumer check](https://github.com/mingley/partitionline/actions/runs/44410755330/job/135177924973)
+compiled against the published 0.2.0 crate and verified its registry source
+on Rust 1.100.0.
 
 ## Crates and versions
 
 | Crate | Current publication state |
 | --- | --- |
-| `partitionline` | 0.1.0 published on crates.io; 0.2.0 prepared in manifest and changelog (publish after exact-SHA `main` CI) |
+| `partitionline` | [0.2.0 on crates.io](https://crates.io/crates/partitionline/0.2.0) |
 | `partitionline-broker` | Experimental, `publish = false` |
 | `partitionline-schema` | Companion under development, `publish = false` |
 
@@ -23,14 +26,11 @@ Use latest stable Rust for builds and validation. `rust-version` in each
 manifest records the minimum compiler accepted by Cargo; it is currently `1.99`.
 Tested broker and platform combinations are listed in [support](support.md).
 
-While the API is 0.x, a breaking change to a stable public item needs a minor
-version bump. Additive changes and fixes can use a patch version. Changes to
-[protocol helpers](api-stability.md) may use a patch if the changelog describes
-them. Raising `rust-version` also needs a minor bump. Version `0.2.0` bumps the
-minor series for `rust-version = "1.99"`, the default `zlib-rs` gzip backend,
-and the `ConsumerConfig`, record, metrics, and Admin struct updates documented
-in [`CHANGELOG.md`](../CHANGELOG.md#020---2026-11-12); never relabel breaking
-changes as a `0.1.x` patch.
+While the API is 0.x, breaking changes to stable public items and increases to
+`rust-version` require a minor release. Additions and fixes can use a patch
+release. Changes to [protocol helpers](api-stability.md) may use a patch if
+the changelog describes them. Upgrade notes for 0.2.0 are in the
+[changelog](../CHANGELOG.md#020---2026-11-13).
 
 ## Prepare the candidate
 
@@ -71,7 +71,7 @@ A real cut requires exact-commit green CI, package-consumer evidence, a final
 `X.Y.Z` version, and registry authentication. `DRY_RUN=1` rehearses actions;
 it does not publish. The script uses local publication when a registry token
 is available, or pushes the matching final tag for
-[release.yml](https://github.com/mingley/partitionline/blob/8570b01da6693acbcaa66120c861c5fd689628c4/.github/workflows/release.yml). Set `PUBLISH_LOCAL=0` to use
+[release.yml](https://github.com/mingley/partitionline/blob/753a35b19cebad4155d37938a14eee219193d581/.github/workflows/release.yml). Set `PUBLISH_LOCAL=0` to use
 the workflow explicitly. The workflow supports crates.io Trusted Publishing
 and a `CARGO_REGISTRY_TOKEN` fallback.
 

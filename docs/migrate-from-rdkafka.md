@@ -23,7 +23,7 @@ matched current source.
 
 The default-value comparison below covers `partitionline` `0.2.0` (`ConsumerConfig`
 includes `buffer_memory` at 32 MiB and `fetch_metadata_max_bytes` at 128 MiB;
-see the [0.2.0 changelog](../CHANGELOG.md#020---2026-11-12) for changes since
+see the [0.2.0 changelog](../CHANGELOG.md#020---2026-11-13) for changes since
 `0.1.0`).
 
 ## Dependency
