@@ -21,7 +21,11 @@ TEST = common.ROOT / "tests/produce_wire_conformance.rs"
 PINS_FILE = Path(__file__).with_name("pins.json")
 PINS = json.loads(PINS_FILE.read_text())
 HISTORICAL = (PINS["primary_pin"], PINS["secondary_pin"])
-COMMITS = {pin["version"]: pin["upstream_sha"] for pin in HISTORICAL} | common.COMMITS
+# The historical pins record annotated tag objects. Use their target commits here.
+COMMITS = {
+    "3.9.1": "f745dfdcee2b9851204ddbbcd423626ab87294bc",
+    "4.1.0": "13f70256db3c994c590e5d262a7cc50b9e973204",
+} | common.COMMITS
 common.PINS = {pin["version"]: pin["jar_sha256_maven_central"] for pin in HISTORICAL} | common.PINS
 VERSIONS = (4, 6, 7, 12)
 SLF4J_SHA256 = "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
@@ -70,9 +74,14 @@ def compare_peer(output, release, logger, reference):
     if release == "4.3.1":
         # Kafka moved these record classes. The retained compiled source records the change.
         source = directory / JAVA.name
-        source.write_text(JAVA.read_text().replace(
-            "org.apache.kafka.common.record.", "org.apache.kafka.common.record.internal."
-        ))
+        java_text = JAVA.read_text()
+        for name in ("MemoryRecords", "SimpleRecord"):
+            before = f"import org.apache.kafka.common.record.{name};"
+            after = f"import org.apache.kafka.common.record.internal.{name};"
+            if java_text.count(before) != 1:
+                raise ValueError(f"unexpected Produce fixture import: {name}")
+            java_text = java_text.replace(before, after)
+        source.write_text(java_text)
     limit = 11 if release == "3.9.1" else 13
     versions = tuple(version for version in VERSIONS if version <= limit)
     java = ["java", "-Xmx128m", "--class-path", f"{jar}{os.pathsep}{logger}", str(source), str(jar), str(limit)]
@@ -116,6 +125,7 @@ def compare_peer(output, release, logger, reference):
             raise ValueError(f"Produce body differs for Apache {release}, Rust {profile}")
         print(json.dumps({
             "peer": release, "profile": profile, "declared_max": limit, "versions": versions,
+            "upstream_commit": COMMITS[release], "jar_sha256": result["jar_sha256"],
             "fixture_sha256": common.digest(reverse), "body_pairs": len(versions),
         }), flush=True)
         if release == "4.1.0" and profile == "default":
