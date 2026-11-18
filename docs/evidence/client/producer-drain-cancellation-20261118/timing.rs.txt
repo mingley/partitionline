@@ -1,0 +1,50 @@
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore = "paired drain timing diagnostic"]
+    async fn drain_pending_timing_diagnostic() {
+        use std::hint::black_box;
+        use std::time::Instant as Clock;
+
+        for (case, total, take, headers, iterations) in [
+            ("whole-64", 64, 64, 0, 8_000),
+            ("split-16-of-64", 64, 16, 0, 8_000),
+            ("whole-8193", 8_193, 8_193, 0, 250),
+            ("header-suffix-8192", 8_256, 64, 8, 125),
+        ] {
+            let (mut worker, _receipts) = drain_pending_fixture(total).await;
+            if headers != 0 {
+                for record in &mut worker.pending {
+                    for _ in 0..headers {
+                        record.rec.headers.push(RecordHeader::new("trace", "abcdefgh"));
+                    }
+                }
+            }
+            let charge = pendings_bytes(&worker.pending);
+            worker.shared.buffered_bytes.store(charge, Ordering::SeqCst);
+            let estimate_before: usize = worker.pending.iter().map(estimate).sum();
+            let deadline_before = worker.earliest_deadline;
+            let retained_estimate: usize = worker.pending[take..].iter().map(estimate).sum();
+            let retained_deadline = worker.pending[take..].iter().map(|p| p.deadline).min();
+            worker.pending_estimate = estimate_before;
+            worker.spare_batch.reserve(take);
+            let mut elapsed_ns = 0;
+            for iteration in 0..(iterations + 16) {
+                let start = Clock::now();
+                let mut batch = black_box(worker.drain_pending(black_box(take)).await);
+                let ns = start.elapsed().as_nanos();
+                if iteration >= 16 {
+                    elapsed_ns += ns;
+                }
+                assert_eq!(batch.len(), take);
+                assert_eq!(worker.pending.len(), total - take);
+                assert_eq!(worker.pending_estimate, retained_estimate);
+                assert_eq!(worker.earliest_deadline, retained_deadline);
+                worker.pending.append(&mut batch);
+                worker.pending.rotate_right(take);
+                worker.spare_batch = batch;
+                worker.pending_estimate = estimate_before;
+                worker.earliest_deadline = deadline_before;
+            }
+            println!("DRAIN_TIMING case={case} iterations={iterations} ns={elapsed_ns}");
+        }
+    }
+

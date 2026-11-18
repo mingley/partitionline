@@ -1,0 +1,112 @@
+name: Producer drain paired timing
+
+on:
+  push:
+    branches: [qualification/producer-drain-timing-20261118]
+
+permissions:
+  contents: read
+
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 3
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Bind test injection to exact sources
+        shell: bash
+        run: |
+          rustc -Vv
+          git rev-parse HEAD
+          git worktree add --detach "$RUNNER_TEMP/drain-baseline" 753a35b19cebad4155d37938a14eee219193d581
+          git worktree add --detach "$RUNNER_TEMP/drain-candidate" 4fb0dd8a5fedfc2d16b01510c84d3e7d4baf807a
+          python3 -B - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          import subprocess
+
+          capsule = Path("docs/evidence/client/producer-drain-cancellation-20261118")
+          start = b"    type DrainReceipts = "
+          anchor = (
+              b'    #[tokio::test(flavor = "current_thread")]\n'
+              b"    async fn timestamp_freezing_at_existing_encode_yields() {"
+          )
+          marker = b"#[cfg(test)]\nmod tests {"
+          bench = (capsule / "timing.rs.txt").read_bytes()
+          temp = Path(os.environ["RUNNER_TEMP"])
+          worktrees = {arm: temp / f"drain-{arm}" for arm in ("baseline", "candidate")}
+          pinned = {
+              "baseline": "14bf77b39bba6fadc4e14d151e285f126016f174",
+              "candidate": "d782fc29bd7e8076caf5ca82661eb11633033e19",
+          }
+          test_source = (worktrees["candidate"] / "src/producer.rs").read_bytes()
+          if test_source.count(start) != 1 or test_source.count(anchor) != 1:
+              raise ValueError("missing unique test anchors")
+          injection = test_source[test_source.index(start):test_source.index(anchor)] + bench
+          for arm, path in worktrees.items():
+              source = path / "src/producer.rs"
+              blob = subprocess.check_output(["git", "hash-object", source], text=True).strip()
+              if blob != pinned[arm]:
+                  raise ValueError(f"unexpected source blob in {arm}")
+              original = source.read_bytes()
+              if original.count(anchor) != 1 or original.count(marker) != 1:
+                  raise ValueError(f"unexpected source markers in {arm}")
+              original_prefix = original.split(marker, 1)[0]
+              if arm == "candidate":
+                  original = original[:original.index(start)] + original[original.index(anchor):]
+              instrumented = original.replace(anchor, injection + anchor, 1)
+              if instrumented.split(marker, 1)[0] != original_prefix:
+                  raise ValueError(f"production prefix changed in {arm}")
+              source.write_bytes(instrumented)
+              print(f"DRAIN_SOURCE arm={arm} blob={blob} "
+                    f"instrumented_sha256={hashlib.sha256(instrumented).hexdigest()} "
+                    f"production_sha256={hashlib.sha256(original_prefix).hexdigest()}")
+          for name in ("Cargo.toml", "Cargo.lock"):
+              contents = [(path / name).read_bytes() for path in worktrees.values()]
+              if contents[0] != contents[1]:
+                  raise ValueError(f"paired builds disagree on {name}")
+              print(f"DRAIN_BUILD_FILE {name} sha256={hashlib.sha256(contents[0]).hexdigest()}")
+          PY
+      - name: Build release test binaries in separate targets
+        shell: bash
+        run: |
+          for arm in baseline candidate; do
+            (
+              cd "$RUNNER_TEMP/drain-$arm"
+              export CARGO_TARGET_DIR="$RUNNER_TEMP/drain-$arm-target"
+              cargo test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/drain-$arm-build.jsonl"
+              python3 -B - "$arm" <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          arm = sys.argv[1]
+          temp = Path(os.environ["RUNNER_TEMP"])
+          target = (temp / f"drain-{arm}-target").resolve()
+          log = temp / f"drain-{arm}-build.jsonl"
+          paths = []
+          for line in log.read_text().splitlines():
+              row = json.loads(line)
+              if row.get("reason") != "compiler-artifact":
+                  continue
+              if row["profile"]["test"] and row["target"]["name"] == "partitionline" and row.get("executable"):
+                  paths.append(Path(row["executable"]).resolve(strict=True))
+          if len(paths) != 1 or not paths[0].is_relative_to(target):
+              raise ValueError(f"could not locate a unique test binary for {arm}: {paths}")
+          (temp / f"drain-{arm}-bin.txt").write_text(str(paths[0]))
+          PY
+            )
+          done
+      - name: Measure eight alternating pairs
+        run: |
+          python3 -B docs/evidence/client/producer-drain-cancellation-20261118/timing.py.txt \
+            "$RUNNER_TEMP/drain-baseline-bin.txt" "$RUNNER_TEMP/drain-candidate-bin.txt"
