@@ -15802,7 +15802,10 @@ mod tests {
 
         for receiver in &mut receivers {
             assert!(
-                matches!(receiver.try_recv(), Err(oneshot::error::TryRecvError::Empty)),
+                matches!(
+                    receiver.try_recv(),
+                    Err(oneshot::error::TryRecvError::Empty)
+                ),
                 "dropping drain closed a pending receipt"
             );
         }
