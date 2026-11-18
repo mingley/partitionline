@@ -14,8 +14,9 @@ The latest recorded `main` snapshot at `753a35b` passed the client, Kafka
 compatibility, package, and broker suites. The resource-soak job stopped
 because the OS denied process descriptor sampling. The preceding complete
 client run at `b41727f` passed the finite soak. That job covers a short run
-on one host. The 24-hour fault and seven-day continuity campaigns remain
-open.
+on one host. The later `b248dd2` snapshot passed the same finite soak, the current
+Kafka profiles and broker CI. The 24-hour fault and seven-day continuity
+campaigns remain open.
 
 ## Priorities
 
@@ -58,7 +59,9 @@ open.
    but its broader producer tests failed and its cost is not yet measured; it
    remains unapplied. The [drain cancellation fix](../evidence/client/producer-drain-cancellation-20261118/README.md)
    keeps records with the worker during the prefix and deadline scans.
-   Grouping and sticky batch selection remain separate work.
+   Paired x86_64 timings show a large reduction when refreshing deadlines for
+   a deep queue. The full-drain cases were mixed. Grouping and sticky batch
+   selection remain separate work.
 
 2. **Client correctness and compatibility.** Extend the passing broker
    profiles to cover more protocol options and failure histories. Preserve
@@ -70,6 +73,9 @@ open.
    [v0–v12](../evidence/conformance/q-conf-metadatawire/all-versions-20261110.md)
    bodies against Apache SDKs. Version 0 is a raw wire case only. Wider error
    and collection cases, version negotiation and live-broker behavior remain open.
+   The [Produce wire fixtures](../evidence/conformance/q-conf-producewire/README.md)
+   add selected v4, v6, v7 and v12 body checks against pinned Apache SDKs.
+   KL01-18 remains open for broader cases and live Produce behavior.
 
    The [Admin cursor guard](../evidence/client/admin-cursor-history-20261109/README.md)
    catches some non-adjacent repeats with fixed-size history. It can reject a

@@ -18,6 +18,11 @@ remain `publish = false`; see [`docs/STATUS.md`](docs/STATUS.md) and
 - Release jobs check out the existing final tag and link GitHub release notes
   to the registry, API docs and changelog.
 
+### Tests
+
+- Add offline Produce v4, v6, v7 and v12 body fixtures checked against pinned
+  Apache Kafka SDKs.
+
 ## [0.2.0] - 2026-11-13
 
 Major protocol, performance, safety, and API milestone (3,750+ commits since

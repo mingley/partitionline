@@ -80,7 +80,11 @@ checks that the tag points to the checked-out commit and matches the package
 version. The GitHub release uses that tag and links to the registry, API docs
 and changelog. The [rehearsal](https://github.com/mingley/partitionline/actions/runs/44411669796)
 passed 31 offline scenarios and checked out the existing 0.2.0 tag by its
-full ref.
+full ref. The later [release test run](https://github.com/mingley/partitionline/actions/runs/44414059916)
+passed the full 122-test suite and the rehearsal after updating the test
+count and workflow mutation for the new tag selection step. The
+[intermediate CI run](https://github.com/mingley/partitionline/actions/runs/44412321206)
+retains those two failures.
 
 The CI gate checks every required main-push job and the conformance artifact for
 the same run and attempt. A rerun of only failed jobs may omit previously
