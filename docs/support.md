@@ -1,8 +1,8 @@
 # Support matrix
 
-This describes CI coverage for the current source. A configured lane can fail;
-see [current validation](STATUS.md#validation) for recorded results.
-Published 0.1.0 is a separate source baseline.
+This describes CI coverage for work on `main`. See the
+[current results](STATUS.md#validation) and the
+[published 0.2.0 API docs](https://docs.rs/partitionline/0.2.0/partitionline/).
 
 API changes follow the [0.x policy](api-stability.md). Cuts are described in
 [RELEASE.md](RELEASE.md). Adopter steps are in [ADOPTION.md](ADOPTION.md).
@@ -18,7 +18,7 @@ older 3.9.1 and 4.1.0 smoke runs are historical coverage.
 
 | Dimension | Configured scope | Evidence |
 |---|---|---|
-| Crate version | `0.2.0` prepared; `0.1.0` on crates.io | Do not re-cut `0.1.0`; publish `0.2.0` via [RELEASE.md](RELEASE.md) |
+| Client release | `0.2.0` | [Release record](RELEASE.md) |
 | Rust | Latest stable; `rust-version` minimum is **1.99** | Stable-only CI for the client, broker and schema companion. Older compilers are not supported. |
 | Host OS (CI) | Linux (`ubuntu-latest`); native macOS (`macos-15`) and Windows (`windows-2025`) for mock/runtime and packed consumers | `.github/workflows/ci.yml`; KL08-05 / KL08-14 native default/tracing cells |
 | Host arch (CI) | Linux `x86_64`; macOS `arm64`; Windows `x86_64` MSVC | Native compiler/runtime guards and retained platform reports |
@@ -49,9 +49,9 @@ Each attempt keeps its source SHA, compiler, image, streams, and failures.
 This is one producer and consumer scenario. It is not the full ducktape suite
 or the full SDK case registry. The earlier mock-only case is historical.
 
-The recorded profiles used their named source revisions and default features.
-The three live Kafka profiles failed on `45cbff24d` and on later source; see the
-[current results](STATUS.md#validation). These profiles do not cover:
+The three live Kafka profiles passed at the 0.2.0 tag and on the latest
+recorded `main` run. Each profile uses default features inside the same
+single-broker topology. Areas outside these profiles include
 
 - Multi-broker HA, rebalance churn, or share lock expiry
 - Crash and fencing
@@ -59,9 +59,6 @@ The three live Kafka profiles failed on `45cbff24d` and on later source; see the
 - A live broker on macOS or Windows
 - Tiered storage
 - Performance
-
-Historical smoke does not excuse a failed current profile. Published `0.1.0`
-is a separate source baseline.
 
 ## Platform lanes
 
@@ -145,19 +142,10 @@ procedure.
 
 ### Published crate
 
-crates.io `partitionline` 0.1.0 is tag `v0.1.0` (4 September 2026, 8:28 PM CT).
-Version `0.2.0` is prepared in `Cargo.toml` and
-[`CHANGELOG.md`](../CHANGELOG.md#020---2026-11-12); the
-[migration guide](migrate-from-rdkafka.md) is the current map of files and
-symbols.
-
-An older check compared commit `ca50ca1` (22 September 2026, 1:08 PM CT) with
-`v0.1.0`. At that commit, 14 files under `src/` differed from the published
-crate. Current `0.2.0` source includes the buffer limits, compact record
-representations, `zlib-rs` default gzip backend, and `rust-version = "1.99"`
-documented in [`CHANGELOG.md`](../CHANGELOG.md#020---2026-11-12). Construct
-configurations with builders or `..Default::default()` so future field
-additions do not break exhaustive struct literals.
+Version 0.2.0 adds the buffer limits, compact record types, and `zlib-rs`
+default gzip backend described in the [changelog](../CHANGELOG.md#020---2026-11-13).
+It requires Rust 1.99 or newer. See the [migration guide](migrate-from-rdkafka.md)
+for API changes and examples.
 
 The 0.x caller contract for error categories (retryable, abort-required, fatal, unsupported, timeout, ambiguous delivery) and for public config fields is in [api-stability.md](api-stability.md). Match error categories, not `Display` text. Build configs with the builders, or with `Default` plus overrides.
 

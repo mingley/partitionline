@@ -14,26 +14,22 @@ and Admin APIs. This repository also contains an experimental
 partitionline = "0.2"
 ```
 
-See [`CHANGELOG.md`](CHANGELOG.md) for what changed in `0.2.0` since
-[`0.1.0`](https://docs.rs/partitionline/0.1.0/partitionline/), and
-[`docs/RELEASE.md`](docs/RELEASE.md) for publication gates on
-[crates.io](https://crates.io/crates/partitionline). Until `0.2.0` finishes
-publishing—or when testing unreleased `main` commits—you can depend on a local
-checkout (adjust the relative path as needed):
+Version 0.2.0 is available on [crates.io](https://crates.io/crates/partitionline/0.2.0).
+See the [API docs](https://docs.rs/partitionline/0.2.0/partitionline/) and
+[changelog](CHANGELOG.md). To try changes after the release, point your
+application at a local checkout.
 
 ```toml
 [dependencies]
 partitionline = { path = "../partitionline" }
 ```
 
-`partitionline` is an `0.x` crate under active qualification (Suite HOLD
-remains unsigned, and production rankings have not been established). See
-[current status](docs/STATUS.md) for validation results and open work, and the
-[support matrix](docs/support.md) for tested Kafka versions and platforms.
+Production qualification and comparative performance work are ongoing. See
+the [current status](docs/STATUS.md) and [support matrix](docs/support.md).
 
-Build with Rust `1.99` or newer (latest stable recommended). Building the TLS
-dependency `ring` requires a C toolchain. The examples assume a running Kafka
-broker and existing topics.
+Build with the latest stable Rust. The crate requires Rust 1.99 or newer,
+and Ring needs a C toolchain for TLS builds. The examples assume a running
+Kafka broker and existing topics.
 
 ## Produce
 

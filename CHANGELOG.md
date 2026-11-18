@@ -11,7 +11,7 @@ Unpublished repository work (`partitionline-broker` and `partitionline-schema`
 remain `publish = false`; see [`docs/STATUS.md`](docs/STATUS.md) and
 [`docs/RELEASE.md`](docs/RELEASE.md)).
 
-## [0.2.0] - 2026-11-12
+## [0.2.0] - 2026-11-13
 
 Major protocol, performance, safety, and API milestone (3,750+ commits since
 `v0.1.0`). Earlier intermediate working notes are preserved in the

@@ -5,21 +5,17 @@ bounded queues. The crate is under active 0.x qualification; see the
 [current status](STATUS.md) and [support matrix](support.md) for test results
 and qualification limits.
 
-Version 0.1.0 is published. Version 0.2.0 is prepared in this repository; check
-registry availability with `bash scripts/check-installable.sh`. Maintainers
-cutting a release should follow the [release guide](RELEASE.md); earlier
-release records are in [STATUS.md](STATUS.md).
-
 ## Install
 
-`partitionline` **0.2.0** targets [crates.io](https://crates.io/crates/partitionline) (`0.1.0` is already live):
+Version 0.2.0 is available on [crates.io](https://crates.io/crates/partitionline/0.2.0).
+Use the latest stable Rust. The [0.2.0 API docs](https://docs.rs/partitionline/0.2.0/partitionline/)
+cover the published crate.
 
 ```toml
 [dependencies]
 partitionline = "0.2"
 ```
 
-Git tags remain available for bisects; new adopters should prefer crates.io.
 
 ## Pilot checklist
 
@@ -36,15 +32,13 @@ Git tags remain available for bisects; new adopters should prefer crates.io.
    `tracing` feature for spans (`docs/guide.md`).
 7. Read defaults that differ from Java (`auto.offset.reset=Earliest`, etc.).
 
-For KL-08 **24h then 7d** adopter evidence (two independent workloads), copy
-[adopter-exercise.md](adopter-exercise.md). The template ships **UNFILLED** and
-does not close KL-08 or lift Suite HOLD until real records are filed.
+Log 24-hour and seven-day trials for each workload using the
+[adopter exercise template](adopter-exercise.md).
 
 ## Remaining work
 
 | Gap | Status |
 |---|---|
-| crates.io release | **0.2.0 prepared** (0.1.0 published) — `partitionline = "0.2"` |
 | zstd | Optional feature, off by default. Encoding and decoding exist. Qualification is finite. See [zstd](zstd-spike.md). |
 | Kerberos / GSSAPI | Not implemented. The [provider proposal](gssapi-boundary.md) is waiting for approval. |
 | Schema Registry | Separate unpublished [companion](https://github.com/mingley/partitionline/blob/8570b01da6693acbcaa66120c861c5fd689628c4/partitionline-schema/README.md). The application picks the serializer. |

@@ -39,7 +39,7 @@ timeout portability, cancellation, buffer-counter, auth and release slices,
 are already present. Do not schedule their original implementation again.
 Controlled-host qualification and stronger behavioral evidence remain open.
 
-Crates.io `0.1.0` is published, with adopter pins and subsequent work on `main`.
+Version `0.2.0` is published on crates.io. See the [release record](RELEASE.md).
 **Suite HOLD remains** until signed Lab A evidence.
 Unsigned Verifiable/latency samples do not lift it; see
 [CIVILIZATION.md](CIVILIZATION.md) and [STATUS.md](STATUS.md).

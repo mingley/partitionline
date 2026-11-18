@@ -2,14 +2,13 @@
 
 This project is MIT OR Apache-2.0. Patches are under the same licenses unless you say otherwise.
 
-Execution starts with [one task per session](docs/plan/README.md):
-claim one ready card in [tasks.json](docs/plan/tasks.json), run its focused
-checks, record evidence and stop. [TODO.md](TODO.md) gives the first pickups;
-[ROADMAP.md](docs/ROADMAP.md) defines package/profile gates. The
-[source audit](docs/audits/2026-09-21.md) supplies verified starting evidence.
-Capability tracker: [docs/gaps.md](docs/gaps.md).
-Release / semver: [docs/RELEASE.md](docs/RELEASE.md). Security: [docs/security.md](docs/security.md)
-and [SECURITY.md](SECURITY.md).
+Choose work from the [task registry](docs/plan/tasks.json). Use the
+[work plan](docs/plan/README.md) to coordinate related tasks and record
+test results. The [roadmap](docs/ROADMAP.md) defines qualification scopes.
+See the [release guide](docs/RELEASE.md) for versioning and
+[SECURITY.md](SECURITY.md) for vulnerability reports.
+
+Use the latest stable Rust.
 
 ```
 cargo fmt

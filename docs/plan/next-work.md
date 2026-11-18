@@ -1,34 +1,21 @@
 # Next work
 
-Updated 10 November 2026. Use latest stable Rust. The
-[task registry](tasks.json) is the source of task status and dependencies;
-the [task guide](README.md) explains how to select and record work.
+Updated 18 November 2026. The [task registry](tasks.json) tracks status and
+dependencies. Use the latest stable Rust for validation.
 
 ## Qualification
 
-The client and broker are not yet qualified for production, and neither has
-an established fastest-in-the-world result. Client 0.1.0 is published; the
-next client release must be at least 0.2.0. The experimental broker and schema
-companion are unpublished.
+Client 0.2.0 was published on 13 November. The broker and Schema Registry
+companion are unpublished. Production readiness and x86_64 performance
+leadership remain open. See the [release record](../RELEASE.md) and
+[current validation](../STATUS.md#validation).
 
-The latest complete [main CI record](../evidence/releases/main-ci-7e6-20261110/README.md)
-is for `7e6dff932db4128596ad45811f03c8c9d4afb4b7`. Linux client libraries
-reported 2,313 passes and 15 failures with default features and 2,314 passes
-and 14 failures with all features. Windows reported 2,308 passes and 20
-failures; macOS reported 2,313 passes and 15 failures. All three current
-Kafka compatibility jobs and both historical smoke jobs failed. The broker
-default library passed, but a later default-feature target failed; its
-all-feature and strict checks did not run. Package, docs and Schema jobs
-passed. The finite resource-soak job passed; no sustained campaign has
-passed. An [earlier snapshot](../evidence/releases/main-ci-669-20261109/README.md)
-recorded an OS-denied process-descriptor sample; later passes do not explain it.
-
-Separate [combined-head checks](../evidence/ci/combined-a7b6-20261109/README.md)
-at `a7b6edc1645e3a4789cf699a3b9e7656c55a3d10` passed focused Admin, producer
-and broker transport tests in both feature profiles, strict client checks and
-packed documentation checks. They do not replace the failing broad suites or
-Kafka compatibility jobs. The [status](../STATUS.md) records other partial
-runs and their limits.
+The latest recorded `main` snapshot at `753a35b` passed the client, Kafka
+compatibility, package, and broker suites. The resource-soak job stopped
+because the OS denied process descriptor sampling. The preceding complete
+client run at `b41727f` passed the finite soak. That job covers a short run
+on one host. The 24-hour fault and seven-day continuity campaigns remain
+open.
 
 ## Priorities
 

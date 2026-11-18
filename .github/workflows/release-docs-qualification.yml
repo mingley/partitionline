@@ -1,0 +1,36 @@
+name: Confirm published 0.2.0 and package documentation
+on:
+  push:
+    branches: [qualification/release-docs-20261118]
+permissions:
+  contents: read
+jobs:
+  registry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/v0.2.0
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify registry identity and compile a consumer
+        env:
+          VER: '0.2.0'
+          CARGO_CHECK_ATTEMPTS: '2'
+        run: |
+          git rev-parse HEAD
+          rustc --version
+          bash scripts/verify-crates-io-consumer.sh
+  package-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record source and test documentation checker
+        run: |
+          git rev-parse HEAD
+          rustc --version
+          python3 -B -m unittest discover -s tests/docs -p 'test_*.py'
+      - name: Check documentation in the extracted crate
+        run: bash scripts/ci-crate-consumer.sh
