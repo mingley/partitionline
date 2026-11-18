@@ -16,7 +16,9 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
-    'final-tag': 0, 'wrong-tag': 1, 'prerelease-tag': 1,
+    'select-pushed-tag': 0, 'select-dispatched-tag': 0,
+    'invalid-dispatch-tag': 1, 'non-tag-push': 1, 'prerelease-tag': 1,
+    'final-tag': 0, 'wrong-tag': 1, 'missing-tag': 1, 'wrong-checkout': 1,
     'workflow-existing-version': 0, 'workflow-absent-version': 0,
     'workflow-registry-unavailable': 1,
     'local-existing-version': 0, 'local-registry-unavailable': 1,
@@ -51,10 +53,16 @@ def deny():
 if name == 'git':
     if args == ['rev-parse','--abbrev-ref','HEAD']: print('main')
     elif args[:1] == ['status']: pass
+    elif args == ['rev-parse', 'HEAD']:
+        print(os.environ['PL_REHEARSAL_HEAD'])
+    elif args[:2] == ['rev-parse', '--verify']:
+        tag = os.environ['PL_REHEARSAL_TAG']
+        if not tag or args[2:] != ['refs/tags/'+tag+'^{commit}']:
+            raise SystemExit(1)
+        print(os.environ['PL_REHEARSAL_SOURCE'])
     elif args[:1] == ['rev-parse']: print(os.environ['PL_REHEARSAL_SOURCE'])
     elif args == ['remote','get-url','origin']: print('https://github.com/example/partitionline.git')
     elif args == ['fetch','origin','main','--quiet']: pass
-    elif args[:2] == ['tag','-l']: print('fixture release note body')
     else: deny()
 elif name == 'curl':
     if any(a in args for a in ['-X','--request','-T','--upload-file','--data','-d','--form','-F']): deny()
@@ -97,8 +105,14 @@ elif name == 'gh':
         raise SystemExit(0 if (folder/'release-created.json').is_file() else 1)
     if args[:2] == ['release','create']:
         marker = folder/'release-created.json'
-        if marker.exists(): deny()
-        marker.write_text(json.dumps({'tag':args[2], 'simulated':True}))
+        tag = 'v'+os.environ['PL_REHEARSAL_VERSION']
+        if marker.exists() or args[2:4] != [tag, '--verify-tag'] or args.count('--notes-file') != 1:
+            deny()
+        notes = Path(args[args.index('--notes-file')+1])
+        if not notes.resolve().is_relative_to(folder/'tmp'):
+            deny()
+        (folder/'release-notes.md').write_bytes(notes.read_bytes())
+        marker.write_text(json.dumps({'tag':tag, 'simulated':True}))
     else: deny()
 else: deny()
 '''
@@ -175,7 +189,10 @@ def isolated_cases(report, source_root=ROOT, source_sha='1'*40):
                'PL_REHEARSAL_CASE':str(folder), 'PL_REHEARSAL_SOURCE':source_sha,
                'PL_REHEARSAL_REGISTRY':registry, 'PL_REHEARSAL_VERSION':version,
                'GITHUB_OUTPUT':str(folder/(name+'-outputs')),
-               'EVENT_NAME':'push', 'REF_NAME':'v'+version, 'DISPATCH_TAG':'',
+               'GITHUB_EVENT_NAME':'push', 'GITHUB_REF':'refs/tags/v'+version,
+               'GITHUB_REPOSITORY':'example/partitionline', 'DISPATCH_TAG':'',
+               'RELEASE_TAG':'v'+version, 'PL_REHEARSAL_TAG':'v'+version,
+               'PL_REHEARSAL_HEAD':source_sha,
                'GH_RUNS_JSON':str(folder/'ci-runs.json'), 'REQUIRE_MAIN_CI':'1', 'REQUIRE_PROFILE_EVIDENCE':'1'}
         env.update(env_values or {})
         if step is None:
@@ -203,10 +220,27 @@ def isolated_cases(report, source_root=ROOT, source_sha='1'*40):
                         'stdout':stdout, 'stderr':stderr, 'artifact_directory':str(folder),
                         'scope':'executed checked-in code with offline substituted services'})
 
+    select_tag = 'Select the final tag'
+    for name, env_values in (
+        ('select-pushed-tag', {}),
+        ('select-dispatched-tag', {'GITHUB_EVENT_NAME':'workflow_dispatch',
+                                   'GITHUB_REF':'refs/heads/main', 'DISPATCH_TAG':'v'+version}),
+    ):
+        case(name, select_tag, env_values=env_values, assertion=lambda f,o,e,n=name:
+             (f/(n+'-outputs')).read_text()=='name=v'+version+'\n')
+    for name, env_values in (
+        ('invalid-dispatch-tag', {'GITHUB_EVENT_NAME':'workflow_dispatch', 'DISPATCH_TAG':version}),
+        ('non-tag-push', {'GITHUB_REF':'refs/heads/v'+version}),
+        ('prerelease-tag', {'GITHUB_REF':'refs/tags/v'+version+'-rc.1'}),
+    ):
+        case(name, select_tag, env_values=env_values, assertion=lambda f,o,e,n=name:
+             not (f/(n+'-outputs')).exists())
     tag_step = 'Verify tag matches Cargo.toml (final versions only)'
     case('final-tag', tag_step)
-    case('wrong-tag', tag_step, env_values={'REF_NAME':'v'+wrong_version})
-    case('prerelease-tag', tag_step, env_values={'REF_NAME':'v'+version+'-rc.1'})
+    case('wrong-tag', tag_step, env_values={'RELEASE_TAG':'v'+wrong_version,
+                                           'PL_REHEARSAL_TAG':'v'+wrong_version})
+    case('missing-tag', tag_step, env_values={'PL_REHEARSAL_TAG':''})
+    case('wrong-checkout', tag_step, env_values={'PL_REHEARSAL_HEAD':'0'*40})
     skip_step = 'Soft-skip if version already on crates.io'
     case('workflow-existing-version', skip_step, assertion=lambda f,o,e:
          (f/'workflow-existing-version-outputs').read_text()=='skip=1\n')
@@ -246,8 +280,18 @@ def isolated_cases(report, source_root=ROOT, source_sha='1'*40):
          assertion=lambda f,o,e:'waiting for crates.io index' in o)
     case('confirmation-resumed', 'Confirm crates.io', reuse='confirmation-interrupted',
          assertion=lambda f,o,e:'crates.io has partitionline '+version in o)
-    case('release-notes-first', 'GitHub Release notes',
-         assertion=lambda f,o,e:'created GitHub release v'+version in o)
+    def expected_release_notes(folder, stdout, stderr):
+        notes = (folder/'release-notes.md')
+        if not notes.is_file() or 'created GitHub release v'+version not in stdout:
+            return False
+        body = notes.read_text()
+        return all(url in body for url in (
+            'https://crates.io/crates/partitionline/'+version,
+            'https://docs.rs/partitionline/'+version+'/partitionline/',
+            'https://github.com/example/partitionline/blob/v'+version+'/CHANGELOG.md',
+        )) and 'SIGNATURE' not in body
+
+    case('release-notes-first', 'GitHub Release notes', assertion=expected_release_notes)
     case('release-notes-repeated', 'GitHub Release notes', reuse='release-notes-first',
          assertion=lambda f,o,e:'already exists' in o)
     commands = []
@@ -297,13 +341,20 @@ def validate(result):
     forbidden=[]
     for command in result['commands']:
         name,args=command['command'],command['args']
-        if name=='git' and args[:2] not in [['rev-parse','HEAD'],['rev-parse','--abbrev-ref'],['rev-parse','-q'],['tag','-l']] and args[:1]!=['status'] and args not in (['fetch','origin','main','--quiet'],['remote','get-url','origin']):
-            forbidden.append(command)
+        if name=='git':
+            tag_lookup = (len(args)==3 and args[:2]==['rev-parse','--verify']
+                          and re.fullmatch(r'refs/tags/v[0-9]+\.[0-9]+\.[0-9]+\^\{commit\}', args[2]))
+            general_read = (args[:2] in [['rev-parse','HEAD'],['rev-parse','--abbrev-ref'],['rev-parse','-q']]
+                            or args[:1]==['status']
+                            or args in (['fetch','origin','main','--quiet'],['remote','get-url','origin']))
+            if not tag_lookup and not general_read:
+                forbidden.append(command)
         if name in ['cargo','rustup','wget','docker','ssh'] or (name=='gh' and args[:2] not in [['release','view'],['release','create'],['run','list']]):
             forbidden.append(command)
     require(not forbidden,'forbidden command reached during rehearsal')
     creates=[c for c in result['commands'] if c['command']=='gh' and c['args'][:2]==['release','create']]
-    require(len(creates)==1,'release notes must be simulated once across repeated steps')
+    require(len(creates)==1 and creates[0]['args'][2:4]==['v'+result['candidate_version'], '--verify-tag'],
+            'release notes must require the final tag and be simulated once')
     require(len(result['owner_actions'])==6 and all(row['status']=='not_run' for row in result['owner_actions']),
             'owner release actions cannot be claimed by a rehearsal')
 

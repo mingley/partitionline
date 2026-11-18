@@ -7669,12 +7669,16 @@ impl Worker {
     }
 
     async fn drain_pending(&mut self, n: usize) -> Vec<Pending> {
-        let batch = fill_spare(&mut self.spare_batch, &mut self.pending, n);
+        // Keep the records and accounting in the worker across both scans so
+        // dropping this future leaves them available to the worker's cleanup.
+        let (selected, retained) = self.pending.split_at(n);
+        let mut pending_estimate = self.pending_estimate;
+        let mut earliest_deadline = self.earliest_deadline;
         let mut refresh_deadline = false;
         let mut walked = 0usize;
-        for pending in &batch {
-            self.pending_estimate = self.pending_estimate.saturating_sub(estimate(pending));
-            if self.earliest_deadline == Some(pending.deadline) {
+        for pending in selected {
+            pending_estimate = pending_estimate.saturating_sub(estimate(pending));
+            if earliest_deadline == Some(pending.deadline) {
                 refresh_deadline = true;
             }
             walked = walked.saturating_add(1);
@@ -7684,9 +7688,12 @@ impl Worker {
             }
         }
         if refresh_deadline {
-            let (_, earliest) = fold_pending_estimates(&self.pending, None).await;
-            self.earliest_deadline = earliest;
+            earliest_deadline = earliest_queued_deadline(retained).await;
         }
+
+        let batch = fill_spare(&mut self.spare_batch, &mut self.pending, n);
+        self.pending_estimate = pending_estimate;
+        self.earliest_deadline = earliest_deadline;
         batch
     }
 
@@ -9588,10 +9595,11 @@ async fn group_txn_offsets<'a>(
 }
 
 fn fill_spare(spare: &mut Vec<Pending>, pending: &mut Vec<Pending>, n: usize) -> Vec<Pending> {
-    let mut batch = std::mem::take(spare);
-    batch.clear();
-    batch.extend(pending.drain(..n));
-    batch
+    spare.clear();
+    // Reserve before creating the drain, whose destructor removes the prefix.
+    spare.reserve(n);
+    spare.extend(pending.drain(..n));
+    std::mem::take(spare)
 }
 
 #[cfg(test)]
@@ -15707,6 +15715,139 @@ mod tests {
             skip_meta_refresh: false,
             retry_after: now,
         }
+    }
+
+    type DrainReceipts = Vec<oneshot::Receiver<Result<RecordMetadata>>>;
+
+    async fn drain_pending_fixture(n: usize) -> (Worker, DrainReceipts) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        let meta = BrokerConn::connect(&addr, "drain-meta", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_meta_peer, _) = listener.accept().await.unwrap();
+        let conn = BrokerConn::connect(&addr, "drain-worker", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (_worker_peer, _) = listener.accept().await.unwrap();
+        let shared = test_shared(ProducerConfig::default(), meta);
+        let (_data, data_rx) = mpsc::channel(1);
+        let (_ctrl, ctrl_rx) = mpsc::channel(1);
+        let id = Arc::new(());
+        let admission = Arc::new(WorkerAdmission::for_producer(Arc::clone(&shared.closed)));
+        let mut pending = Vec::with_capacity(n);
+        let mut receivers = Vec::with_capacity(n);
+        let deadline = Instant::now() + Duration::from_secs(60);
+        for index in 0..n {
+            let (tx, rx) = oneshot::channel();
+            let partition = i32::try_from(index).unwrap();
+            let mut record = queued("drain-fixture", Some(partition));
+            record.rec.value = Some(Bytes::from_static(b"x"));
+            record.deadline = if index == 0 {
+                deadline
+            } else {
+                deadline + Duration::from_secs(1)
+            };
+            record.tx = Some(tx);
+            pending.push(record);
+            receivers.push(rx);
+        }
+        let pending_estimate = pending.iter().map(estimate).sum();
+        shared
+            .buffered_bytes
+            .store(u64::try_from(n).unwrap_or(u64::MAX), Ordering::SeqCst);
+        shared.closed.store(true, Ordering::SeqCst);
+        let live = WorkerLease::register(&shared);
+        let worker = Worker {
+            id,
+            admission,
+            node_id: 1,
+            throttle: shared.broker_throttle(1),
+            conn,
+            data: data_rx,
+            ctrl: ctrl_rx,
+            shared,
+            write_buf: BytesMut::new(),
+            pending,
+            spare_batch: Vec::new(),
+            pending_estimate,
+            earliest_deadline: Some(deadline),
+            in_flight: VecDeque::new(),
+            fail: None,
+            compress_scratch: CompressScratch::default(),
+            group_scratch: ProduceGroupScratch::default(),
+            ack_index: AckIndex::default(),
+            ack_slots: Vec::new(),
+            spare_acks: Vec::new(),
+            ack_requested: HashMap::new(),
+            ack_seen: HashMap::new(),
+            ack_tracker: None,
+            _live: live,
+        };
+        (worker, receivers)
+    }
+
+    async fn check_cancelled_drain(count: usize, total: usize) {
+        use std::task::Poll;
+
+        let (mut worker, mut receivers) = drain_pending_fixture(total).await;
+        let expected_estimate = worker.pending_estimate;
+        let expected_deadline = worker.earliest_deadline;
+        let charge = worker.shared.buffered_bytes.load(Ordering::SeqCst);
+
+        let mut draining = Box::pin(worker.drain_pending(count));
+        let state = std::future::poll_fn(|cx| Poll::Ready(draining.as_mut().poll(cx))).await;
+        assert!(state.is_pending(), "drain did not reach its first yield");
+        drop(draining);
+
+        for receiver in &mut receivers {
+            assert!(
+                matches!(
+                    receiver.try_recv(),
+                    Err(oneshot::error::TryRecvError::Empty)
+                ),
+                "dropping drain closed a pending receipt"
+            );
+        }
+        assert_eq!(worker.pending.len(), total);
+        assert_eq!(worker.pending_estimate, expected_estimate);
+        assert_eq!(worker.earliest_deadline, expected_deadline);
+        assert_eq!(worker.shared.buffered_bytes.load(Ordering::SeqCst), charge);
+        for (index, pending) in worker.pending.iter().enumerate() {
+            assert_eq!(pending.rec.partition, Some(i32::try_from(index).unwrap()));
+        }
+
+        let retained = &worker.pending[count..];
+        let retained_estimate: usize = retained.iter().map(estimate).sum();
+        let retained_deadline = retained.iter().map(|pending| pending.deadline).min();
+        let batch = worker.drain_pending(count).await;
+        assert_eq!(batch.len(), count);
+        assert_eq!(worker.pending.len(), total - count);
+        assert_eq!(worker.pending_estimate, retained_estimate);
+        assert_eq!(worker.earliest_deadline, retained_deadline);
+        for (index, pending) in batch.iter().chain(&worker.pending).enumerate() {
+            assert_eq!(pending.rec.partition, Some(i32::try_from(index).unwrap()));
+        }
+
+        let shared = Arc::clone(&worker.shared);
+        fail_pendings(&shared, batch, Error::Closed);
+        drop(worker);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert!(receivers
+            .iter_mut()
+            .all(|rx| matches!(rx.try_recv(), Ok(Err(Error::Closed)))));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn drain_pending_cancellation_during_prefix_scan() {
+        check_cancelled_drain(8_193, 8_193).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn drain_pending_cancellation_during_suffix_scan() {
+        // Removing only the earliest record makes the retained suffix the
+        // first scan that can yield.
+        check_cancelled_drain(1, 8_193).await;
     }
 
     #[tokio::test(flavor = "current_thread")]
