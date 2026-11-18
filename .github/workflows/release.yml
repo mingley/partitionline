@@ -18,8 +18,7 @@ name: release
 # Authentication:
 # Prefer crates.io Trusted Publishing (OIDC, short-lived token). The workflow
 # can use a repository token if trusted publishing is not configured.
-# Client 0.1.0 is already published. Follow docs/RELEASE.md for the next
-# version, the exact-commit checks and the final tag.
+# Follow docs/RELEASE.md for versioning, exact-commit checks and the final tag.
 #
 # Optional: Actions → release → Run workflow (workflow_dispatch) after the
 # matching final tag already exists on the tip you intend to publish.
@@ -29,7 +28,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing final version tag to publish (e.g. v0.1.0)"
+        description: "Existing final version tag in vX.Y.Z form"
         required: true
         type: string
 
@@ -75,37 +74,34 @@ jobs:
       (github.ref_type == 'tag' && !contains(github.ref_name, '-'))
     runs-on: ubuntu-latest
     steps:
+      - name: Select the final tag
+        id: release_tag
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            tag="$DISPATCH_TAG"
+          else
+            tag="${GITHUB_REF#refs/tags/}"
+          fi
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release requires an existing tag in vX.Y.Z form." >&2
+            exit 1
+          fi
+          printf 'name=%s\n' "$tag" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: refs/tags/${{ steps.release_tag.outputs.name }}
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
       - name: Verify tag matches Cargo.toml (final versions only)
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          DISPATCH_TAG: ${{ github.event.inputs.tag }}
-          REF_NAME: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ steps.release_tag.outputs.name }}
         run: |
-          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
-            tag="${DISPATCH_TAG}"
-            tag="${tag#v}"
-          else
-            tag="${REF_NAME#v}"
-          fi
-          case "$tag" in
-            *-*|*+*)
-              echo "Refusing prerelease/build tag '$tag' — crates.io publish is for final vX.Y.Z only." >&2
-              echo "Use a git tag like v0.1.0-rc.1 for install pins; tag v0.1.0 to publish." >&2
-              exit 1
-              ;;
-          esac
-          # Guard dispatch / odd refs: require digits.digits.digits only.
-          if ! printf '%s' "$tag" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "Refusing non-final version tag '$tag' (need X.Y.Z)." >&2
-            exit 1
-          fi
-          ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-          echo "tag=$tag cargo=$ver"
-          test "$tag" = "$ver"
+          tag_commit="$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}")"
+          test "$(git rev-parse HEAD)" = "$tag_commit"
+          ver="$(python3 -B scripts/report-release-rehearsal.py --candidate-version)"
+          test "$RELEASE_TAG" = "v${ver}"
       - name: Checks
         run: |
           cargo fmt --all -- --check
@@ -203,34 +199,24 @@ jobs:
             echo "release: ${name} ${ver} not confirmed by the API and sparse index" >&2
             exit 1
           fi
-          echo "Owner follow-up: bash scripts/day1-after-publish.sh && commit README on main."
-          echo "Then configure Trusted Publishing (see docs/RELEASE.md) so later tags need no long-lived secret."
+          echo "Verify the published crate with bash scripts/day1-after-publish.sh."
       - name: GitHub Release notes
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release_tag.outputs.name }}
         run: |
-          set -euo pipefail
-          ver="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-          tag="v${ver}"
-          # Prefer an existing annotated tag body; otherwise write a short crates.io pointer.
-          # Keep every line indented under `run: |` — a flush-left multiline shell
-          # string is invalid YAML and produces empty-job release failures on push.
-          body="$(git tag -l --format='%(contents)' "$tag" 2>/dev/null | sed '/^$/d' | head -40)"
-          if [ -z "$body" ]; then
-            body="$(printf '%s\n' \
-              "partitionline ${ver}" \
-              "" \
-              "Published to crates.io: https://crates.io/crates/partitionline/${ver}" \
-              "Docs: https://docs.rs/partitionline/${ver}" \
-              "" \
-              "Owner follow-up on main:" \
-              "  bash scripts/day1-after-publish.sh" \
-              "  # commit README crates.io dep + badges, then push" \
-              "  # then: crates.io Trusted Publishing → release.yml")"
-          fi
-          if gh release view "$tag" >/dev/null 2>&1; then
-            echo "GitHub release ${tag} already exists"
+          ver="${RELEASE_TAG#v}"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "GitHub release ${RELEASE_TAG} already exists"
           else
-            gh release create "$tag" --title "partitionline ${ver}" --notes "$body"
-            echo "created GitHub release ${tag}"
+            notes="$(mktemp)"
+            trap 'rm -f "$notes"' EXIT
+            printf '%s\n' \
+              "[Install partitionline ${ver}](https://crates.io/crates/partitionline/${ver})" \
+              "" \
+              "[API documentation](https://docs.rs/partitionline/${ver}/partitionline/)" \
+              "" \
+              "[Changelog](https://github.com/${GITHUB_REPOSITORY}/blob/${RELEASE_TAG}/CHANGELOG.md)" > "$notes"
+            gh release create "$RELEASE_TAG" --verify-tag --title "partitionline ${ver}" --notes-file "$notes"
+            echo "created GitHub release ${RELEASE_TAG}"
           fi

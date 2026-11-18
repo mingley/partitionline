@@ -1,0 +1,33 @@
+name: Release tag binding rehearsal
+on:
+  push:
+    branches: [qualification/release-tag-binding-20261118]
+permissions:
+  contents: read
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Rehearse release and validate workflows
+        run: |
+          git rev-parse HEAD
+          bash scripts/check-workflows.sh
+          bash scripts/rehearse-partial-release.sh --self-test
+          bash scripts/rehearse-partial-release.sh --run target/release-rehearsal
+      - name: Verify checkout resolves the known release tag
+        uses: actions/checkout@v7
+        with:
+          ref: refs/tags/v0.2.0
+          path: release-source
+          persist-credentials: false
+      - name: Compare the tag commit and checked-out commit
+        working-directory: release-source
+        run: |
+          commit="$(git rev-parse --verify 'refs/tags/v0.2.0^{commit}')"
+          test "$commit" = "$(git rev-parse HEAD)"
+          test "$commit" = 87eb1b824c97943207d3de36c6683402fe52d316
+          test "$(python3 -B scripts/report-release-rehearsal.py --candidate-version)" = 0.2.0
