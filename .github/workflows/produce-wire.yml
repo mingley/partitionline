@@ -1,0 +1,33 @@
+name: Apache Produce wire
+on:
+  push:
+    branches: [qualification/produce-wire-20261118]
+permissions:
+  contents: read
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Record source and toolchain
+        run: |
+          git rev-parse HEAD
+          rustc --version
+          java -version
+          sha256sum tests/conformance/java/ConformanceProduceWire.java tests/conformance/java/generate_produce_wire.py tests/produce_wire_conformance.rs
+      - name: Compare Apache and Rust Produce bodies
+        run: timeout 900s python3 -B tests/conformance/java/generate_produce_wire.py --output target/produce-wire
+      - name: Check formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Strict test lint
+        if: always()
+        run: cargo clippy --locked --all-features --test produce_wire_conformance -- -D warnings
