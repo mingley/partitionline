@@ -51905,7 +51905,31 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "731952fd354b019a76f800bdc86601358638b0ca",
+          "commands": [
+            "timeout 900s python3 -B tests/conformance/java/generate_produce_wire.py --output target/produce-wire (exit 0)",
+            "cargo test --locked --test produce_wire_conformance produce_wire_committed_corpus -- --exact (exit 0)",
+            "cargo test --locked --all-features --test produce_wire_conformance produce_wire_committed_corpus -- --exact (exit 0)",
+            "cargo package --locked --no-verify (exit 0)",
+            "Offline corpus test in the extracted crate, default and all features (both exit 0)",
+            "cargo fmt --all -- --check (exit 0)",
+            "cargo clippy --locked --all-features --test produce_wire_conformance -- -D warnings (exit 0)"
+          ],
+          "results": "Rust 1.100.0 and Temurin 21.0.13. Five pinned Apache SDKs (3.9.1, 4.1.0, 4.1.2, 4.2.1 and 4.3.1), default/all-feature profiles, 38 selected body pairs in each direction across 10 lanes. v4, v6 and v7 in every lane and v12 in the four current SDKs. Rust and Apache rejected the changed v4 throttle control. Regeneration matched the retained corpus, and offline tests passed in both checkout and extracted-crate profiles.",
+          "artifacts": [
+            "docs/evidence/conformance/q-conf-producewire/README.md",
+            "tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt",
+            "https://github.com/mingley/partitionline/actions/runs/44412909379"
+          ],
+          "limits": [
+            "Apache SDK 3.9.1 declares Produce v0-v11, so it has no v12 fixture in this experiment.",
+            "Selected uncompressed bodies only. Broader option coverage, negotiation, compressed batches, transactional v2, retries and live Kafka behavior remain open. This card's status remains pending.",
+            "Packaging used --no-verify followed by targeted fixture tests."
+          ]
+        }
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceProduceWire.java",
         "tests/conformance/java/generate_produce_wire.py",

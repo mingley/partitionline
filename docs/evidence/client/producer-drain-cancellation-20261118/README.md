@@ -49,6 +49,28 @@ and the [grouping ownership review](../producer-grouping-cancellation-design-202
 describe the broader cancellation problem and retain the previous failed
 experiments.
 
-The [paired timing run](https://github.com/mingley/partitionline/actions/runs/44411332075)
-is compiling separate release test binaries on a hosted x86_64 runner. This
-record currently covers correctness only.
+## Drain timings
+
+The [timing run](https://github.com/mingley/partitionline/actions/runs/44411332075)
+built separate release test binaries and ran eight alternating pairs on one
+logical CPU of a hosted x86_64 runner with Rust 1.100.0. Both builds used the
+same lockfile and test injection. The first candidate's production prefix is
+byte-identical to the formatted source that passed qualification. The
+[workflow](https://github.com/mingley/partitionline/blob/802eff6619dac841e342a98d5ae288f245d2e0bd/.github/workflows/producer-drain-timing.yml),
+[fixture](https://github.com/mingley/partitionline/blob/802eff6619dac841e342a98d5ae288f245d2e0bd/docs/evidence/client/producer-drain-cancellation-20261118/timing.rs.txt),
+and [measurement script](https://github.com/mingley/partitionline/blob/802eff6619dac841e342a98d5ae288f245d2e0bd/docs/evidence/client/producer-drain-cancellation-20261118/timing.py.txt)
+are pinned. [Raw samples](timing-samples.txt) record the source and binary hashes,
+iteration totals, and all 64 arm measurements.
+
+| Case | Baseline median µs per drain | Candidate median µs per drain | Paired time ratio, median (range) |
+| --- | ---: | ---: | ---: |
+| Full drain of 64 records | 1.921 | 1.888 | 0.983 (0.946–1.312) |
+| Drain 16 of 64 records | 0.930 | 0.677 | 0.728 (0.719–0.847) |
+| Full drain of 8,193 records | 241.118 | 241.998 | 1.003 (0.812–1.006) |
+| Drain 64 with 8,192 header-bearing records remaining | 292.823 | 68.375 | 0.234 (0.232–0.275) |
+
+Time includes cooperative yields and excludes fixture setup and queue
+restoration between iterations. Storage is reused. The 16-of-64 case and
+the deep deadline refresh improved in every pair. Both full drains had pairs
+on either side of parity. These timings cover the drain method in a synthetic
+worker, with no broker traffic or Kafka throughput measurement.
