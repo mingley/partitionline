@@ -73,7 +73,7 @@ public final class ConformanceProduceWire {
         var failed = new ProduceResponseData.PartitionProduceResponse()
             .setIndex(ERROR_PARTITION)
             // KAFKA_STORAGE_ERROR begins at v4. The other cells report NOT_LEADER_OR_FOLLOWER.
-            .setErrorCode((short) (version == 4 ? 56 : 6));
+            .setErrorCode((short) (version == 4 ? 56 : 6)).setBaseOffset(-1);
         topic.partitionResponses().add(failed);
         var response = new ProduceResponseData().setThrottleTimeMs(version == 12 ? 0 : 37);
         response.responses().add(topic);
@@ -83,7 +83,7 @@ public final class ConformanceProduceWire {
             response.nodeEndpoints().add(new ProduceResponseData.NodeEndpoint().setNodeId(3)
                 .setHost("broker.example").setPort(9092).setRack("rack-a"));
             var invalid = new ProduceResponseData.PartitionProduceResponse()
-                .setIndex(RECORD_ERROR_PARTITION).setErrorCode((short) 87)
+                .setIndex(RECORD_ERROR_PARTITION).setErrorCode((short) 87).setBaseOffset(-1)
                 .setErrorMessage("invalid batch");
             invalid.recordErrors().add(new ProduceResponseData.BatchIndexAndErrorMessage()
                 .setBatchIndex(0).setBatchIndexErrorMessage("invalid timestamp"));

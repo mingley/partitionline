@@ -103,11 +103,17 @@ fn encode_hex(bytes: &[u8]) -> String {
 }
 
 fn verify_corpus(text: &str, versions: &[i16]) -> Result<String, Box<dyn Error>> {
-    assert!(text.len() <= 16_384, "Produce corpus exceeds fixture budget");
+    assert!(
+        text.len() <= 16_384,
+        "Produce corpus exceeds fixture budget"
+    );
     let mut lines = text.lines();
     let mut reverse = String::new();
     for &version in versions {
-        let mut fields = lines.next().ok_or("missing Produce row")?.split_ascii_whitespace();
+        let mut fields = lines
+            .next()
+            .ok_or("missing Produce row")?
+            .split_ascii_whitespace();
         let actual_version = fields.next().ok_or("missing version")?.parse::<i16>()?;
         assert_eq!(actual_version, version, "Produce row version differs");
         let request_bytes = decode_hex(fields.next().ok_or("missing request body")?)?;
@@ -117,24 +123,37 @@ fn verify_corpus(text: &str, versions: &[i16]) -> Result<String, Box<dyn Error>>
         let mut request_reader = request_bytes.as_slice();
         let (txn, acks, timeout_ms, topics) = decode_produce_request(&mut request_reader, version)?;
         let expected_topics = request_topics(version);
-        assert!(request_reader.is_empty(), "unconsumed Produce request bytes");
+        assert!(
+            request_reader.is_empty(),
+            "unconsumed Produce request bytes"
+        );
         assert_eq!(txn, None, "v{version} transactional ID");
         assert_eq!(acks, -1, "v{version} acks");
         assert_eq!(timeout_ms, 1230 + i32::from(version), "v{version} timeout");
-        assert_eq!(topics.len(), expected_topics.len(), "v{version} topic count");
+        assert_eq!(
+            topics.len(),
+            expected_topics.len(),
+            "v{version} topic count"
+        );
         for (topic, expected) in topics.iter().zip(&expected_topics) {
             assert_eq!(topic.topic, expected.topic, "v{version} topic");
             assert_eq!(topic.partitions.len(), expected.partitions.len());
             for (part, expected_part) in topic.partitions.iter().zip(&expected.partitions) {
                 assert_eq!(part.index, expected_part.index, "v{version} partition");
-                assert_eq!(part.records, expected_part.records, "v{version} record batch");
+                assert_eq!(
+                    part.records, expected_part.records,
+                    "v{version} record batch"
+                );
             }
         }
 
         let mut response_reader = response_bytes.as_slice();
         let (parts, endpoints, throttle) = response(version);
         let decoded = decode_produce_response(&mut response_reader, version)?;
-        assert!(response_reader.is_empty(), "unconsumed Produce response bytes");
+        assert!(
+            response_reader.is_empty(),
+            "unconsumed Produce response bytes"
+        );
         assert_eq!(decoded.0, parts, "v{version} partition responses differ");
         assert_eq!(decoded.1, endpoints, "v{version} node endpoints differ");
         assert_eq!(decoded.2, throttle, "v{version} throttle differs");
@@ -167,7 +186,8 @@ fn verify_corpus(text: &str, versions: &[i16]) -> Result<String, Box<dyn Error>>
 
 #[test]
 fn produce_wire_committed_corpus() -> Result<(), Box<dyn Error>> {
-    let corpus = include_str!("fixtures/produce_wire/apache-v4-v6-v7-v12.txt").replace("\r\n", "\n");
+    let corpus =
+        include_str!("fixtures/produce_wire/apache-v4-v6-v7-v12.txt").replace("\r\n", "\n");
     assert_eq!(verify_corpus(&corpus, &VERSIONS)?, corpus);
     Ok(())
 }
