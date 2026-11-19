@@ -1,0 +1,73 @@
+name: Exact LZ4 candidate checks
+on:
+  push:
+    branches: [qualification/lz4-candidate-checks-20261119]
+    paths:
+      - src/protocol/records.rs
+      - benchmarks/codec/src/bin/lz4-decode-timing.rs
+      - benchmarks/codec/lz4-decode-compare.py
+      - .github/workflows/lz4-candidate-checks-qualification.yml
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+env:
+  BASE: 51a4d86ec8c0e51e1c6dd231487bfe27e0725a70
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: never
+jobs:
+  correctness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format and strict lint
+        run: |
+          git rev-parse HEAD
+          git hash-object src/protocol/records.rs
+          rustc -Vv
+          cargo fmt --all -- --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Bounded decoder and wire checks
+        env:
+          RUST_TEST_THREADS: '1'
+        run: |
+          cargo test --locked --lib protocol::records::tests::
+          cargo test --locked --all-features --lib protocol::records::tests::
+          cargo test --locked --all-features --test produce_wire_conformance produce_wire_committed_corpus -- --exact
+  instructions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install the codec counter
+        run: |
+          sudo apt-get update && sudo apt-get install -y valgrind
+          cargo install iai-callgrind-runner --version 0.14.2 --locked
+      - name: Run the candidate against the committed instruction budget
+        run: |
+          scratch="$RUNNER_TEMP/lz4-candidate-ir"
+          mkdir -p "$scratch/evidence"
+          git rev-parse HEAD
+          git hash-object src/protocol/records.rs
+          rustc -Vv
+          valgrind --version
+          CARGO_TARGET_DIR="$scratch/target" bash scripts/ci-perf-gate.sh | tee "$scratch/evidence/candidate.txt"
+          grep -Fx 'ci-perf-gate: PASS' "$scratch/evidence/candidate.txt"
+      - name: Retain the candidate gate output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lz4-candidate-instructions
+          path: ${{ runner.temp }}/lz4-candidate-ir/evidence
+          if-no-files-found: error
+          retention-days: 30
