@@ -46,6 +46,11 @@ The 0.2.0 release came from its own tag.
   change improved median wide grouping by 3.51%. The one-record sample
   median increased by 0.94 ns. The paired results retain every shape.
   [Reservation results](https://github.com/mingley/partitionline/blob/72ffaeb7b484abe272ba512ef4b396c9c315a986/docs/evidence/client/producer-group-reservation-20261119/slot-replacement.md)
+- Kafka 4.3.1 verified 3,072 producer receipts per feature profile. Apache's
+  Java tools checked every offset, key and value after flush and close,
+  including records accepted by `try_send`. Both profiles verified all
+  3,840 records.
+  [Live producer evidence](https://github.com/mingley/partitionline/blob/189a35e2da9ac4aac0a2acb97f651e6434bd2213/docs/evidence/client/producer-live-receipts-20261119/README.md)
 - Five Apache Kafka SDKs checked 280 selected ListOffsets request/response
   pairs in each direction, including the v10 timeout field. The retained
   corpus passed in the checkout and the packaged crate.
@@ -63,7 +68,8 @@ The 0.2.0 release came from its own tag.
   [Codec gate](https://github.com/mingley/partitionline/blob/4e1e280b794eef89cc1707d715c265f98cb039f4/docs/evidence/perf/codec-instructions-20261119/README.md) ·
   [LZ4 trace](https://github.com/mingley/partitionline/blob/9b11c6080ca964574b0ad8b5944bdaa03e583842/docs/evidence/client/lz4-main-decode-20261119/linked-code.md) ·
   [Decoder trial](https://github.com/mingley/partitionline/blob/3bb3caf0f839b92ef201154f04677ca361e4e900/docs/evidence/client/lz4-direct-decode-20261119/README.md) ·
-  [Writer trials](https://github.com/mingley/partitionline/blob/a47467878eee0264fa5db0ae4a5443ef53432919/docs/evidence/client/record-varint-20261119/single-byte-inline/README.md)
+  [Writer trials](https://github.com/mingley/partitionline/blob/a47467878eee0264fa5db0ae4a5443ef53432919/docs/evidence/client/record-varint-20261119/single-byte-inline/README.md) ·
+  [Cursor trial](https://github.com/mingley/partitionline/blob/c37d5719e6f8dd431249245714a941b29ae84248/docs/evidence/client/lz4-slice-cursor-20261119/README.md)
 - The report checker can verify local bundle files by length and SHA-256.
   [Benchmark contract](benchmark-contract.md)
 
@@ -74,7 +80,7 @@ still has an RF1 data path. Partition replication, native KRaft, transaction
 markers, Kafka wire quotas and process-wide bounds are open. The Schema
 Registry companion still needs live TLS and a Kafka round trip. The 24-hour
 fault and seven-day continuity campaigns are open.
-[Support matrix](support.md) · [Work plan](https://github.com/mingley/partitionline/blob/72ffaeb7b484abe272ba512ef4b396c9c315a986/docs/plan/next-work.md)
+[Support matrix](support.md) · [Work plan](https://github.com/mingley/partitionline/blob/da2f6217de83824fad70bb3cb23bd32f807c4dc5/docs/plan/next-work.md)
 
 All 12 required client comparison cases remain `not_run` in the scenario
 registry. Controlled x86_64 client and broker comparisons and a separate
