@@ -1,0 +1,55 @@
+name: Produce pacing disabled pairs
+
+on:
+  push:
+    branches: [qualification/plaintext-produce-pacing-pairs-20261119]
+
+permissions:
+  contents: read
+
+jobs:
+  pairs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+      TOKIO_WORKER_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: b957d5b5f0817c187d7537cbbce843f80fe9c213
+          path: candidate
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: 2f466be99d0013ac94feac0634d2ebecdab1f3be
+          path: baseline
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build pinned brokers
+        run: |
+          rustc +stable --version --verbose
+          git -C baseline rev-parse HEAD HEAD:partitionline-broker
+          git -C candidate rev-parse HEAD HEAD:partitionline-broker
+          CARGO_TARGET_DIR="$RUNNER_TEMP/pacing-baseline" cargo +stable build --release --locked --manifest-path baseline/partitionline-broker/Cargo.toml --bin operator
+          CARGO_TARGET_DIR="$RUNNER_TEMP/pacing-candidate" cargo +stable build --release --locked --manifest-path candidate/partitionline-broker/Cargo.toml --bin operator
+          sha256sum "$RUNNER_TEMP/pacing-baseline/release/operator" "$RUNNER_TEMP/pacing-candidate/release/operator" candidate/docs/evidence/broker/reusable-sync-20261119/produce-pairs.py
+      - name: Run all four Produce workloads with quotas disabled
+        run: |
+          set -euo pipefail
+          scratch="$RUNNER_TEMP/pacing-pairs"
+          mkdir "$scratch"
+          stat -f -c '%T' "$scratch"
+          python3 -u candidate/docs/evidence/broker/reusable-sync-20261119/produce-pairs.py \
+            "$RUNNER_TEMP/pacing-baseline/release/operator" \
+            "$RUNNER_TEMP/pacing-candidate/release/operator" \
+            --scratch "$scratch" | tee pairs.log
+      - name: Retain raw paired observations
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: produce-pacing-disabled-pairs
+          path: pairs.log
+          if-no-files-found: ignore
