@@ -120,9 +120,17 @@ argument replaces the repository schema; an alternate schema cannot establish
 canonical schema conformance unless it enforces the full contract. Alternate
 schemas receive a concise report that states the canonical schema was not
 checked. Use `--require-clean` to reject retained failed attempts as well as integrity
-failures. Validation does not inspect the raw artifacts or prove that the
-declared settings were used. A valid result file does not pass a cell or lift
-Suite HOLD.
+failures. Use `--artifact-root DIR` to check each listed artifact's length
+and SHA-256 against the local bundle. Relative paths start at DIR. Absolute
+paths must resolve inside it.
+
+```sh
+python3 scripts/benchmark-report.py "$RESULT_JSON" --artifact-root "$BUNDLE_DIR" --require-clean
+```
+
+Artifact verification confirms the bytes listed in the result. Verify the
+effective settings and record history independently for each comparison.
+Suite HOLD requires the signed qualification evidence.
 
 ## Do not move the old latency gates
 
