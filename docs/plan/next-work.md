@@ -33,9 +33,11 @@ The [status page](../STATUS.md) records the source tested by each run.
 
 ## Schema Registry
 
-- Combine Registry lookup with a live Kafka Produce and Fetch round trip.
-  Qualify supported formats, TLS and credentials. Measure the memory and time
-  consumed by large synchronous JSON parses before publication.
+- Trusted HTTPS lookup passed on a pinned Redpanda registry.
+  [TLS check](../evidence/schema/registry-tls-20261119/README.md)
+- Complete a live Kafka round trip and credential checks. Qualify the
+  remaining formats and measure memory and time for large synchronous JSON
+  parses before publication.
   [Companion guide](../schema-companion.md)
 
 ## Performance and release

@@ -136,10 +136,11 @@ not qualify a live Schema Registry or a live Kafka cluster.
 
 ## Live registry check
 
-The live check starts Redpanda 26.2.2 on x86_64. It verifies Avro schema
-lookup by ID, an exact subject version, the latest version, named references,
-cache expiry and a missing-subject error. The check uses plain HTTP over
-loopback. [Live CI](https://github.com/mingley/partitionline/actions/runs/44614652080)
+On Linux x86_64, the Redpanda 26.2.2 fixture checks Avro ID and subject
+lookups, named references, cache expiry and a missing subject over HTTP.
+Its HTTPS listener uses a generated test CA and a certificate for
+`localhost`. The Rust client uses that CA for by-ID and pinned-version
+lookups. [Live CI](https://github.com/mingley/partitionline/actions/runs/44635048258)
 
 ## What this crate is
 

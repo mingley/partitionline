@@ -230,10 +230,11 @@ The validator is a test dependency; applications still supply their codec.
 
 ## Live registry check
 
-The live check starts Redpanda 26.2.2 on x86_64. It verifies Avro schema
-lookup by ID, an exact subject version, the latest version, named references,
-cache expiry and a missing-subject error. The check uses plain HTTP over
-loopback. [Live CI](https://github.com/mingley/partitionline/actions/runs/44614652080)
+On Linux x86_64, the Redpanda 26.2.2 fixture checks Avro ID and subject
+lookups, named references, cache expiry and a missing subject over HTTP.
+Its HTTPS listener uses a generated test CA and a certificate for
+`localhost`. The Rust client uses that CA for by-ID and pinned-version
+lookups. [Live CI](https://github.com/mingley/partitionline/actions/runs/44635048258)
 
 ## What this crate does not include
 
@@ -241,8 +242,8 @@ The application supplies the serializer. This crate does not embed
 libavro, a Protobuf runtime, or a JSON Schema validator. It does not
 depend on `partitionline` or on `reqwest`. Registry auth here is TLS
 plus bearer or basic credentials. It does not speak Kerberos to the
-registry. A Kafka round trip with the registry and live TLS and credential
-checks remain open. Pilot demand is
+registry. A Kafka round trip with the registry and live credential checks
+remain open. Pilot demand is
 [issue 85](https://github.com/mingley/partitionline/issues/85). The
 longer description is [the companion guide](../docs/schema-companion.md).
 

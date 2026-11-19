@@ -40,62 +40,114 @@ jobs:
           rustup update stable
           rustc +stable --version --verbose
           cargo +stable --version
-      - name: Build the live test
+      - name: Build the live tests
         run: |
+          cargo +stable fmt --manifest-path partitionline-schema/Cargo.toml -- --check
           features=()
           if [[ "$FEATURE_PROFILE" == all-features ]]; then
             features+=(--all-features)
           fi
           cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml \
             --test registry_live "${features[@]}" --no-run
-      - name: Start the registry and run the live test
+      - name: Generate a registry CA and localhost certificate
+        run: |
+          fixture="$RUNNER_TEMP/$REGISTRY_CONTAINER"
+          umask 077
+          mkdir "$fixture"
+          openssl version
+          openssl req -x509 -newkey rsa:2048 -noenc -sha256 -days 1 \
+            -subj '/CN=Partitionline live fixture CA' \
+            -addext 'basicConstraints=critical,CA:TRUE,pathlen:0' \
+            -addext 'keyUsage=critical,keyCertSign,cRLSign' \
+            -keyout "$fixture/ca.key" -out "$fixture/ca.pem" 2>/dev/null
+          openssl req -new -newkey rsa:2048 -noenc -sha256 -subj '/CN=Registry fixture' \
+            -keyout "$fixture/server.key" -out "$fixture/server.csr" 2>/dev/null
+          printf '%s\n' 'subjectAltName=DNS:localhost' 'basicConstraints=critical,CA:FALSE' \
+            'keyUsage=critical,digitalSignature,keyEncipherment' 'extendedKeyUsage=serverAuth' \
+            > "$fixture/server.ext"
+          openssl x509 -req -in "$fixture/server.csr" -CA "$fixture/ca.pem" \
+            -CAkey "$fixture/ca.key" -set_serial 1 -sha256 -days 1 \
+            -extfile "$fixture/server.ext" -out "$fixture/server.pem"
+          openssl verify -CAfile "$fixture/ca.pem" -purpose sslserver \
+            -verify_hostname localhost "$fixture/server.pem"
+          rm -- "$fixture/ca.key" "$fixture/server.csr" "$fixture/server.ext"
+          # Only the two mounted files are visible to the container.
+          chmod 0444 "$fixture/server.pem" "$fixture/server.key"
+      - name: Start the registry and run the live tests
         run: |
           test "$(uname -m)" = x86_64
+          fixture="$RUNNER_TEMP/$REGISTRY_CONTAINER"
           docker pull --platform linux/amd64 "$REGISTRY_IMAGE"
           docker image inspect --format '{{.Os}}/{{.Architecture}} {{json .RepoDigests}}' "$REGISTRY_IMAGE"
           docker run --detach --name "$REGISTRY_CONTAINER" --pull never --platform linux/amd64 \
-            --publish 127.0.0.1::8081 "$REGISTRY_IMAGE" \
-            redpanda start --mode dev-container --smp 1 --memory 768M \
-            --schema-registry-addr 0.0.0.0:8081
+            --publish 127.0.0.1::8081 --publish 127.0.0.1::18443 \
+            --mount "type=bind,source=$fixture/server.pem,target=/fixture/server.pem,readonly" \
+            --mount "type=bind,source=$fixture/server.key,target=/fixture/server.key,readonly" \
+            "$REGISTRY_IMAGE" redpanda start --mode dev-container --smp 1 --memory 768M \
+            --schema-registry-addr 'plain://0.0.0.0:8081,tls://0.0.0.0:18443' \
+            --set 'schema_registry.schema_registry_api_tls=[{"name":"tls","enabled":true,"cert_file":"/fixture/server.pem","key_file":"/fixture/server.key"}]'
           image_id=$(docker image inspect --format '{{.Id}}' "$REGISTRY_IMAGE")
           test "$image_id" = "$(docker container inspect --format '{{.Image}}' "$REGISTRY_CONTAINER")"
           docker exec "$REGISTRY_CONTAINER" rpk version
           binding=$(docker port "$REGISTRY_CONTAINER" 8081/tcp)
           [[ "$binding" =~ ^127\.0\.0\.1:[0-9]+$ ]]
           export PARTITIONLINE_REGISTRY_LIVE_URL="http://$binding"
-          ready=false
-          for attempt in {1..30}; do
-            if curl --disable --noproxy '*' --silent --fail --connect-timeout 1 --max-time 2 \
-              "$PARTITIONLINE_REGISTRY_LIVE_URL/subjects" >/dev/null; then
-              ready=true
-              break
-            fi
-            sleep 1
-          done
-          if [[ "$ready" != true ]]; then
-            echo "Schema Registry failed to become ready"
-            exit 1
-          fi
+          wait_for_registry() {
+            local url=$1
+            shift
+            for attempt in {1..30}; do
+              if curl --disable --noproxy '*' --silent --fail --connect-timeout 1 --max-time 2 \
+                "$@" "$url/subjects" >/dev/null; then
+                return 0
+              fi
+              sleep 1
+            done
+            echo "Schema Registry failed to become ready at $url"
+            return 1
+          }
+          wait_for_registry "$PARTITIONLINE_REGISTRY_LIVE_URL" --proto '=http'
           features=()
           if [[ "$FEATURE_PROFILE" == all-features ]]; then
             features+=(--all-features)
           fi
           timeout 30s cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml \
             --test registry_live "${features[@]}" -- --ignored --exact lookup_and_cache_against_redpanda --nocapture
+          binding=$(docker port "$REGISTRY_CONTAINER" 18443/tcp)
+          [[ "$binding" =~ ^127\.0\.0\.1:([0-9]+)$ ]]
+          tls_port=${BASH_REMATCH[1]}
+          export PARTITIONLINE_REGISTRY_LIVE_URL="https://localhost:$tls_port"
+          export PARTITIONLINE_REGISTRY_LIVE_CA_FILE="$fixture/ca.pem"
+          wait_for_registry "$PARTITIONLINE_REGISTRY_LIVE_URL" --proto '=https' \
+            --cacert "$PARTITIONLINE_REGISTRY_LIVE_CA_FILE" --resolve "localhost:$tls_port:127.0.0.1"
+          timeout 30s cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml \
+            --test registry_live "${features[@]}" -- --ignored --exact lookup_over_tls_against_redpanda --nocapture
       - name: Report registry startup and test diagnostics
         if: failure()
         run: |
           if docker container inspect "$REGISTRY_CONTAINER" >/dev/null 2>&1; then
             docker logs --tail 80 "$REGISTRY_CONTAINER"
           fi
-      - name: Remove the registry and its volumes
+      - name: Remove the registry, its volumes and test certificates
         if: always()
         run: |
+          status=0
           filter="name=^/$REGISTRY_CONTAINER$"
           present=$(docker container ls --all --quiet --filter "$filter")
           if [[ -n "$present" ]]; then
-            docker container rm --force --volumes "$REGISTRY_CONTAINER"
+            volumes=$(docker container inspect --format '{{range .Mounts}}{{if eq .Type "volume"}}{{println .Name}}{{end}}{{end}}' "$REGISTRY_CONTAINER")
+            docker container rm --force --volumes "$REGISTRY_CONTAINER" || status=1
+            while IFS= read -r volume; do
+              if [[ -n "$volume" ]] && docker volume inspect "$volume" >/dev/null 2>&1; then
+                echo "Fixture volume remains: $volume"
+                status=1
+              fi
+            done <<< "$volumes"
           fi
           remaining=$(docker container ls --all --quiet --filter "$filter")
-          test -z "$remaining"
-          echo "Registry container removed"
+          test -z "$remaining" || status=1
+          rm -rf -- "$RUNNER_TEMP/$REGISTRY_CONTAINER" || status=1
+          test ! -e "$RUNNER_TEMP/$REGISTRY_CONTAINER" || status=1
+          if [[ "$status" -eq 0 ]]; then
+            echo "Registry fixture container, volumes and test certificates removed"
+          fi
+          exit "$status"
