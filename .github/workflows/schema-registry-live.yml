@@ -100,10 +100,9 @@ jobs:
             printf 'machine localhost login %s password %s\n' "$registry_user" "$registry_password" > "$registry_netrc"
           )
           export RP_BOOTSTRAP_USER="$registry_user:$registry_password"
-          registry_tls='schema_registry.schema_registry_api_tls=[
-            {"name":"tls","enabled":true,"cert_file":"/fixture/server.pem","key_file":"/fixture/server.key"},
-            {"name":"basic","enabled":true,"cert_file":"/fixture/server.pem","key_file":"/fixture/server.key"}
-          ]'
+          tls_files='"enabled":true,"cert_file":"/fixture/server.pem","key_file":"/fixture/server.key"'
+          registry_tls='schema_registry.schema_registry_api_tls=['
+          registry_tls+='{"name":"tls",'"$tls_files"'},{"name":"basic",'"$tls_files"'}]'
           docker run --detach --name "$REGISTRY_CONTAINER" --pull never --platform linux/amd64 \
             --env RP_BOOTSTRAP_USER --publish 127.0.0.1::8081 --publish 127.0.0.1::18443 \
             --publish 127.0.0.1::19443 --publish 127.0.0.1:9092:9092 \
