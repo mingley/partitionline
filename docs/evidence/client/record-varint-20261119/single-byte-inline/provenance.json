@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-19",
+  "source": {
+    "baseline": "713c8a3d861a843bc1e6e229eecf53ce5632b3bf",
+    "candidate": "b47dc50e9793f3d4b9f5356a5e6a4c928ffc5b69",
+    "baseline_buf_blob": "1527858ec3eec4efd4de38fb422b2d6574ca9e32",
+    "candidate_buf_blob": "c16265cf03a3b50c0f41cb5e0ccbde5f4bde1a6b",
+    "timing_source_blob": "2482ebfaddada4e96a58d941ab46df3b9d242512",
+    "pairing_script_blob": "a16aa237c2a222f478d684638675dc90a595ab87",
+    "codec_manifest_blob": "cd8f4bda1e3b1daad484defdd1b5535dd0f31965"
+  },
+  "tooling": {
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "rustc_commit": "0ef1bc386059596dada8fb65b50425aab2ea637a",
+    "llvm": "23.1.5",
+    "cargo": "cargo 1.100.0 (3acc79c0c 2026-11-05)",
+    "callgrind": "3.26.0",
+    "iai_callgrind_runner": "0.14.2"
+  },
+  "timing_host": {
+    "image": "ubuntu26",
+    "image_version": "20261111.196.1",
+    "arch": "x86_64",
+    "pinned_cpu": 3,
+    "available_cpus": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "timing_binary_sha256": {
+    "baseline": "87de022c609af983eefc1c1f8df25558e06e78a5115776143fc12137f6707074",
+    "candidate": "4846cfdfbd97987fe783f36327e2cb0865683b3b5c7e3a5ae3336d8bf917aebc"
+  },
+  "jobs": {
+    "timing": 135882612816,
+    "correctness": 135882613240,
+    "allocations": 135882613191,
+    "instructions": 135882613056
+  }
+}
