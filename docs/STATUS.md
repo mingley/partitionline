@@ -1,65 +1,68 @@
 # Status
 
-Updated 19 November 2026.
-
-The Kafka client is available as [partitionline 0.2.0](https://crates.io/crates/partitionline/0.2.0).
-Production qualification is ongoing. The broker is experimental and the
-broker and Schema Registry companion are both unpublished. Comparative
-performance results are incomplete, so Suite HOLD remains in effect.
+Updated 19 November 2026. The [partitionline client](https://crates.io/crates/partitionline/0.2.0)
+is at version 0.2.0. The broker is experimental. The broker and Schema
+Registry companion are unpublished.
 
 ## Validation
 
-These runs tested [`713c8a3`](https://github.com/mingley/partitionline/commit/713c8a3d861a843bc1e6e229eecf53ce5632b3bf) on
-`main`. All 27 required client jobs passed. The optional live conformance
-job was skipped. [Client CI](https://github.com/mingley/partitionline/actions/runs/44414668464)
+At [`713c8a3`](https://github.com/mingley/partitionline/commit/713c8a3d861a843bc1e6e229eecf53ce5632b3bf),
+all 27 configured client jobs passed and the opt-in live lane was skipped.
+The run covered current Apache Kafka 4.1.2, 4.2.1 and 4.3.1, historical 3.9.1
+and 4.1.0 smoke, packaged consumers and the finite resource soak.
+[Client CI](https://github.com/mingley/partitionline/actions/runs/44414668464)
 
-| Check | Result |
-| --- | --- |
-| Client | Linux default and all features each passed 2,330 library tests, plus integration targets. Windows x86_64 and macOS arm64 passed. |
-| Kafka | Current Apache 4.1.2, 4.2.1 and 4.3.1 profiles passed. Historical 3.9.1 and 4.1.0 smoke passed. |
-| Packaging | Packaged consumer, docs and release rehearsal passed. |
-| Resources | Finite resource soak passed. The 24-hour fault and seven-day continuity campaigns are open. |
-| Codec gate | The prior client run recorded counts without a matching baseline. The new x86_64 baseline covers ten cases and the gate caught an injected regression. [Gate evidence](https://github.com/mingley/partitionline/blob/4e1e280b794eef89cc1707d715c265f98cb039f4/docs/evidence/perf/codec-instructions-20261119/README.md) |
-| Broker | Default and all-feature tests, strict checks, inventory and fuzz supervision passed. [Broker CI](https://github.com/mingley/partitionline/actions/runs/44414668424) |
-| Produce wire | Apache v4, v6, v7 and v12 body fixtures passed, including extracted-crate checks. [Wire CI](https://github.com/mingley/partitionline/actions/runs/44414668497) |
-| Capability reports | Default and all-feature jobs passed. [Capabilities](https://github.com/mingley/partitionline/actions/runs/44414668456) |
+The earlier soak at `753a35b` stopped when the OS denied descriptor sampling.
+The latest complete broad broker run in this record, at `ce1de24`, passed
+inventory and fuzz supervision. Its default-feature suite failed a Raft
+image-installation test. The 0.2.0 release came from its own tag.
+[Soak failure](https://github.com/mingley/partitionline/actions/runs/43692389498/job/132745594665) ·
+[Broker CI](https://github.com/mingley/partitionline/actions/runs/44615559884) · [Release record](RELEASE.md)
 
-The earlier resource-soak run at `753a35b` stopped when the OS denied
-descriptor sampling. The failure remains in the
-[run record](https://github.com/mingley/partitionline/actions/runs/43692389498/job/132745594665).
-The 0.2.0 release was built separately from tag `v0.2.0`. See the
-[release record](RELEASE.md).
+## Changes since that client run
 
-## Open work
+- Flat-journal Produce reuses workers within its sync limit. Three paired
+  x86_64 multi-partition workloads improved 25.79–31.49% in median throughput.
+  The one-partition result was inconclusive. Both builds verified all 122,496
+  records across graceful restarts.
+  [Broker measurements](https://github.com/mingley/partitionline/blob/8977c6b986d5077c5886be75c6cc13fe99cdec5b/docs/evidence/broker/reusable-sync-20261119/README.md)
+- The producer keeps accepted records with its worker during grouping,
+  including across cooperative yields. Five cancellation and retry-order
+  controls passed in each feature configuration. All seven paired shapes
+  had lower median grouping time, with a 49.44% reduction for a 64-record
+  single-partition batch and one slower individual pair.
+  [Producer checks](https://github.com/mingley/partitionline/blob/4ba4341da14d173382d81a71775927ce94966c4e/docs/evidence/client/producer-small-group-20261119/README.md)
+- Five Apache Kafka SDKs checked 280 selected ListOffsets request/response
+  pairs in each direction, including the v10 timeout field. The retained
+  corpus passed in the checkout and the packaged crate.
+  [Wire checks](https://github.com/mingley/partitionline/blob/cb5bbece36d085de82d1ea856889a662c4aafe63/docs/evidence/conformance/q-conf-listoffsetswire/README.md)
+- The live Redpanda Registry check passed with default and all features.
+  It covered Avro lookup, exact and latest versions, named references,
+  cache refresh and a missing-subject error over plain HTTP.
+  [Registry check](https://github.com/mingley/partitionline/blob/5697254c9ca8f2dec88f7758e8b50868753295cc/docs/evidence/schema/registry-live-20261119/README.md)
+- The x86_64 codec gate measures ten instruction counts on stable Rust.
+  Its self-test caught a 6.03% increase against the 1% limit. The third
+  record writer trial had higher sample medians on all nine shapes and exceeded the LZ4
+  decode instruction limit. The trials remain experimental.
+  [Codec gate](https://github.com/mingley/partitionline/blob/4e1e280b794eef89cc1707d715c265f98cb039f4/docs/evidence/perf/codec-instructions-20261119/README.md) ·
+  [Writer trials](https://github.com/mingley/partitionline/blob/a47467878eee0264fa5db0ae4a5443ef53432919/docs/evidence/client/record-varint-20261119/single-byte-inline/README.md)
+- The report checker can verify local bundle files by length and SHA-256.
+  [Benchmark contract](benchmark-contract.md)
 
-- **Producer.** Canceling the queue scan now leaves accepted records and
-  bookkeeping with the worker. Both feature profiles passed the
-  [drain controls](https://github.com/mingley/partitionline/actions/runs/44411433690).
-  The [paired x86_64 measurements](https://github.com/mingley/partitionline/blob/a0fd891dc584404045ece3f05e22e3722733acb2/docs/evidence/client/producer-drain-cancellation-20261118/README.md)
-  show a lower median for two partial drains and mixed full-drain timings.
-  Grouping, sticky selection, shutdown and ambiguous retries still need
-  separate ownership and Kafka delivery checks.
-- **Client compatibility.** The current Kafka profiles cover a finite
-  single-broker scenario. Broader protocol support, older peer behavior,
-  group churn, authentication renewal and transaction recovery need further
-  evidence. The [Produce fixtures](https://github.com/mingley/partitionline/blob/a0fd891dc584404045ece3f05e22e3722733acb2/docs/evidence/conformance/q-conf-producewire/README.md)
-  cover selected v4, v6, v7 and v12 wire bodies. The new [ListOffsets fixtures](https://github.com/mingley/partitionline/blob/cb5bbece36d085de82d1ea856889a662c4aafe63/docs/evidence/conformance/q-conf-listoffsetswire/README.md)
-  cover selected v1–v11 bodies in both directions with five Apache SDKs.
-  See the [support matrix](support.md) and [protocol gaps](gaps.md).
-- **Broker.** Flat-journal Produce now reuses sync workers. Three paired x86_64
-  workloads with multiple partitions improved 25.79–31.49% in median
-  throughput. The one-partition result was inconclusive. Both builds verified
-  122,496 records across graceful restarts. RF1 remains the data path.
-  Partition replication, native KRaft, transaction marker propagation,
-  Kafka wire quotas and a process-wide memory bound remain open.
-  [Sync worker evidence](https://github.com/mingley/partitionline/blob/8977c6b986d5077c5886be75c6cc13fe99cdec5b/docs/evidence/broker/reusable-sync-20261119/README.md)
-- **Schema Registry.** The companion has passed mock and codec checks.
-  Live Registry interoperability and resource limits for synchronous JSON
-  parsing still need qualification. See the [companion guide](schema-companion.md).
-- **Reliability and performance.** The 24-hour fault and seven-day continuity
-  campaigns are open. Matched x86_64 comparisons with independent record
-  verification are still needed. See the [benchmark contract](benchmark-contract.md).
+## Release gates
 
-The [work plan](https://github.com/mingley/partitionline/blob/3a2e48fc6a5a727b5b8a56deea4d32c11ef23d60/docs/plan/next-work.md)
-tracks the remaining work. The [previous status](https://github.com/mingley/partitionline/blob/753a35b19cebad4155d37938a14eee219193d581/docs/STATUS.md)
-preserves detailed experiment records, earlier CI failures and stopped investigations.
+The client needs more live compatibility and delivery histories. The broker
+still has an RF1 data path. Partition replication, native KRaft, transaction
+markers, Kafka wire quotas and process-wide bounds are open. The Schema
+Registry companion still needs live TLS and a Kafka round trip. The 24-hour
+fault and seven-day continuity campaigns are open.
+[Support matrix](support.md) · [Work plan](https://github.com/mingley/partitionline/blob/a3665face4e48a5e46a79483fa651a95068141b0/docs/plan/next-work.md)
+
+All 12 required client comparison cases remain `not_run` in the scenario
+registry. Controlled x86_64 client and broker comparisons and a separate
+reproduction with independent record checks are required for profile claims.
+Suite HOLD remains active.
+[Benchmark contract](benchmark-contract.md)
+
+The [previous status](https://github.com/mingley/partitionline/blob/ce1de24a9f81db66d35a76194e8c8ad1dbfa1982/docs/STATUS.md)
+retains prior evidence and stopped work.
