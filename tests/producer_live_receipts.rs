@@ -1,3 +1,5 @@
+//! Live checks for acknowledged offsets and queued producer delivery.
+
 use partitionline::{Acks, Error, ProduceRecord, Producer, ProducerConfig};
 use std::{
     error::Error as StdError,
