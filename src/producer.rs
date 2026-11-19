@@ -16138,9 +16138,7 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn ordinary_produce_keeps_timestamp_bounds_on_reencode() {
-        use crate::protocol::api::{
-            decode_produce_request, decode_produce_request_with_topic_ids,
-        };
+        use crate::protocol::api::{decode_produce_request, decode_produce_request_with_topic_ids};
 
         let codecs = [
             Compression::None,
