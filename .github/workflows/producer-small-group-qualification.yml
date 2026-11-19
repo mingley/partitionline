@@ -1,0 +1,175 @@
+name: Producer small-group qualification
+
+on:
+  push:
+    branches: [qualification/producer-small-group-20261119]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: never
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check format and source
+        run: |
+          rustc -Vv
+          test "$(git rev-parse HEAD:src/producer.rs)" = "3bd9548b1114464030a01348c6885b6a68bf6de7"
+          cargo fmt --all -- --check
+
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all, no-default]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Reproduce candidate
+        env:
+          FEATURE_MODE: ${{ matrix.features }}
+        shell: bash
+        run: |
+          rustc -Vv
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD:src/producer.rs)" = "3bd9548b1114464030a01348c6885b6a68bf6de7"
+          features=()
+          case "$FEATURE_MODE" in
+            all) features+=(--all-features) ;;
+            no-default) features+=(--no-default-features) ;;
+          esac
+          cargo test --locked --lib "${features[@]}" producer::tests:: -- --test-threads=1
+      - name: Check candidate lints
+        if: matrix.features == 'all'
+        run: cargo clippy --locked --all-features --lib --tests -- -D warnings
+
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 12
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Bind test injection to exact sources
+        shell: bash
+        run: |
+          rustc -Vv
+          git rev-parse HEAD
+          git worktree add --detach "$RUNNER_TEMP/grouping-baseline" 713c8a3d861a843bc1e6e229eecf53ce5632b3bf
+          git worktree add --detach "$RUNNER_TEMP/grouping-candidate" f37992486d47ebb03432be59e233e7172a821c93
+          python3 -B - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          import subprocess
+
+          capsule = Path("docs/evidence/client/producer-grouping-cancellation-20261119")
+          start = b"    type DrainReceipts = "
+          anchor = (
+              b'    #[tokio::test(flavor = "current_thread")]\n'
+              b"    async fn timestamp_freezing_at_existing_encode_yields() {"
+          )
+          marker = b"#[cfg(test)]\nmod tests {"
+          bench = (capsule / "timing.rs.txt").read_bytes()
+          temp = Path(os.environ["RUNNER_TEMP"])
+          worktrees = {arm: temp / f"grouping-{arm}" for arm in ("baseline", "candidate")}
+          pinned = {
+              "baseline": "47c4fc0c06c57a906d16af32637ebb69c7194511",
+              "candidate": "3bd9548b1114464030a01348c6885b6a68bf6de7",
+          }
+          test_source = (worktrees["candidate"] / "src/producer.rs").read_bytes()
+          if test_source.count(start) != 1 or test_source.count(anchor) != 1:
+              raise ValueError("missing unique test anchors")
+          injection = bench
+          for arm, path in worktrees.items():
+              source = path / "src/producer.rs"
+              blob = subprocess.check_output(["git", "hash-object", source], text=True).strip()
+              if blob != pinned[arm]:
+                  raise ValueError(f"unexpected source blob in {arm}")
+              original = source.read_bytes()
+              if original.count(anchor) != 1 or original.count(marker) != 1:
+                  raise ValueError(f"unexpected source markers in {arm}")
+              original_prefix = original.split(marker, 1)[0]
+              original = original[:original.index(start)] + original[original.index(anchor):]
+              instrumented = original.replace(anchor, injection + anchor, 1)
+              if instrumented.split(marker, 1)[0] != original_prefix:
+                  raise ValueError(f"production prefix changed in {arm}")
+              source.write_bytes(instrumented)
+              print(f"GROUPING_SOURCE arm={arm} blob={blob} "
+                    f"instrumented_sha256={hashlib.sha256(instrumented).hexdigest()} "
+                    f"production_sha256={hashlib.sha256(original_prefix).hexdigest()}")
+          for name in ("Cargo.toml", "Cargo.lock"):
+              contents = [(path / name).read_bytes() for path in worktrees.values()]
+              if contents[0] != contents[1]:
+                  raise ValueError(f"paired builds disagree on {name}")
+              print(f"GROUPING_BUILD_FILE {name} sha256={hashlib.sha256(contents[0]).hexdigest()}")
+          PY
+      - name: Build release test binaries in separate targets
+        shell: bash
+        run: |
+          for arm in baseline candidate; do
+            (
+              cd "$RUNNER_TEMP/grouping-$arm"
+              export CARGO_TARGET_DIR="$RUNNER_TEMP/grouping-$arm-target"
+              if ! cargo test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/grouping-$arm-build.jsonl"; then
+                python3 -B - "$RUNNER_TEMP/grouping-$arm-build.jsonl" <<'DIAGNOSTICS'
+          import json
+          import sys
+          from pathlib import Path
+
+          for line in Path(sys.argv[1]).read_text().splitlines():
+              row = json.loads(line)
+              if row.get("reason") == "compiler-message":
+                  msg = row["message"]
+                  print(msg.get("rendered") or msg["message"])
+          DIAGNOSTICS
+                exit 1
+              fi
+              python3 -B - "$arm" <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          arm = sys.argv[1]
+          temp = Path(os.environ["RUNNER_TEMP"])
+          target = (temp / f"grouping-{arm}-target").resolve()
+          log = temp / f"grouping-{arm}-build.jsonl"
+          paths = []
+          for line in log.read_text().splitlines():
+              row = json.loads(line)
+              if row.get("reason") != "compiler-artifact":
+                  continue
+              if row["profile"]["test"] and row["target"]["name"] == "partitionline" and row.get("executable"):
+                  paths.append(Path(row["executable"]).resolve(strict=True))
+          if len(paths) != 1 or not paths[0].is_relative_to(target):
+              raise ValueError(f"could not locate a unique test binary for {arm}: {paths}")
+          (temp / f"grouping-{arm}-bin.txt").write_text(str(paths[0]))
+          PY
+            )
+          done
+      - name: Measure eight alternating pairs
+        run: |
+          python3 -B docs/evidence/client/producer-grouping-cancellation-20261119/timing.py.txt \
+            "$RUNNER_TEMP/grouping-baseline-bin.txt" "$RUNNER_TEMP/grouping-candidate-bin.txt"
