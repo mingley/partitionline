@@ -84,6 +84,8 @@ jobs:
   wire:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      CARGO_TARGET_DIR: target/pacing-wire
     steps:
       - uses: actions/checkout@v7
         with:
@@ -123,7 +125,7 @@ jobs:
         run: |
           set -euo pipefail
           log="$RUNNER_TEMP/operator.log"
-          partitionline-broker/target/release/operator serve \
+          target/pacing-wire/release/operator serve \
             --data "$RUNNER_TEMP/produce-pacing" --listen 127.0.0.1:9092 \
             --advertise-host 127.0.0.1 --cluster pacing-wire \
             --produce-quota 20:200:8000 \

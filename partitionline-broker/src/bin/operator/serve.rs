@@ -120,9 +120,15 @@ fn parse_produce_quota(value: &str, clients: Option<&str>) -> Result<quotas::Pro
         .ok_or("expected --produce-quota RATE:BURST:MAX_DELAY_MS")?;
     let rate = rate.parse().map_err(|_| "invalid Produce quota rate")?;
     let burst = burst.parse().map_err(|_| "invalid Produce quota burst")?;
-    let delay = delay.parse().map_err(|_| "invalid Produce quota delay cap")?;
+    let delay = delay
+        .parse()
+        .map_err(|_| "invalid Produce quota delay cap")?;
     // Read at most one more ID than the supported maximum.
-    let client_ids: Vec<_> = clients.into_iter().flat_map(|names| names.split(',')).take(257).collect();
+    let client_ids: Vec<_> = clients
+        .into_iter()
+        .flat_map(|names| names.split(','))
+        .take(257)
+        .collect();
     quotas::ProduceQuota::new(rate, burst, delay, &client_ids)
         .map_err(|error| format!("Produce quota: {error}"))
 }

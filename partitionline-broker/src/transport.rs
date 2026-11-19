@@ -460,9 +460,9 @@ impl Transport {
         router: Arc<Router>,
         quota: quotas::ProduceQuota,
     ) -> Result<Self, Error> {
-        let limits = router
-            .produce_request_limits()
-            .ok_or(Error::InvalidConfig("Produce quota requires a Produce router"))?;
+        let limits = router.produce_request_limits().ok_or(Error::InvalidConfig(
+            "Produce quota requires a Produce router",
+        ))?;
         Self::bind_with(
             addr,
             config,
@@ -518,7 +518,14 @@ impl Transport {
         if !profile.requires_tls() {
             return Err(Error::InvalidConfig("SASL TLS profile"));
         }
-        Self::bind_with(addr, config, handler, Security::SaslTls(acceptor, profile), ()).await
+        Self::bind_with(
+            addr,
+            config,
+            handler,
+            Security::SaslTls(acceptor, profile),
+            (),
+        )
+        .await
     }
 
     async fn bind_with<H: Handler + 'static>(
@@ -1496,12 +1503,20 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
 
 // Compile the ordinary listener without Produce parsing, accounting or clocks.
 trait FlowControl: Clone + Send + Sync + 'static {
-    fn charge(&self, request: &[u8]) -> Result<Option<quotas::Throttle>, Exit>;
+    fn charge(
+        &self,
+        request: &[u8],
+        deadline: Instant,
+    ) -> impl Future<Output = Result<Option<quotas::Throttle>, Exit>> + Send;
 }
 
 impl FlowControl for () {
     #[inline]
-    fn charge(&self, _request: &[u8]) -> Result<Option<quotas::Throttle>, Exit> {
+    async fn charge(
+        &self,
+        _request: &[u8],
+        _deadline: Instant,
+    ) -> Result<Option<quotas::Throttle>, Exit> {
         Ok(None)
     }
 }
@@ -1513,10 +1528,20 @@ struct ProduceFlow {
 }
 
 impl FlowControl for ProduceFlow {
-    fn charge(&self, request: &[u8]) -> Result<Option<quotas::Throttle>, Exit> {
-        self.quota
+    async fn charge(
+        &self,
+        request: &[u8],
+        deadline: Instant,
+    ) -> Result<Option<quotas::Throttle>, Exit> {
+        let throttle = self
+            .quota
             .charge(request, self.limits)
-            .map_err(|_| Exit::HandlerError)
+            .await
+            .map_err(|_| Exit::HandlerError)?;
+        if Instant::now() >= deadline {
+            return Err(Exit::HandlerDeadline);
+        }
+        Ok(throttle)
     }
 }
 
@@ -1660,7 +1685,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                             }
                         }
                     }
-                    let throttle = flow.charge(&request)?;
+                    let throttle = flow.charge(&request, deadline).await?;
                     let outcome = handler
                         .exchange_request(&peer, dispatch_frame(request), response_buf)
                         .await
@@ -1793,7 +1818,9 @@ mod produce_pause_tests {
         let mut ahead = ReadAhead::new();
         client.write_all(&[0, 0, 0, 1, 42]).await?;
         let until = Instant::now() + Duration::from_secs(30);
-        assert!(wait_for_resume(&mut socket, &mut ahead, until).await.is_ok());
+        assert!(wait_for_resume(&mut socket, &mut ahead, until)
+            .await
+            .is_ok());
         assert!(Instant::now() >= until);
         assert_eq!(ahead.pending(), &[0]);
         let result = read_frame(

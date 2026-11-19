@@ -1,7 +1,7 @@
 use super::{Bucket, Error};
 use crate::{produce::DATA_API_VERSIONS, protocol};
-use std::{sync::Mutex, time::Duration};
-use tokio::time::Instant;
+use std::time::Duration;
+use tokio::{sync::Mutex, time::Instant};
 
 const MAX_CLIENTS: usize = 256;
 const MAX_CLIENT_BYTES: usize = 249;
@@ -68,7 +68,7 @@ impl ProduceQuota {
         })
     }
 
-    pub(crate) fn charge(
+    pub(crate) async fn charge(
         &self,
         request: &[u8],
         limits: protocol::Limits,
@@ -84,15 +84,12 @@ impl ProduceQuota {
         let bucket = if self.clients.is_empty() {
             &self.fallback
         } else {
-            let (header, _) = protocol::RequestHeader::parse(
-                request,
-                if version >= 9 { 2 } else { 1 },
-                limits,
-            )
-            .map_err(|_| Error::InvalidRequest)?;
+            let (header, _) =
+                protocol::RequestHeader::parse(request, if version >= 9 { 2 } else { 1 }, limits)
+                    .map_err(|_| Error::InvalidRequest)?;
             self.bucket(header.client_id)
         };
-        let mut meter = bucket.lock().map_err(|_| Error::Throttled)?;
+        let mut meter = bucket.lock().await;
         let now = Instant::now();
         let now_ms = u64::try_from(now.saturating_duration_since(self.start).as_millis())
             .map_err(|_| Error::Throttled)?;

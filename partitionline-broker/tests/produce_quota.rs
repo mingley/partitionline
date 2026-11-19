@@ -78,11 +78,11 @@ async fn listen(root: &Path, quota: ProduceQuota) -> Result<(Arc<metadata::Route
     Ok((router, transport))
 }
 
-fn fixture(version: i16, acks: i16, suffix: &str) -> Result<Vec<u8>> {
+async fn fixture(version: i16, acks: i16, suffix: &str) -> Result<Vec<u8>> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures/produce/4.3.1")
         .join(format!("produce-v{version}-acks{acks}.{suffix}.bin"));
-    Ok(fs::read(path)?)
+    Ok(tokio::fs::read(path).await?)
 }
 
 fn with_label(mut request: Vec<u8>, label: &[u8; 14]) -> Vec<u8> {
@@ -122,7 +122,7 @@ fn clear_throttle(version: i16, response: &mut [u8]) -> Result<i32> {
 }
 
 async fn stop(mut transport: Transport, router: Arc<metadata::Router>) -> Result {
-    let report = transport.shutdown().await?;
+    let report = tokio::time::timeout(Duration::from_secs(5), transport.shutdown()).await??;
     router.shutdown().await?;
     assert_eq!(report.accepted_connections, report.joined_connections);
     assert_eq!(report.worker_failures, 0);
@@ -138,7 +138,7 @@ async fn every_version_changes_only_the_throttle_field() -> Result {
             let quota = ProduceQuota::new(1, 1, 60_000, &[])?;
             let (router, transport) = listen(&root.0, quota).await?;
             let mut socket = TcpStream::connect(transport.local_addr()).await?;
-            send(&mut socket, &fixture(version, acks, "request")?).await?;
+            send(&mut socket, &fixture(version, acks, "request").await?).await?;
             let mut response = receive(&mut socket).await?;
             let millis = clear_throttle(version, &mut response)?;
             assert!(
@@ -147,7 +147,7 @@ async fn every_version_changes_only_the_throttle_field() -> Result {
             );
             assert_eq!(
                 response,
-                fixture(version, acks, "response")?,
+                fixture(version, acks, "response").await?,
                 "Produce v{version} acks={acks}"
             );
             stop(transport, router).await?;
@@ -162,7 +162,7 @@ async fn acks_zero_paces_the_next_request_and_appends_once() -> Result {
     let quota = ProduceQuota::new(1, 1, 400, &[])?;
     let (router, transport) = listen(&root.0, quota).await?;
     let mut socket = TcpStream::connect(transport.local_addr()).await?;
-    send(&mut socket, &fixture(9, 0, "request")?).await?;
+    send(&mut socket, &fixture(9, 0, "request").await?).await?;
     send(&mut socket, &METADATA).await?;
     let mut probe = [0];
     assert!(
@@ -174,10 +174,10 @@ async fn acks_zero_paces_the_next_request_and_appends_once() -> Result {
     let response = receive(&mut socket).await?;
     assert_eq!(&response[..4], &77i32.to_be_bytes());
 
-    send(&mut socket, &fixture(3, 1, "request")?).await?;
+    send(&mut socket, &fixture(3, 1, "request").await?).await?;
     let mut second = receive(&mut socket).await?;
     assert!(clear_throttle(3, &mut second)? > 0);
-    let mut expected = fixture(3, 1, "response")?;
+    let mut expected = fixture(3, 1, "response").await?;
     expected[25..33].copy_from_slice(&1i64.to_be_bytes());
     assert_eq!(second, expected);
     stop(transport, router).await
@@ -186,8 +186,8 @@ async fn acks_zero_paces_the_next_request_and_appends_once() -> Result {
 #[tokio::test]
 async fn configured_labels_share_debt_and_release_the_handler_slot() -> Result {
     let root = Scratch::new()?;
-    let alpha = with_label(fixture(3, 1, "request")?, b"quota-alpha-v3");
-    let bravo = with_label(fixture(3, 1, "request")?, b"quota-bravo-v3");
+    let alpha = with_label(fixture(3, 1, "request").await?, b"quota-alpha-v3");
+    let bravo = with_label(fixture(3, 1, "request").await?, b"quota-bravo-v3");
     let quota = ProduceQuota::new(
         20,
         u64::try_from(alpha.len())?,
@@ -204,8 +204,11 @@ async fn configured_labels_share_debt_and_release_the_handler_slot() -> Result {
     send(&mut second, &alpha).await?;
     let mut response = receive(&mut second).await?;
     let millis = clear_throttle(3, &mut response)?;
-    assert!(millis >= 1_000, "another alpha connection did not share debt");
-    let mut expected = fixture(3, 1, "response")?;
+    assert!(
+        millis >= 1_000,
+        "another alpha connection did not share debt"
+    );
+    let mut expected = fixture(3, 1, "response").await?;
     expected[25..33].copy_from_slice(&1i64.to_be_bytes());
     assert_eq!(response, expected);
 
