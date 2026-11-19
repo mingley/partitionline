@@ -1,6 +1,6 @@
 # Status
 
-Updated 18 November 2026.
+Updated 19 November 2026.
 
 The Kafka client is available as [partitionline 0.2.0](https://crates.io/crates/partitionline/0.2.0).
 Production qualification is ongoing. The broker is experimental and the
@@ -9,32 +9,26 @@ performance results are incomplete, so Suite HOLD remains in effect.
 
 ## Validation
 
-The following runs tested main commit
-[`753a35b`](https://github.com/mingley/partitionline/commit/753a35b19cebad4155d37938a14eee219193d581).
+These runs tested [`713c8a3`](https://github.com/mingley/partitionline/commit/713c8a3d861a843bc1e6e229eecf53ce5632b3bf) on
+`main`. All 27 required client jobs passed. The optional live conformance
+job was skipped. [Client CI](https://github.com/mingley/partitionline/actions/runs/44414668464)
 
 | Check | Result |
 | --- | --- |
-| [Client CI](https://github.com/mingley/partitionline/actions/runs/43692389498) | 26 jobs passed and one failed. Live conformance was skipped. |
-| Client platforms | Linux default and all features, Windows x86_64 and macOS arm64 passed. |
-| Kafka interoperability | 4.1.2, 4.2.1 and 4.3.1 current profiles passed. 3.9.1 and 4.1.0 smoke passed. |
-| Package and docs | Packaged consumer, documentation, and partial release rehearsal passed. |
-| [Resource soak](https://github.com/mingley/partitionline/actions/runs/43692389498/job/132745594665) | The OS denied process descriptor sampling. The run failed. |
-| [Broker CI](https://github.com/mingley/partitionline/actions/runs/43692389931) | Both feature profiles, strict checks, inventory, and fuzz supervision passed. |
-| [Metadata wire](https://github.com/mingley/partitionline/actions/runs/43692389526) and [v13](https://github.com/mingley/partitionline/actions/runs/43692389531) | Both fixture workflows passed. |
-| [Capabilities](https://github.com/mingley/partitionline/actions/runs/43692389581) | Default and all-feature jobs passed. |
+| Client | Linux default and all features each passed 2,330 library tests, plus integration targets. Windows x86_64 and macOS arm64 passed. |
+| Kafka | Current Apache 4.1.2, 4.2.1 and 4.3.1 profiles passed. Historical 3.9.1 and 4.1.0 smoke passed. |
+| Packaging | Packaged consumer, docs and release rehearsal passed. |
+| Resources | Finite resource soak passed. The 24-hour fault and seven-day continuity campaigns are open. |
+| Codec gate | The prior client run recorded counts without a matching baseline. The new x86_64 baseline covers ten cases and the gate caught an injected regression. [Gate evidence](https://github.com/mingley/partitionline/blob/4e1e280b794eef89cc1707d715c265f98cb039f4/docs/evidence/perf/codec-instructions-20261119/README.md) |
+| Broker | Default and all-feature tests, strict checks, inventory and fuzz supervision passed. [Broker CI](https://github.com/mingley/partitionline/actions/runs/44414668424) |
+| Produce wire | Apache v4, v6, v7 and v12 body fixtures passed, including extracted-crate checks. [Wire CI](https://github.com/mingley/partitionline/actions/runs/44414668497) |
+| Capability reports | Default and all-feature jobs passed. [Capabilities](https://github.com/mingley/partitionline/actions/runs/44414668456) |
 
-The preceding [client run](https://github.com/mingley/partitionline/actions/runs/43687797505)
-passed its finite resource soak at `b41727f`. The release corresponds to
-`87eb1b8`, which passed its own checks. See the [release record](RELEASE.md)
-for the tag and registry result.
-
-The later [combined client run](https://github.com/mingley/partitionline/actions/runs/44412321206)
-at `b248dd2` passed the current Kafka profiles, docs, package and finite
-resource soak. The release rehearsal unit test step failed due to stale
-test expectations, which passed after correction in the
-[release test run](https://github.com/mingley/partitionline/actions/runs/44414059916).
-The [combined broker run](https://github.com/mingley/partitionline/actions/runs/44412320790)
-passed.
+The earlier resource-soak run at `753a35b` stopped when the OS denied
+descriptor sampling. The failure remains in the
+[run record](https://github.com/mingley/partitionline/actions/runs/43692389498/job/132745594665).
+The 0.2.0 release was built separately from tag `v0.2.0`. See the
+[release record](RELEASE.md).
 
 ## Open work
 
@@ -61,6 +55,6 @@ passed.
   campaigns are open. Matched x86_64 comparisons with independent record
   verification are still needed. See the [benchmark contract](benchmark-contract.md).
 
-The [work plan](https://github.com/mingley/partitionline/blob/cba307157896f91076a58200ac53164a632a8e3f/docs/plan/next-work.md)
+The [work plan](https://github.com/mingley/partitionline/blob/4e1e280b794eef89cc1707d715c265f98cb039f4/docs/plan/next-work.md)
 tracks the remaining work. The [previous status](https://github.com/mingley/partitionline/blob/753a35b19cebad4155d37938a14eee219193d581/docs/STATUS.md)
 preserves detailed experiment records, earlier CI failures and stopped investigations.
