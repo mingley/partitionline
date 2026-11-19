@@ -134,6 +134,13 @@ including a nested message from an imported schema. Those fixture codecs
 are not a built-in production Protobuf serializer. The offline checks do
 not qualify a live Schema Registry or a live Kafka cluster.
 
+## Live registry check
+
+The live check starts Redpanda 26.2.2 on x86_64. It verifies Avro schema
+lookup by ID, an exact subject version, the latest version, named references,
+cache expiry and a missing-subject error. The check uses plain HTTP over
+loopback. [Live CI](https://github.com/mingley/partitionline/actions/runs/44614652080)
+
 ## What this crate is
 
 Confluent Avro, Protobuf, and JSON Schema framing stays out of the core
@@ -158,7 +165,6 @@ does not speak Kerberos to the registry. It is not a drop-in for
 The crate lives in this repository, is excluded from the core package,
 and is unpublished. It does not depend on librdkafka or OpenSSL. Ring's
 build needs a C compiler when the registry feature is on. The adoption
-page and the core README name it as optional. A live round trip against
-a local Schema Registry and Kafka is still separate from the offline
-checks above. Pilot demand is tracked in
+page and the core README name it as optional. A live test combining registry lookup with Kafka Produce and Fetch
+remains open. Pilot demand is tracked in
 [issue 85](https://github.com/mingley/partitionline/issues/85).

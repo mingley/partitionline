@@ -1,0 +1,101 @@
+name: Live Schema Registry
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - partitionline-schema/**
+      - .github/workflows/schema-registry-live.yml
+  pull_request:
+    paths:
+      - partitionline-schema/**
+      - .github/workflows/schema-registry-live.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  registry:
+    name: Redpanda registry (${{ matrix.features }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all-features]
+    env:
+      REGISTRY_IMAGE: docker.redpanda.com/redpandadata/redpanda:v26.2.2@sha256:a9dffb84f388a7a2d4ab1aaa541cd0b9a484f0f5c9b72cb54c551953352769ec
+      REGISTRY_CONTAINER: pl-schema-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.features }}
+      FEATURE_PROFILE: ${{ matrix.features }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install latest stable Rust
+        run: |
+          rustup update stable
+          rustc +stable --version --verbose
+          cargo +stable --version
+      - name: Build the live test
+        run: |
+          features=()
+          if [[ "$FEATURE_PROFILE" == all-features ]]; then
+            features+=(--all-features)
+          fi
+          cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml \
+            --test registry_live "${features[@]}" --no-run
+      - name: Start the registry and run the live test
+        run: |
+          test "$(uname -m)" = x86_64
+          docker pull --platform linux/amd64 "$REGISTRY_IMAGE"
+          docker image inspect --format '{{.Os}}/{{.Architecture}} {{json .RepoDigests}}' "$REGISTRY_IMAGE"
+          docker run --detach --name "$REGISTRY_CONTAINER" --pull never --platform linux/amd64 \
+            --publish 127.0.0.1::8081 "$REGISTRY_IMAGE" \
+            redpanda start --mode dev-container --smp 1 --memory 768M \
+            --schema-registry-addr 0.0.0.0:8081
+          image_id=$(docker image inspect --format '{{.Id}}' "$REGISTRY_IMAGE")
+          test "$image_id" = "$(docker container inspect --format '{{.Image}}' "$REGISTRY_CONTAINER")"
+          docker exec "$REGISTRY_CONTAINER" rpk version
+          binding=$(docker port "$REGISTRY_CONTAINER" 8081/tcp)
+          [[ "$binding" =~ ^127\.0\.0\.1:[0-9]+$ ]]
+          export PARTITIONLINE_REGISTRY_LIVE_URL="http://$binding"
+          ready=false
+          for attempt in {1..30}; do
+            if curl --disable --noproxy '*' --silent --fail --connect-timeout 1 --max-time 2 \
+              "$PARTITIONLINE_REGISTRY_LIVE_URL/subjects" >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != true ]]; then
+            echo "Schema Registry failed to become ready"
+            exit 1
+          fi
+          features=()
+          if [[ "$FEATURE_PROFILE" == all-features ]]; then
+            features+=(--all-features)
+          fi
+          timeout 30s cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml \
+            --test registry_live "${features[@]}" -- --ignored --exact lookup_and_cache_against_redpanda --nocapture
+      - name: Report registry startup and test diagnostics
+        if: failure()
+        run: |
+          if docker container inspect "$REGISTRY_CONTAINER" >/dev/null 2>&1; then
+            docker logs --tail 80 "$REGISTRY_CONTAINER"
+          fi
+      - name: Remove the registry and its volumes
+        if: always()
+        run: |
+          filter="name=^/$REGISTRY_CONTAINER$"
+          present=$(docker container ls --all --quiet --filter "$filter")
+          if [[ -n "$present" ]]; then
+            docker container rm --force --volumes "$REGISTRY_CONTAINER"
+          fi
+          remaining=$(docker container ls --all --quiet --filter "$filter")
+          test -z "$remaining"
+          echo "Registry container removed"
