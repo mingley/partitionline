@@ -9716,15 +9716,30 @@ async fn reserve_grouped_topic_counts(order: &[Arc<str>], buckets: &mut ProduceB
             pause_walk(&mut walked).await;
             continue;
         };
-        if groups.order.is_empty() {
-            pause_walk(&mut walked).await;
-        }
-        for (index, (partition, records)) in groups.order.iter_mut().enumerate() {
-            // The count pass adds each partition to its topic's order once.
-            let slot = groups.slots.entry(*partition).or_default();
-            reserve_len(records, *slot);
-            *slot = index;
-            pause_walk(&mut walked).await;
+        let mut partitions = groups.order.as_mut_slice();
+        let mut index = 0;
+        loop {
+            let len = (PRODUCE_GROUP_WALK_CHUNK - walked).min(partitions.len());
+            let (chunk, rest) = partitions.split_at_mut(len);
+            for (partition, records) in chunk {
+                // The count pass adds each partition to its topic's order once.
+                if let Some(slot) = groups.slots.get_mut(partition) {
+                    reserve_len(records, *slot);
+                    *slot = index;
+                } else {
+                    let _ = groups.slots.insert(*partition, index);
+                }
+                index += 1;
+            }
+            walked += len.max(1);
+            if walked == PRODUCE_GROUP_WALK_CHUNK {
+                walked = 0;
+                tokio::task::yield_now().await;
+            }
+            if rest.is_empty() {
+                break;
+            }
+            partitions = rest;
         }
     }
 }
