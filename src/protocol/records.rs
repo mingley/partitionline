@@ -2308,7 +2308,7 @@ fn lz4_decompress_reserve(src: &[u8], max_bytes: usize) -> Result<usize> {
 
 fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
     let reserve = lz4_decompress_reserve(src, max_bytes)?;
-    let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
+    let mut decoder = lz4_flex::frame::FrameDecoder::new(std::io::Cursor::new(src));
     read_bounded(&mut decoder, max_bytes, reserve)
 }
 
@@ -8432,6 +8432,36 @@ mod tests {
             !trunc_err.contains("Decompressed batch exceeds maximum allowable size"),
             "{trunc_err}"
         );
+    }
+
+    #[test]
+    fn lz4_cursor_preserves_limits_and_frame_boundary() {
+        use lz4_flex::frame::{BlockMode, BlockSize, FrameDecoder, FrameEncoder, FrameInfo};
+
+        let payload: Vec<u8> = (0..=u8::MAX).cycle().take(128 * 1024 + 173).collect();
+        let following = Compression::Lz4.codec_compress(b"next frame").unwrap();
+        for mode in [BlockMode::Independent, BlockMode::Linked] {
+            let info = FrameInfo::new()
+                .block_mode(mode)
+                .block_size(BlockSize::Max64KB)
+                .block_checksums(true)
+                .content_checksum(true);
+            let mut encoder = FrameEncoder::with_frame_info(info, Vec::new());
+            encoder.write_all(&payload).unwrap();
+            let mut frame = encoder.finish().unwrap();
+            assert_eq!(lz4_declared_size(&frame), None);
+            frame.extend_from_slice(&following);
+
+            let limit = payload.len();
+            let mut reader = FrameDecoder::new(frame.as_slice());
+            assert_eq!(read_bounded(&mut reader, limit, 0).unwrap(), payload);
+            assert_eq!(lz4_decompress(&frame, limit).unwrap(), payload);
+
+            let mut reader = FrameDecoder::new(frame.as_slice());
+            let actual = lz4_decompress(&frame, limit - 1).unwrap_err();
+            let expected = read_bounded(&mut reader, limit - 1, 0).unwrap_err();
+            assert_eq!(actual.to_string(), expected.to_string());
+        }
     }
 
     #[test]
