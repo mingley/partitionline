@@ -39,8 +39,12 @@ The [status page](../STATUS.md) records the source tested by each run.
 
 - Trusted HTTPS lookup and a live Avro Produce and Fetch round trip passed.
   [Round-trip check](../evidence/schema/registry-avro-roundtrip-20261119/README.md)
-- Qualify credentials, Kafka TLS and the remaining formats. Measure memory
-  and time for large synchronous JSON parses before publication.
+- Trusted HTTPS with HTTP Basic passed. The packaged crate builds and tests
+  with default, all and no default features.
+  [Basic auth](../evidence/schema/registry-basic-auth-20261119/README.md) ·
+  [Package](../evidence/schema/companion-package-20261119/README.md)
+- Qualify bearer tokens, credential rotation, Kafka TLS and the remaining
+  formats. Measure memory and time for large JSON parses before publication.
   [Companion guide](../schema-companion.md)
 
 ## Performance and release

@@ -91,14 +91,28 @@ jobs:
           fixture="$RUNNER_TEMP/$REGISTRY_CONTAINER"
           docker pull --platform linux/amd64 "$REGISTRY_IMAGE"
           docker image inspect --format '{{.Os}}/{{.Architecture}} {{json .RepoDigests}}' "$REGISTRY_IMAGE"
+          registry_user="pl-registry-$(openssl rand -hex 8)"
+          registry_password=$(openssl rand -hex 24)
+          printf '::add-mask::%s\n' "$registry_user" "$registry_password"
+          registry_netrc="$fixture/basic.netrc"
+          (
+            umask 077
+            printf 'machine localhost login %s password %s\n' "$registry_user" "$registry_password" > "$registry_netrc"
+          )
+          export RP_BOOTSTRAP_USER="$registry_user:$registry_password"
+          tls_files='"enabled":true,"cert_file":"/fixture/server.pem","key_file":"/fixture/server.key"'
+          registry_tls='schema_registry.schema_registry_api_tls=['
+          registry_tls+='{"name":"tls",'"$tls_files"'},{"name":"basic",'"$tls_files"'}]'
           docker run --detach --name "$REGISTRY_CONTAINER" --pull never --platform linux/amd64 \
-            --publish 127.0.0.1::8081 --publish 127.0.0.1::18443 --publish 127.0.0.1:9092:9092 \
+            --env RP_BOOTSTRAP_USER --publish 127.0.0.1::8081 --publish 127.0.0.1::18443 \
+            --publish 127.0.0.1::19443 --publish 127.0.0.1:9092:9092 \
             --mount "type=bind,source=$fixture/server.pem,target=/fixture/server.pem,readonly" \
             --mount "type=bind,source=$fixture/server.key,target=/fixture/server.key,readonly" \
             "$REGISTRY_IMAGE" redpanda start --mode dev-container --smp 1 --memory 768M \
             --kafka-addr 0.0.0.0:9092 --advertise-kafka-addr 127.0.0.1:9092 \
-            --schema-registry-addr 'plain://0.0.0.0:8081,tls://0.0.0.0:18443' \
-            --set 'schema_registry.schema_registry_api_tls=[{"name":"tls","enabled":true,"cert_file":"/fixture/server.pem","key_file":"/fixture/server.key"}]'
+            --schema-registry-addr 'plain://0.0.0.0:8081,tls://0.0.0.0:18443,basic://0.0.0.0:19443|http_basic' \
+            --set "$registry_tls"
+          unset RP_BOOTSTRAP_USER
           image_id=$(docker image inspect --format '{{.Id}}' "$REGISTRY_IMAGE")
           test "$image_id" = "$(docker container inspect --format '{{.Image}}' "$REGISTRY_CONTAINER")"
           docker exec "$REGISTRY_CONTAINER" rpk version
@@ -143,13 +157,23 @@ jobs:
             timeout 30s cargo +stable test --locked --manifest-path partitionline-schema/tests/live-kafka/Cargo.toml \
               --test avro_roundtrip -- --ignored --exact avro_produce_and_fetch_against_redpanda --nocapture
           fi
+          docker logs "$REGISTRY_CONTAINER" 2>&1 |
+            awk '/Started Schema Registry listening/ && /basic:.*port: 19443.*http_basic/ { print; found=1 } END { exit !found }'
+          binding=$(docker port "$REGISTRY_CONTAINER" 19443/tcp)
+          [[ "$binding" =~ ^127\.0\.0\.1:([0-9]+)$ ]]
+          PARTITIONLINE_REGISTRY_LIVE_URL="https://localhost:${BASH_REMATCH[1]}" \
+          PARTITIONLINE_REGISTRY_LIVE_NETRC="$registry_netrc" \
+          PARTITIONLINE_REGISTRY_LIVE_BASIC_USERNAME="$registry_user" \
+          PARTITIONLINE_REGISTRY_LIVE_BASIC_PASSWORD="$registry_password" \
+            timeout 30s cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml \
+              --test registry_live "${features[@]}" -- --ignored --exact lookup_with_basic_auth_over_tls_against_redpanda --nocapture
       - name: Report registry startup and test diagnostics
         if: failure()
         run: |
           if docker container inspect "$REGISTRY_CONTAINER" >/dev/null 2>&1; then
             docker logs --tail 80 "$REGISTRY_CONTAINER"
           fi
-      - name: Remove the registry, its volumes and test certificates
+      - name: Remove the registry, its volumes and test files
         if: always()
         run: |
           status=0
@@ -170,6 +194,6 @@ jobs:
           rm -rf -- "$RUNNER_TEMP/$REGISTRY_CONTAINER" || status=1
           test ! -e "$RUNNER_TEMP/$REGISTRY_CONTAINER" || status=1
           if [[ "$status" -eq 0 ]]; then
-            echo "Registry fixture container, volumes and test certificates removed"
+            echo "Registry fixture container, volumes and test files removed"
           fi
           exit "$status"

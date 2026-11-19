@@ -1,0 +1,62 @@
+{
+  "source_sha": "c95dbdd6bd58b8c35b252d55a710292671ab9b84",
+  "rustc": "1.100.0 (0ef1bc386 2026-11-09)",
+  "platform": "Linux x86_64",
+  "openssl": "3.0.13",
+  "peer": {
+    "name": "Redpanda",
+    "version": "26.2.2",
+    "digest": "sha256:a9dffb84f388a7a2d4ab1aaa541cd0b9a484f0f5c9b72cb54c551953352769ec",
+    "runtime_revision": "551a6866f4804ee5753e3ffb5953a3355733e78b",
+    "listener": "HTTPS with http_basic"
+  },
+  "results": [
+    {
+      "profile": "default",
+      "job": 135968444191,
+      "tests_and_doctests": 112,
+      "subject": "pl-live-basic",
+      "version": 1,
+      "id": 5,
+      "result": "pass"
+    },
+    {
+      "profile": "all-features",
+      "job": 135968443982,
+      "tests_and_doctests": 153,
+      "subject": "pl-live-basic",
+      "version": 1,
+      "id": 7,
+      "avro_roundtrip": "pass",
+      "result": "pass"
+    }
+  ],
+  "offline": {
+    "run": 44639591897,
+    "no_default_tests_and_doctests": 20,
+    "format": "pass",
+    "strict_clippy": "pass"
+  },
+  "failed_attempts": [
+    {
+      "run": 44639320886,
+      "stage": "rustfmt import wrap"
+    },
+    {
+      "run": 44639591865,
+      "stage": "rpk TLS listener argument parsing"
+    }
+  ],
+  "cleanup": [
+    "container",
+    "volumes",
+    "certificates",
+    "temporary credential file"
+  ],
+  "scope": [
+    "owned loopback",
+    "fresh synthetic HTTP Basic principal",
+    "trusted generated CA",
+    "by-ID and pinned-version lookup"
+  ]
+}

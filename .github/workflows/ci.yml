@@ -138,6 +138,8 @@ jobs:
           python3 tests/conformance/run-avro-selected-codec.py --rust-output target/avro-selected/all-features --peer-cache target/avro-peer-cache --report target/avro-selected/all-features-peer.json
           python3 tests/conformance/run-generic-schema-header.py --rust-output target/schema-header/all-features --report target/schema-header/all-features-peer.json
           timeout 30s python3 tests/conformance/run-json-schema-selected-codec.py --rust-output target/json-schema-selected/all-features --report target/json-schema-selected/all-features-peer.json
+      - name: Verify the Schema Registry companion archive
+        run: bash scripts/ci-schema-package.sh
       - name: Retain Rust output and peer receipts
         if: always()
         uses: actions/upload-artifact@v7
@@ -147,6 +149,7 @@ jobs:
             target/avro-selected
             target/schema-header
             target/json-schema-selected
+            target/schema-package
           if-no-files-found: error
           retention-days: 30
 

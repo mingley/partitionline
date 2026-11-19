@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-19",
+  "source": {
+    "baseline": "7ad99cc16b94be7ac67b478ef8006d2f7e86e254",
+    "candidate": "ba7c29bacce00e385f3e6c60a2c72a9b98b46336",
+    "baseline_records_blob": "bf77f06a753a9341d5f7528816b9f9891a526c4f",
+    "candidate_records_blob": "49c519e288f6274e9acab76270b411a2138ba9c7",
+    "timing_source_blob": "b8f01565bb8fd9318717e70796f7be77da93e52e",
+    "pairing_script_blob": "55e280f21999da020b5bc3fe5bd4c656f07aa614"
+  },
+  "tooling": {
+    "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+    "llvm": "23.1.5",
+    "cargo": "cargo 1.100.0 (3acc79c0c 2026-11-05)",
+    "callgrind": "3.26.0",
+    "iai_callgrind_runner": "0.14.2"
+  },
+  "timing_host": {
+    "image": "ubuntu26",
+    "image_version": "20261111.196.1",
+    "arch": "x86_64",
+    "pinned_cpu": 3,
+    "available_cpus": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "timing_binary_sha256": {
+    "baseline": "a59ece3606a86af78769b2728e12a7a91b48fb591fedc9dcfde26b5519d24a38",
+    "candidate": "dce3cbd5f3b270d8f91c1f795e9c3908ecb2b525efcdc52fe2d2fc63712f3478"
+  },
+  "jobs": {
+    "run": 44638806846,
+    "timing": 135964184246,
+    "correctness": 135964184177,
+    "allocations": 135964183309,
+    "instructions": 135964184232
+  },
+  "instruction_budget_percent": 1,
+  "observed_gate_verdict": "fail"
+}

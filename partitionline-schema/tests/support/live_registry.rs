@@ -81,6 +81,10 @@ impl RegistryFixture {
         } else {
             curl.args(["--proto", "=http"]);
         }
+        if let Some(netrc) = env::var_os("PARTITIONLINE_REGISTRY_LIVE_NETRC") {
+            self.assert_https();
+            curl.arg("--basic").arg("--netrc-file").arg(netrc);
+        }
         if let Some(body) = body {
             curl.args([
                 "--header",

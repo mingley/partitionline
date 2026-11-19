@@ -9,16 +9,13 @@ use selected_json_schema::{Failure, SelectedJsonSchema};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
-const WRITER: &str =
-    include_str!("../../tests/fixtures/json_schema_selected_codec/writer.schema.json");
-const READER: &str =
-    include_str!("../../tests/fixtures/json_schema_selected_codec/reader.schema.json");
-const INTEGER: &str =
-    include_str!("../../tests/fixtures/json_schema_selected_codec/integer.schema.json");
+const WRITER: &str = include_str!("fixtures/json_schema_selected_codec/writer.schema.json");
+const READER: &str = include_str!("fixtures/json_schema_selected_codec/reader.schema.json");
+const INTEGER: &str = include_str!("fixtures/json_schema_selected_codec/integer.schema.json");
 const WRITER_RECORD: &str =
-    include_str!("../../tests/fixtures/json_schema_selected_codec/writer-record.schema.json");
+    include_str!("fixtures/json_schema_selected_codec/writer-record.schema.json");
 const READER_RECORD: &str =
-    include_str!("../../tests/fixtures/json_schema_selected_codec/reader-record.schema.json");
+    include_str!("fixtures/json_schema_selected_codec/reader-record.schema.json");
 const REFERENCES: &[Reference<'_>] = &[Reference {
     uri: "urn:partitionline:selected-json:integer",
     dialect_uri: DIALECT_URI,
@@ -45,7 +42,7 @@ fn selected(
 fn read(name: &str) -> Vec<u8> {
     std::fs::read(
         Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../tests/fixtures/json_schema_selected_codec")
+            .join("tests/fixtures/json_schema_selected_codec")
             .join(name),
     )
     .unwrap()

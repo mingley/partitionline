@@ -3,14 +3,15 @@
 #[path = "support/live_registry.rs"]
 mod live_registry;
 
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use live_registry::{assert_avro, RegistryFixture};
 
 use partitionline_schema::registry::{
-    RegistryCacheConfig, RegistryClient, RegistryError, SchemaReference, SchemaVersion,
+    RegistryAuth, RegistryCacheConfig, RegistryClient, RegistryError, SchemaReference,
+    SchemaVersion,
 };
-use serde_json::json;
+use serde_json::{json, Value};
 
 const ADDRESS_SUBJECT: &str = "pl-live-address";
 const ORDER_SUBJECT: &str = "pl-live-order";
@@ -160,18 +161,55 @@ async fn lookup_over_tls_against_redpanda() {
     let id = fixture.register(SUBJECT, &expected, &[]);
     let client = RegistryClient::new(fixture.client_config().await).unwrap();
 
+    assert_registered_schema(&client, SUBJECT, id, &expected).await;
+    println!("Redpanda HTTPS registry verified localhost with the generated CA and schema id={id}, subject {SUBJECT} v1");
+}
+
+#[tokio::test]
+#[ignore = "requires the owned HTTPS Schema Registry Basic listener and synthetic credentials"]
+async fn lookup_with_basic_auth_over_tls_against_redpanda() {
+    const SUBJECT: &str = "pl-live-basic";
+
+    let fixture = RegistryFixture::from_env();
+    fixture.assert_https();
+    let username =
+        env::var("PARTITIONLINE_REGISTRY_LIVE_BASIC_USERNAME").expect("set the fixture username");
+    let password =
+        env::var("PARTITIONLINE_REGISTRY_LIVE_BASIC_PASSWORD").expect("set the fixture password");
+    let expected = json!({
+        "type": "record", "name": "AuthenticatedEvent",
+        "fields": [{"name": "id", "type": "long"}],
+    });
+    let id = fixture.register(SUBJECT, &expected, &[]);
+    let config = fixture
+        .client_config()
+        .await
+        .auth(RegistryAuth::basic(username, password));
+    let client = RegistryClient::new(config).unwrap();
+
+    assert_registered_schema(&client, SUBJECT, id, &expected).await;
+    println!(
+        "Redpanda HTTPS registry accepted Basic auth and returned schema id={id}, subject {SUBJECT} v1"
+    );
+}
+
+async fn assert_registered_schema(
+    client: &RegistryClient,
+    subject: &str,
+    id: u32,
+    expected: &Value,
+) {
     let version = client
-        .get_schema_by_subject(SUBJECT, SchemaVersion::Pinned(1))
+        .get_schema_by_subject(subject, SchemaVersion::Pinned(1))
         .await
         .unwrap();
-    assert_eq!(version.subject, SUBJECT);
+    assert_eq!(version.subject, subject);
     assert_eq!(version.version, 1);
     assert_eq!(version.id, id);
     assert!(version.references.is_empty());
-    assert_avro(&version.schema, version.schema_type.as_deref(), &expected);
+    assert_avro(&version.schema, version.schema_type.as_deref(), expected);
     let by_id = client.get_schema_by_id(id).await.unwrap();
     assert_eq!(by_id.id, id);
     assert!(by_id.references.is_empty());
-    assert_avro(&by_id.schema, by_id.schema_type.as_deref(), &expected);
-    println!("Redpanda HTTPS registry verified localhost with the generated CA and schema id={id}, subject {SUBJECT} v1");
+    assert_avro(&by_id.schema, by_id.schema_type.as_deref(), expected);
 }

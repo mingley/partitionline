@@ -1,0 +1,147 @@
+{
+  "profile": "selected-json-schema-draft202012-offline-v1",
+  "source_sha256": "8dc611c13d110b59bf57b5af1244dacafe2162e6bb8cb36725a2679bfaf10f9b",
+  "peer_versions": {
+    "jsonschema": "4.26.0",
+    "referencing": "0.37.0",
+    "rpds-py": "2026.6.3",
+    "attrs": "26.1.0",
+    "jsonschema-specifications": "2025.9.1"
+  },
+  "cases": [
+    {
+      "name": "null",
+      "valid": true,
+      "profile": "scalar"
+    },
+    {
+      "name": "zero",
+      "valid": true,
+      "profile": "scalar"
+    },
+    {
+      "name": "negative",
+      "valid": true,
+      "profile": "scalar"
+    },
+    {
+      "name": "min",
+      "valid": true,
+      "profile": "scalar"
+    },
+    {
+      "name": "max",
+      "valid": true,
+      "profile": "scalar"
+    },
+    {
+      "name": "decimal-integer",
+      "valid": true,
+      "profile": "scalar"
+    },
+    {
+      "name": "exponent-integer",
+      "valid": true,
+      "profile": "scalar"
+    },
+    {
+      "name": "fraction",
+      "valid": false,
+      "profile": "scalar"
+    },
+    {
+      "name": "string-number",
+      "valid": false,
+      "profile": "scalar"
+    },
+    {
+      "name": "boolean",
+      "valid": false,
+      "profile": "scalar"
+    },
+    {
+      "name": "above-max",
+      "valid": false,
+      "profile": "scalar"
+    },
+    {
+      "name": "below-min",
+      "valid": false,
+      "profile": "scalar"
+    },
+    {
+      "name": "object",
+      "valid": false,
+      "profile": "scalar"
+    },
+    {
+      "name": "array",
+      "valid": false,
+      "profile": "scalar"
+    },
+    {
+      "name": "invalid-json",
+      "valid": false,
+      "profile": "scalar"
+    },
+    {
+      "name": "trailing-document",
+      "valid": false,
+      "profile": "scalar"
+    },
+    {
+      "name": "record-missing-note",
+      "valid": true,
+      "profile": "record"
+    },
+    {
+      "name": "record-null-note",
+      "valid": true,
+      "profile": "record"
+    }
+  ],
+  "sha256": {
+    "above-max.frame.bin": "295b3d9124bc166b1680b248fc00ecfdcde31152f43a6e16e483b472c53b5c5f",
+    "above-max.payload.json": "39f8d58187887b481fe709f7b323f2b876d9f522e9f7afef815c2089084a36d7",
+    "array.frame.bin": "053a8cb612fefb101966b01a19e8f4dd12ada8732157f58da92d82803157313f",
+    "array.payload.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "below-min.frame.bin": "50e3cab332c4514a7835d7b6638d6d14c68988941de6974173111d8e3ca53dab",
+    "below-min.payload.json": "98743b2445a099b4dd30fcdf508687e1fdd556543dfd5a48dc9e64bcc146a299",
+    "boolean.frame.bin": "655b1ae1ef07a2144d10499c2c91fdc1308eff83c45b3213390a19f2f11d97ce",
+    "boolean.payload.json": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+    "decimal-integer.frame.bin": "ec35b1c2ff5b9f8d50bd1c3c03b86d8114620c83571c8f71f338229d264c8eac",
+    "decimal-integer.payload.json": "d0ff5974b6aa52cf562bea5921840c032a860a91a3512f7fe8f768f6bbe005f6",
+    "exponent-integer.frame.bin": "e1446da85e3ca3b53a222b80500d808162c3c36777999c36b193c5d9749807c2",
+    "exponent-integer.payload.json": "704a2369ce2da4371b814bc79e5d28ed1d43effb1f168655bd297eda01f1c315",
+    "fraction.frame.bin": "afc741c4cb18aeebee3181616c6f94c0d996b1439beb8a110937fd30a9aa8781",
+    "fraction.payload.json": "d2cbad71ff333de67d07ec676e352ab7f38248eb69c942950157220607c55e84",
+    "integer.schema.json": "6c1be468dff65fe63ad7c6e5dff6e9c06f1c61a08863f0c8b976f13714677e7e",
+    "invalid-json.frame.bin": "6a73593c64ba312751d821aab0126f069725c828c00da273406ef3c2b599e8fb",
+    "invalid-json.payload.json": "021fb596db81e6d02bf3d2586ee3981fe519f275c0ac9ca76bbcf2ebb4097d96",
+    "max.frame.bin": "5061096b22de85cf2ed4f52509c23517e50815021a52decc7ee9eeb6c731496e",
+    "max.payload.json": "972dcafa6fb4c2c88bce752fca4ab18c6bd88599330a4ad9813915b05bfbe76d",
+    "min.frame.bin": "36abe918101c368ccedbd95a91783e539996a2c04497d5a6015dca12cbf76073",
+    "min.payload.json": "56bb3b3a6aa1747def7c225256374c5e73f2fc46555adc47ea16e2d782159387",
+    "negative.frame.bin": "2f46e76141c5fe6f81a4a8df8276acf4b34302287119e212de63750396eed45d",
+    "negative.payload.json": "d3471dcc109cd382f5e09a64253c2219958b5f8f07371fba48ac81fed97bb18a",
+    "null.frame.bin": "39ffa00eb31c47ecb18aee684ace6b412a53b0350cecab2219beae5eb773a0fa",
+    "null.payload.json": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+    "object.frame.bin": "0f02e2d185c4c2f008019fd1ce236c7355dccf1ca8391ee79e7106213a683ed9",
+    "object.payload.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "reader-record.schema.json": "450f7c9699e0ade13e4e8b294ba88e0174bfbd522f9b6882163680bf7e9fb42c",
+    "reader.schema.json": "afa8139614ebdbb10859f7060d4804165e59ef4c4d6141aa639e39021d9c5ac9",
+    "record-missing-note.frame.bin": "16ce64a71eaf1054d2cc32f677fc916ad048bd69e71874d63e53eb1e18434789",
+    "record-missing-note.payload.json": "a3c90e3b7448d23d9eacebd0ebf15cae100e21f9b2c688f3f9d238edcd26d67f",
+    "record-null-note.frame.bin": "1c42050d17133e97b7206787affec1473f8912039cda38b44b2e71fba7b67469",
+    "record-null-note.payload.json": "766b546507e15ba4a6312a7ea0a08600c0470e836838c82760ccc16bb363b318",
+    "string-number.frame.bin": "9a56f30018a60d6c29e85690bdc2d9c094253990af8da187287e8a903bd4b063",
+    "string-number.payload.json": "3140d59420ca920c79fdef003360543c12b14da984f00f8665756e9da9c4b743",
+    "trailing-document.frame.bin": "0903fdaea1195e21c7c150706f4bec3b34cb1f5aabe13e4155daf0400c37e0bc",
+    "trailing-document.payload.json": "f71998fe363b9c29116c80b5eecf33a2fedca3b6159724384485804b71651029",
+    "writer-record.schema.json": "71f1b8ae8f7cb38f0ffb1dc2eef1bb5533ddecbf2ef0246d2cb8ac99b99dfeef",
+    "writer.schema.json": "1a4e1713a52371273adec654b636a71a913ad1f1ba926611c19dde969c6ae504",
+    "zero.frame.bin": "170aeb330520645c53d693a6d19ff0e41ebde6b29327881da90bf31764198a1c",
+    "zero.payload.json": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+  },
+  "network_retrieval": "explicitly denied"
+}

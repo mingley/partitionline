@@ -1,0 +1,91 @@
+{
+  "source_sha": "c9745f4ef3cb1da88982dc98080a0501abfd01b0",
+  "parent_inventory_sha": "7ad99cc16b94be7ac67b478ef8006d2f7e86e254",
+  "run": 44640185362,
+  "archive_job": 135968947878,
+  "parent_job": 135968947573,
+  "rustc": "1.100.0 (0ef1bc386 2026-11-09)",
+  "platform": "Linux x86_64",
+  "crate": "partitionline-schema",
+  "version": "0.0.0",
+  "publish": false,
+  "files": 229,
+  "archive_reported_kib": 139,
+  "profiles": [
+    {
+      "profile": "default",
+      "passed": 112,
+      "failed": 0,
+      "ignored": 2
+    },
+    {
+      "profile": "no-default",
+      "passed": 20,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "profile": "all",
+      "passed": 153,
+      "failed": 0,
+      "ignored": 2
+    }
+  ],
+  "contents": {
+    "spdx": "MIT OR Apache-2.0",
+    "notices": [
+      "LICENSE-APACHE",
+      "LICENSE-MIT",
+      "NOTICE"
+    ],
+    "local_doc_links": 5,
+    "pinned_repository_targets": 3,
+    "packaged_fixture_trees": [
+      {
+        "path": "partitionline-schema/tests/fixtures/generic_schema_header",
+        "sha": "06a80abd045ceb152bbca25331dcd78063dd4bb2"
+      },
+      {
+        "path": "partitionline-schema/tests/fixtures/avro_selected_codec",
+        "sha": "6ce07fba05c1869543fd6f5a1591f7f77a846464"
+      },
+      {
+        "path": "partitionline-schema/tests/fixtures/json_schema_selected_codec",
+        "sha": "111aa41d52842cca217e0dafbe970ea67fd73e03"
+      }
+    ],
+    "live_kafka_fixture_excluded": true
+  },
+  "prior_missing": [
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
+    "NOTICE"
+  ],
+  "failed_attempts": [
+    {
+      "run": 44639541106,
+      "stage": "temporary candidate workflow parse"
+    },
+    {
+      "run": 44639543218,
+      "stage": "extracted fixture lookup",
+      "failed_tests": 2
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 14586985007,
+      "name": "schema-archive-after",
+      "digest": "sha256:0fc5e6859680af0a853c487da3abcac3383cd7b37c943fd7ce41fe7993b3bb4c",
+      "size_in_bytes": 157215,
+      "expires_at": "2026-12-19T23:49:09Z"
+    },
+    {
+      "id": 14586172265,
+      "name": "schema-archive-before",
+      "digest": "sha256:be33e4fadec8acf31e4239c1bf664c04109611dd65713f5650c275ec15987947",
+      "size_in_bytes": 1783,
+      "expires_at": "2026-12-19T23:48:02Z"
+    }
+  ]
+}

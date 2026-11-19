@@ -147,6 +147,10 @@ over HTTPS, produces a framed record with `acks=all`, and fetches and
 decodes the stored value. The Kafka listener uses plaintext in this
 fixture. [Live CI](https://github.com/mingley/partitionline/actions/runs/44635876530)
 
+A dedicated HTTPS listener also verified HTTP Basic authentication with
+a fresh test credential. Both profiles looked up the same schema by ID
+and pinned subject version. [Basic auth check](https://github.com/mingley/partitionline/actions/runs/44640038645)
+
 ## What this crate is
 
 Confluent Avro, Protobuf, and JSON Schema framing stays out of the core
@@ -171,6 +175,6 @@ does not speak Kerberos to the registry. It is not a drop-in for
 The crate lives in this repository, is excluded from the core package,
 and is unpublished. It does not depend on librdkafka or OpenSSL. Ring's
 build needs a C compiler when the registry feature is on. The adoption
-page and the core README name it as optional. Live credential checks and a Kafka TLS round trip remain open.
+page and the core README name it as optional. Bearer tokens, credential rotation and a Kafka TLS round trip need live checks.
 Pilot demand is tracked in
 [issue 85](https://github.com/mingley/partitionline/issues/85).

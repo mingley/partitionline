@@ -43,20 +43,31 @@ over HTTPS, produced with `acks=all`, and fetched and decoded the exact
 frame through a plaintext Kafka listener.
 [Live Registry and Kafka](https://github.com/mingley/partitionline/blob/d5d9ff7065560cb8cab2f14d1b9b18190b3d6209/docs/evidence/schema/registry-avro-roundtrip-20261119/README.md)
 
+Both profiles also passed authenticated lookup using HTTP Basic over
+HTTPS. The companion archive passed 112 default, 20 no-default and 153
+all-feature checks, including doctests. The two live tests in that
+archive run were ignored and ran in the separate live workflow.
+[Basic auth](https://github.com/mingley/partitionline/actions/runs/44640038645) · [Companion package](https://github.com/mingley/partitionline/actions/runs/44640185362)
+
 ## Validation
 
-Docs, packaging and the finite resource soak passed at `b6d6d44`.
-Its x86_64 instruction gate measured 920,136 LZ4 decode instructions
-against 903,610 recorded, a 1.83% increase against a 1% limit. Four new
-LZ4 trials missed either the instruction or paired timing checks. The
-trial records retain the raw results.
-[CI](https://github.com/mingley/partitionline/actions/runs/44635563626) ·
-[Decoder trials](https://github.com/mingley/partitionline/blob/f91f62ed412ec94c102f5654b5b741e1987ee057/docs/evidence/client/lz4-read-dispatch-20261119/README.md)
+Client docs, packaging, release rehearsal and the finite resource soak
+passed on `7ad99cc`. The broker all-feature suite failed a Raft integration
+test on that commit.
+[Client CI](https://github.com/mingley/partitionline/actions/runs/44637814037) · [Broker CI](https://github.com/mingley/partitionline/actions/runs/44637814143)
+
+The x86_64 gate measured 920,136 LZ4 decode instructions against 903,610
+recorded, a 1.83% increase against a 1% limit. Five decoder trials missed
+the instruction or paired timing checks. The latest block-copy trial
+helped large random batches and slowed both text fixtures.
+[Instruction gate](https://github.com/mingley/partitionline/actions/runs/44637814037/job/135960955415) ·
+[Block-copy trial](https://github.com/mingley/partitionline/tree/97218bb737307b6a4752ab5a46c3afbe585d3091/docs/evidence/client/lz4-sync-block-copy-20261119)
+
 
 ## Release gates
 
 Open work includes broker replication, authenticated quotas and quota
-administration, live Registry credentials, 24-hour fault qualification
+administration, live bearer tokens and credential rotation, 24-hour fault qualification
 and seven-day continuity. All 12 required client peer cases are still
 `not_run`. Performance leadership requires matched x86_64 comparisons
 and independent record checks in a separate reproduction.

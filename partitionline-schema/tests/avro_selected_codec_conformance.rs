@@ -44,7 +44,7 @@ fn event_adapter(reader: &str) -> Adapter<SelectedAvro> {
 fn fixture(name: &str, suffix: &str) -> Vec<u8> {
     std::fs::read(
         Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../tests/fixtures/avro_selected_codec")
+            .join("tests/fixtures/avro_selected_codec")
             .join(format!("{name}.{suffix}")),
     )
     .unwrap()

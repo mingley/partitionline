@@ -1,0 +1,25 @@
+{
+  "profile": "generic-five-byte-header",
+  "wire_field": "unsigned32 big endian",
+  "java_source_sha256": "aeb35abe34e7a1c06fd968c2e862c33c2420cacc3869f5d1be7c8d31685ffb61",
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "valid_cases": 7,
+  "invalid_cases": 7,
+  "artifact_sha256": {
+    "bad-magic-1.bin": "3d459e0fcf22cfcd1d7eed46bcfa68193c009bec3d53cbe69e5997632ccf6f54",
+    "bad-magic-255.bin": "9934195185201cce61d583085da1731757f21325f7de691a4a2d9025a4946cb6",
+    "byte-order.bin": "d231291989bb11a246ebcdd7d978aee4d699b20a40cf82b60aece4f925e4f81e",
+    "empty-max.bin": "4447853d37cddbb1a43a0417efa55ed6929efbd26a954eb6b94ef1216e564fa1",
+    "empty-zero.bin": "8855508aade16ec573d21e6a485dfd0a7624085c1a14b5ecdd6485de0c6839a4",
+    "max-payload.bin": "ed1e9c297f90ed0c0ffa823e0106e0de48cefc7c68feefc44fb36e9d1450a701",
+    "negative-dispositions.tsv": "278d0d3e3f94d89200ee8cb0007ceed0ba952a13fe556b205d7167655aa56bd1",
+    "one.bin": "588611f65741c171a3d92c1d5343f5dd67f4fc472fc56f01c9bc568f5ac2a623",
+    "signed-max.bin": "317b5ce99b97e09aae11930fbb546da7bd9602b6a56cddd05a1390902a59f058",
+    "truncated-0.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "truncated-1.bin": "a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89",
+    "truncated-2.bin": "ea5dbf9596d187e9500f23e9a680109475341cf4e81f7e043f7d97152c10772f",
+    "truncated-3.bin": "7fa54a42524916a1648ec76ce75d295024840b7a3a4f4bbaf3e43155d0014767",
+    "truncated-4.bin": "81ff65efc4487853bdb4625559e69ab44f19e0f5efbd6d5b2af5e3ab267c8e06",
+    "unsigned-high.bin": "2eefc4836e70fa2986d85ba6d32357714661658994580f6300bb65e3b396a4b5"
+  }
+}
