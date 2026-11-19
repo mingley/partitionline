@@ -9742,9 +9742,11 @@ async fn reserve_grouped_topic_counts(
     }
 }
 
+const PRODUCE_GROUP_WALK_CHUNK: usize = 8 * 1024;
+
 async fn pause_walk(walked: &mut usize) {
     *walked = walked.saturating_add(1);
-    if *walked == 8 * 1024 {
+    if *walked == PRODUCE_GROUP_WALK_CHUNK {
         *walked = 0;
         tokio::task::yield_now().await;
     }
@@ -9783,23 +9785,39 @@ async fn group_pending(
             .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
         (topic0, part0)
     };
-    scratch.grouping_input = batch.into();
-    let same_topic =
-        |topic: &Arc<str>| Arc::ptr_eq(topic, &topic0) || topic.as_ref() == topic0.as_ref();
-    // One pass classifies the batch. A second topic stops the scan; a single
-    // topic does not walk the records again just to learn that.
+    let same_topic = |pending: &Pending, one_partition: &mut bool| {
+        *one_partition &= pending.rec.partition == Some(part0);
+        let topic = &pending.rec.topic;
+        Arc::ptr_eq(topic, &topic0) || topic.as_ref() == topic0.as_ref()
+    };
+    // Classify the first bounded slice with the original allocation. A second
+    // topic stops the walk, and a small homogeneous batch returns directly.
     let mut one_partition = true;
-    let mut one_topic = true;
-    let mut walked = 0usize;
-    for pending in scratch.grouping_input.iter().skip(1) {
-        if pending.rec.partition != Some(part0) {
-            one_partition = false;
+    let mut one_topic = batch
+        .iter()
+        .skip(1)
+        .take(PRODUCE_GROUP_WALK_CHUNK)
+        .all(|pending| same_topic(pending, &mut one_partition));
+    let needs_pause = batch.len() > PRODUCE_GROUP_WALK_CHUNK;
+    if !needs_pause && one_topic && one_partition {
+        return (ProduceGroups::One((topic0, part0, batch)), Vec::new());
+    }
+
+    scratch.grouping_input = batch.into();
+    if needs_pause && one_topic {
+        tokio::task::yield_now().await;
+        let mut walked = 0usize;
+        for pending in scratch
+            .grouping_input
+            .iter()
+            .skip(PRODUCE_GROUP_WALK_CHUNK + 1)
+        {
+            if !same_topic(pending, &mut one_partition) {
+                one_topic = false;
+                break;
+            }
+            pause_walk(&mut walked).await;
         }
-        if !same_topic(&pending.rec.topic) {
-            one_topic = false;
-            break;
-        }
-        pause_walk(&mut walked).await;
     }
     if one_partition && one_topic {
         let batch = std::mem::take(&mut scratch.grouping_input).into();
