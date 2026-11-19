@@ -1,0 +1,27 @@
+name: Benchmark artifact verification qualification
+on:
+  workflow_dispatch:
+  push:
+    branches: ['qualification/benchmark-artifacts-nov19']
+permissions:
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install the report validator dependencies
+        run: python3 -m pip install -r benchmarks/requirements.txt
+      - name: Record exact source
+        run: |
+          git rev-parse HEAD
+          git diff --check HEAD^ HEAD
+          python3 --version
+      - name: Run the report tests
+        run: python3 -B -m unittest discover -s benchmarks/tests -p test_report.py -v

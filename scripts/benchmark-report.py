@@ -21,11 +21,13 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime
+import hashlib
 import json
 import math
 import os
 from pathlib import Path
 import re
+import stat
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -130,6 +132,60 @@ def has_type_error(errors: List[Any]) -> bool:
             return True
         pending.extend(error.context)
     return False
+
+
+def verify_local_artifacts(artifacts: List[Dict[str, Any]], root: Path) -> Tuple[int, List[str]]:
+    """Verify artifact entries against files in a local bundle."""
+    try:
+        root = root.resolve(strict=True)
+        if not root.is_dir():
+            return 0, ["Artifact root must be an existing directory."]
+    except (OSError, RuntimeError, ValueError):
+        return 0, ["Artifact root must be an accessible directory."]
+
+    verified, errors = 0, []
+    for index, artifact in enumerate(artifacts):
+        reference = artifact["path"]
+        expected_size = artifact["size_bytes"]
+        expected_hash = artifact["sha256"]
+        if not isinstance(reference, str) or type(expected_size) is not int or not isinstance(expected_hash, str):
+            errors.append(f"Artifact #{index} requires a path, integer size and SHA-256 string.")
+            continue
+        label = f"Artifact #{index} {reference!r}"
+        try:
+            path = (root / reference).resolve(strict=True)
+            if not path.is_relative_to(root):
+                errors.append(f"{label} resolves outside the artifact root.")
+                continue
+            if not path.is_file():
+                errors.append(f"{label} must be a regular file.")
+                continue
+            with path.open("rb") as source:
+                info = os.fstat(source.fileno())
+                if not stat.S_ISREG(info.st_mode):
+                    errors.append(f"{label} must be a regular file.")
+                    continue
+                if info.st_size != expected_size:
+                    errors.append(f"{label} has {info.st_size} bytes, expected {expected_size}.")
+                    continue
+                digest = hashlib.sha256()
+                size = 0
+                for block in iter(lambda: source.read(1024 * 1024), b""):
+                    size += len(block)
+                    if size > expected_size:
+                        break
+                    digest.update(block)
+            if size != expected_size:
+                errors.append(f"{label} changed size during verification.")
+            elif digest.hexdigest() != expected_hash.strip().lower():
+                errors.append(f"{label} has a SHA-256 mismatch.")
+            else:
+                verified += 1
+        except FileNotFoundError:
+            errors.append(f"{label} is missing from the bundle.")
+        except (OSError, RuntimeError, ValueError):
+            errors.append(f"{label} could not be read from the bundle.")
+    return verified, errors
 
 
 class BenchmarkValidator:
@@ -854,7 +910,8 @@ class BenchmarkValidator:
 
 def format_report_summary(
     data: Dict[str, Any], errors: List[str],
-    schema_path: Optional[Path] = None, canonical_checked: bool = True
+    schema_path: Optional[Path] = None, canonical_checked: bool = True,
+    artifact_check: Optional[Tuple[str, int]] = None,
 ) -> str:
     """Format a report, identifying when an alternate schema was selected."""
     lines = []
@@ -865,6 +922,9 @@ def format_report_summary(
         lines.append(f"Schema: {schema_path}")
     if not canonical_checked:
         lines.append("Canonical repository schema was not checked.")
+    if artifact_check is not None:
+        status, verified = artifact_check
+        lines.append(f"Artifact checks {status} ({verified} entries verified).")
     # Invalid input need not have the types that the detailed report expects.
     if errors:
         lines.append(f"VALIDATION FAILED ({len(errors)} error(s)):")
@@ -982,6 +1042,12 @@ def main() -> int:
         help="Fail closed if any prior attempt failed or recorded an integrity failure (no rerun erasure)",
     )
     parser.add_argument(
+        "--artifact-root",
+        type=Path,
+        metavar="DIR",
+        help="Check declared artifact byte lengths and SHA-256 under DIR. Resolve relative paths from DIR.",
+    )
+    parser.add_argument(
         "--json",
         dest="json_output",
         action="store_true",
@@ -1019,6 +1085,14 @@ def main() -> int:
         return 2
     is_valid, errors, summary = validator.validate(data, require_clean=args.require_clean)
     canonical_checked = validator.schema_path.resolve() == canonical_schema.resolve()
+    artifact_check = None
+    if args.artifact_root is not None:
+        artifact_check = ("skipped", 0)
+        if is_valid:
+            verified, artifact_errors = verify_local_artifacts(data["provenance"]["artifacts"], args.artifact_root)
+            errors.extend(artifact_errors)
+            is_valid = not artifact_errors
+            artifact_check = ("passed" if is_valid else "failed", verified)
 
     if args.json_output:
         out_doc = {
@@ -1028,10 +1102,13 @@ def main() -> int:
             "errors": errors,
             "summary": summary,
         }
+        if artifact_check is not None:
+            status, verified = artifact_check
+            out_doc["artifact_verification"] = {"status": status, "verified_entries": verified}
         print(json.dumps(out_doc, indent=2))
     elif not args.quiet:
         try:
-            print(format_report_summary(data, errors, validator.schema_path, canonical_checked))
+            print(format_report_summary(data, errors, validator.schema_path, canonical_checked, artifact_check))
         except Exception as error:
             sys.stderr.write(f"Error: could not format validation report ({type(error).__name__})\n")
             return 1

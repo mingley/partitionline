@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -596,6 +597,7 @@ class BenchmarkReportValidationTests(unittest.TestCase):
             doc = json.loads(res_json.stdout)
             self.assertTrue(doc["valid"])
             self.assertEqual(doc["error_count"], 0)
+            self.assertNotIn("artifact_verification", doc)
             self.assertTrue(doc["schema"]["canonical_checked"])
             self.assertEqual(Path(doc["schema"]["path"]).resolve(), self.schema_path.resolve())
 
@@ -627,6 +629,86 @@ class BenchmarkReportValidationTests(unittest.TestCase):
                 Path(invalid_file).unlink(missing_ok=True)
         finally:
             Path(valid_file).unlink(missing_ok=True)
+
+
+class LocalArtifactVerificationTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.bundle = Path(temp.name) / "bundle"
+        self.bundle.mkdir()
+        self.result = self.bundle / "result.json"
+        self.fixture = build_valid_fixture()
+        self.artifacts = []
+        self.fixture["provenance"]["artifacts"] = self.artifacts
+
+    def add_artifact(self, reference, content):
+        path = self.bundle / reference
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+        self.artifacts.append({
+            "path": str(reference),
+            "type": "raw_events",
+            "sha256": hashlib.sha256(content).hexdigest(),
+            "size_bytes": len(content),
+        })
+        return path
+
+    def run_report(self, *args):
+        self.result.write_text(json.dumps(self.fixture), encoding="utf-8")
+        return subprocess.run(
+            [sys.executable, str(SCRIPT_PATH), str(self.result), "--artifact-root", str(self.bundle), *args],
+            capture_output=True, text=True, timeout=20,
+        )
+
+    def test_matching_relative_and_absolute_artifacts(self):
+        self.add_artifact("raw/events.bin", b"x" * (1024 * 1024) + b"tail")
+        self.add_artifact(self.bundle / "empty.txt", b"")
+        self.artifacts[1]["sha256"] = self.artifacts[1]["sha256"].upper()
+        result = self.run_report("--json")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        doc = json.loads(result.stdout)
+        self.assertEqual(doc["artifact_verification"], {"status": "passed", "verified_entries": 2})
+        self.assertTrue(doc["valid"])
+        self.assertEqual(doc["summary"]["suite_hold"], "active")
+
+        human = self.run_report()
+        self.assertEqual(human.returncode, 0, human.stdout + human.stderr)
+        self.assertIn("Artifact checks passed (2 entries verified).", human.stdout)
+
+    def test_wrong_size_wrong_hash_and_missing_file(self):
+        self.add_artifact("length.txt", b"small").write_bytes(b"longer")
+        self.add_artifact("hash.txt", b"original").write_bytes(b"modified")
+        self.add_artifact("missing.txt", b"missing").unlink()
+        result = self.run_report("--json")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        doc = json.loads(result.stdout)
+        self.assertFalse(doc["valid"])
+        self.assertEqual(doc["artifact_verification"], {"status": "failed", "verified_entries": 0})
+        self.assertEqual(len(doc["errors"]), 3)
+        self.assertIn("has 6 bytes, expected 5", doc["errors"][0])
+        self.assertIn("SHA-256 mismatch", doc["errors"][1])
+        self.assertIn("missing from the bundle", doc["errors"][2])
+
+    def test_directory_and_outside_paths(self):
+        path = self.add_artifact("raw", b"")
+        path.unlink()
+        path.mkdir()
+        self.add_artifact("../outside.txt", b"ordinary sibling file")
+        result = self.run_report()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("Artifact checks failed (0 entries verified).", result.stdout)
+        self.assertIn("must be a regular file", result.stdout)
+        self.assertIn("resolves outside the artifact root", result.stdout)
+
+    def test_invalid_result_skips_file_checks(self):
+        self.add_artifact("missing.txt", b"missing").unlink()
+        self.fixture["suite_hold"]["status"] = "lifted"
+        result = self.run_report("--json")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        doc = json.loads(result.stdout)
+        self.assertEqual(doc["artifact_verification"], {"status": "skipped", "verified_entries": 0})
+        self.assertFalse(any("missing from the bundle" in error for error in doc["errors"]))
 
 
 class ZstdComparisonContract(unittest.TestCase):
