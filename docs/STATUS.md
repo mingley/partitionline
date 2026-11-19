@@ -41,10 +41,11 @@ The 0.2.0 release came from its own tag.
   had lower median grouping time, with a 49.44% reduction for a 64-record
   single-partition batch and one slower individual pair.
   [Producer checks](https://github.com/mingley/partitionline/blob/4ba4341da14d173382d81a71775927ce94966c4e/docs/evidence/client/producer-small-group-20261119/README.md)
-- A wide mixed-topic reservation can process every partition in one poll.
-  Two bounded variants passed deterministic yield checks and slowed some
-  smaller mixed batches. Both are retained as trials.
-  [Reservation trials](https://github.com/mingley/partitionline/blob/4b1040ddbfcc2bf0a493e37100feabc9939e0387/docs/evidence/client/producer-group-reservation-20261119/chunked.md)
+- Mixed-topic reservations now yield after at most 8,192 partition visits.
+  The deterministic checks confirmed the wide-topic yield. The selected
+  change improved median wide grouping by 3.51%. The one-record sample
+  median increased by 0.94 ns. The paired results retain every shape.
+  [Reservation results](https://github.com/mingley/partitionline/blob/72ffaeb7b484abe272ba512ef4b396c9c315a986/docs/evidence/client/producer-group-reservation-20261119/slot-replacement.md)
 - Five Apache Kafka SDKs checked 280 selected ListOffsets request/response
   pairs in each direction, including the v10 timeout field. The retained
   corpus passed in the checkout and the packaged crate.
@@ -73,7 +74,7 @@ still has an RF1 data path. Partition replication, native KRaft, transaction
 markers, Kafka wire quotas and process-wide bounds are open. The Schema
 Registry companion still needs live TLS and a Kafka round trip. The 24-hour
 fault and seven-day continuity campaigns are open.
-[Support matrix](support.md) · [Work plan](https://github.com/mingley/partitionline/blob/4b1040ddbfcc2bf0a493e37100feabc9939e0387/docs/plan/next-work.md)
+[Support matrix](support.md) · [Work plan](https://github.com/mingley/partitionline/blob/72ffaeb7b484abe272ba512ef4b396c9c315a986/docs/plan/next-work.md)
 
 All 12 required client comparison cases remain `not_run` in the scenario
 registry. Controlled x86_64 client and broker comparisons and a separate
