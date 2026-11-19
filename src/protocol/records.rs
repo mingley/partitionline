@@ -8501,13 +8501,11 @@ mod tests {
             assert_eq!(lz4_decompress(&frame, limit).unwrap(), payload);
 
             let mut pending = std::pin::pin!(lz4_decompress_cooperative(&frame, limit));
-            assert!(
-                std::future::Future::poll(
-                    pending.as_mut(),
-                    &mut std::task::Context::from_waker(std::task::Waker::noop()),
-                )
-                .is_pending()
-            );
+            assert!(std::future::Future::poll(
+                pending.as_mut(),
+                &mut std::task::Context::from_waker(std::task::Waker::noop()),
+            )
+            .is_pending());
             assert_eq!(pending.await.unwrap(), payload);
 
             let error = lz4_decompress(&frame, limit - 1).unwrap_err().to_string();
