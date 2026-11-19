@@ -46,9 +46,13 @@ The 0.2.0 release was built separately from tag `v0.2.0`. See the
   cover selected v4, v6, v7 and v12 wire bodies. The new [ListOffsets fixtures](https://github.com/mingley/partitionline/blob/cb5bbece36d085de82d1ea856889a662c4aafe63/docs/evidence/conformance/q-conf-listoffsetswire/README.md)
   cover selected v1–v11 bodies in both directions with five Apache SDKs.
   See the [support matrix](support.md) and [protocol gaps](gaps.md).
-- **Broker.** The server has an RF1 data path and a separate metadata quorum.
+- **Broker.** Flat-journal Produce now reuses sync workers. Three paired x86_64
+  workloads with multiple partitions improved 25.79–31.49% in median
+  throughput. The one-partition result was inconclusive. Both builds verified
+  122,496 records across graceful restarts. RF1 remains the data path.
   Partition replication, native KRaft, transaction marker propagation,
   Kafka wire quotas and a process-wide memory bound remain open.
+  [Sync worker evidence](https://github.com/mingley/partitionline/blob/3a2e48fc6a5a727b5b8a56deea4d32c11ef23d60/docs/evidence/broker/reusable-sync-20261119/README.md)
 - **Schema Registry.** The companion has passed mock and codec checks.
   Live Registry interoperability and resource limits for synchronous JSON
   parsing still need qualification. See the [companion guide](schema-companion.md).
@@ -56,6 +60,6 @@ The 0.2.0 release was built separately from tag `v0.2.0`. See the
   campaigns are open. Matched x86_64 comparisons with independent record
   verification are still needed. See the [benchmark contract](benchmark-contract.md).
 
-The [work plan](https://github.com/mingley/partitionline/blob/cb5bbece36d085de82d1ea856889a662c4aafe63/docs/plan/next-work.md)
+The [work plan](https://github.com/mingley/partitionline/blob/3a2e48fc6a5a727b5b8a56deea4d32c11ef23d60/docs/plan/next-work.md)
 tracks the remaining work. The [previous status](https://github.com/mingley/partitionline/blob/753a35b19cebad4155d37938a14eee219193d581/docs/STATUS.md)
 preserves detailed experiment records, earlier CI failures and stopped investigations.
