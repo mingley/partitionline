@@ -2306,9 +2306,43 @@ fn lz4_decompress_reserve(src: &[u8], max_bytes: usize) -> Result<usize> {
     Ok(reserve)
 }
 
+const LZ4_BLOCK_COPY_THRESHOLD: usize = 4 * 64 * 1024;
+
+fn lz4_decompress_blocks(src: &[u8], max_bytes: usize, reserve: usize) -> Result<Vec<u8>> {
+    use std::io::BufRead;
+
+    let mut out = Vec::new();
+    out.try_reserve(reserve.min(max_bytes))
+        .map_err(|_| Error::protocol("decompressed batch reserve"))?;
+    let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
+    loop {
+        let block = decoder
+            .fill_buf()
+            .map_err(|e| Error::protocol(e.to_string()))?;
+        let len = block.len();
+        if len == 0 {
+            break;
+        }
+        if len > max_bytes.saturating_sub(out.len()) {
+            return Err(Error::protocol(
+                "Decompressed batch exceeds maximum allowable size",
+            ));
+        }
+        out.extend_from_slice(block);
+        decoder.consume(len);
+    }
+    Ok(out)
+}
+
+#[inline(never)]
 fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
     let reserve = lz4_decompress_reserve(src, max_bytes)?;
-    let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
+    // Above four usual 64 KiB Kafka blocks of frame input, copy the output
+    // directly from the decoder to keep large reads out of the stack buffer.
+    if src.len() >= LZ4_BLOCK_COPY_THRESHOLD {
+        return lz4_decompress_blocks(src, max_bytes, reserve);
+    }
+    let mut decoder = lz4_flex::frame::FrameDecoder::new(std::io::Cursor::new(src));
     read_bounded(&mut decoder, max_bytes, reserve)
 }
 
@@ -8432,6 +8466,48 @@ mod tests {
             !trunc_err.contains("Decompressed batch exceeds maximum allowable size"),
             "{trunc_err}"
         );
+    }
+
+    #[test]
+    fn lz4_decode_paths_preserve_limits_and_frame_boundary() {
+        use lz4_flex::frame::{BlockMode, BlockSize, FrameDecoder, FrameEncoder, FrameInfo};
+
+        let small: Vec<u8> = (0..=u8::MAX).cycle().take(128 * 1024 + 173).collect();
+        let mut state = 0x1234_5678u32;
+        let large: Vec<u8> = (0..320 * 1024)
+            .map(|_| {
+                state ^= state << 13;
+                state ^= state >> 17;
+                state ^= state << 5;
+                state.to_le_bytes()[0]
+            })
+            .collect();
+        let following = Compression::Lz4.codec_compress(b"next frame").unwrap();
+        for (payload, use_blocks) in [(small, false), (large, true)] {
+            for mode in [BlockMode::Independent, BlockMode::Linked] {
+                let info = FrameInfo::new()
+                    .block_mode(mode)
+                    .block_size(BlockSize::Max64KB)
+                    .block_checksums(true)
+                    .content_checksum(true);
+                let mut encoder = FrameEncoder::with_frame_info(info, Vec::new());
+                encoder.write_all(&payload).unwrap();
+                let mut frame = encoder.finish().unwrap();
+                assert_eq!(lz4_declared_size(&frame), None);
+                frame.extend_from_slice(&following);
+                assert_eq!(frame.len() >= LZ4_BLOCK_COPY_THRESHOLD, use_blocks);
+
+                let limit = payload.len();
+                let mut reader = FrameDecoder::new(frame.as_slice());
+                assert_eq!(read_bounded(&mut reader, limit, 0).unwrap(), payload);
+                assert_eq!(lz4_decompress(&frame, limit).unwrap(), payload);
+
+                let mut reader = FrameDecoder::new(frame.as_slice());
+                let actual = lz4_decompress(&frame, limit - 1).unwrap_err();
+                let expected = read_bounded(&mut reader, limit - 1, 0).unwrap_err();
+                assert_eq!(actual.to_string(), expected.to_string());
+            }
+        }
     }
 
     #[test]
