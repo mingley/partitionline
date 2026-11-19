@@ -12,6 +12,8 @@
 //! logs remain bounded history; recreating a name never exposes old data. Configured
 //! paths and cross-process exclusivity remain trusted operator responsibilities.
 
+mod sync;
+
 use crate::{
     batch,
     catalog::{Catalog, TopicId},
@@ -64,8 +66,10 @@ pub struct Config {
     /// can group up to eight requests before syncing.
     pub max_partitions: usize,
     /// Concurrent partition fsync operations per actor, including the actor.
-    /// Valid values are 1..=64; the default is 4. This does not limit the
-    /// number of retained staged sync descriptors.
+    /// Valid values are 1..=64. The default is 4.
+    /// Flat storage starts helpers as needed and joins them at actor shutdown.
+    /// Each helper starts with a requested 256 KiB stack. Staged sync
+    /// descriptors have a separate limit.
     pub max_sync_concurrency: usize,
     /// Aggregate owned normalized batches retained before append, at most64MiB.
     pub max_normalized_bytes: usize,
@@ -254,6 +258,8 @@ fn open_partition(path: &Path, config: &Config) -> Result<partition::Partition, 
     }
 }
 pub(crate) struct Store {
+    // Join helpers before dropping the open logs, including on actor unwind.
+    sync_workers: sync::Pool<journal::SyncFile>,
     config: Config,
     slots: Vec<Slot>,
     /// Open log position in `slots`, keyed by topic identity and partition.
@@ -342,6 +348,7 @@ impl Store {
             });
         }
         Ok(Self {
+            sync_workers: sync::Pool::new(journal::SyncFile::sync_data),
             config,
             slots,
             located,
@@ -1454,7 +1461,7 @@ struct PendingSync {
     part_at: usize,
     id: TopicId,
     index: i32,
-    file: journal::SyncFile,
+    file: Option<journal::SyncFile>,
     batch_count: usize,
     failed: bool,
     /// Log start read while the partition was staged. `None` means the log
@@ -1484,67 +1491,15 @@ fn reserve_count<T>(items: &mut Vec<T>, count: usize) {
     }
 }
 
-// The storage actor participates in each wave. At most the configured limit
-// minus one additional OS threads exist per actor.
-// Treat both an I/O failure and an unwinding sync implementation as failure.
-// The real implementation is File::sync_data; the injected operation lets tests
-// exercise the same handling without depending on a failing filesystem.
-fn run_sync<T>(item: &T, sync: &(impl Fn(&T) -> std::io::Result<()> + Sync)) -> bool {
-    !matches!(
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| sync(item))),
-        Ok(Ok(()))
-    )
-}
-
-// All children are joined before this function returns. A spawn refusal falls
-// back to an inline sync. `allow_spawn` makes this path testable without
-// exhausting the operating system's thread limit.
-fn sync_wave<T: Sync>(
-    items: &[T],
-    sync: &(impl Fn(&T) -> std::io::Result<()> + Sync),
-    allow_spawn: &(impl Fn(usize) -> bool + Sync),
-) -> [bool; MAX_SYNC_CONCURRENCY] {
-    let mut failed = [true; MAX_SYNC_CONCURRENCY];
-    if let [first] = items {
-        failed[0] = run_sync(first, sync);
-        return failed;
-    }
-    std::thread::scope(|scope| {
-        let mut handles = std::array::from_fn::<_, { MAX_SYNC_CONCURRENCY - 1 }, _>(|_| None);
-        for (index, item) in items.iter().enumerate().take(MAX_SYNC_CONCURRENCY).skip(1) {
-            let spawned = if allow_spawn(index) {
-                std::thread::Builder::new()
-                    .spawn_scoped(scope, move || run_sync(item, sync))
-                    .ok()
-            } else {
-                None
-            };
-            if let Some(handle) = spawned {
-                if let Some(slot) = handles.get_mut(index - 1) {
-                    *slot = Some(handle);
-                } else {
-                    // Keep a child joined if the fixed-wave invariant changes.
-                    let _joined = handle.join();
-                }
-            } else {
-                failed[index] = run_sync(item, sync);
-            }
-        }
-        if let Some(first) = items.first() {
-            failed[0] = run_sync(first, sync);
-        }
-        for (index, handle) in handles.into_iter().enumerate() {
-            if let Some(handle) = handle {
-                failed[index + 1] = !matches!(handle.join(), Ok(false));
-            }
-        }
-    });
-    failed
-}
-
-fn sync_staged(items: &mut [PendingSync], concurrency: usize) {
-    for wave in items.chunks_mut(concurrency) {
-        let failed = sync_wave(wave, &|item| item.file.sync_data(), &|_| true);
+fn sync_staged(store: &mut Store, items: &mut [PendingSync]) {
+    for wave in items.chunks_mut(store.config.max_sync_concurrency) {
+        let width = wave.len();
+        let failed = store.sync_workers.wave(
+            wave,
+            width,
+            |wave, index| wave.get_mut(index).map(|pending| &mut pending.file),
+            |_| true,
+        );
         for (item, failed) in wave.iter_mut().zip(failed) {
             item.failed |= failed;
         }
@@ -1681,14 +1636,28 @@ fn latest_sync_slots(
 }
 
 fn sync_partition_once(store: &mut Store, captured: &mut [Option<CapturedProduce>]) {
-    sync_partition_once_with(store, captured, &|sync| sync.file.sync_data(), &|_| true);
+    sync_partition_once_with(store, captured, |workers, captured, wave| {
+        workers.wave(
+            captured,
+            wave.len(),
+            |captured, index| {
+                let &(state, local) = wave.get(index)?;
+                let pending = captured.get_mut(state)?.as_mut()?.pending_sync.get_mut(local)?;
+                Some(&mut pending.file)
+            },
+            |_| true,
+        )
+    });
 }
 
 fn sync_partition_once_with(
     store: &mut Store,
     captured: &mut [Option<CapturedProduce>],
-    sync: &(impl Fn(&PendingSync) -> std::io::Result<()> + Sync),
-    allow_spawn: &(impl Fn(usize) -> bool + Sync),
+    mut sync_wave: impl FnMut(
+        &mut sync::Pool<journal::SyncFile>,
+        &mut [Option<CapturedProduce>],
+        &[(usize, usize)],
+    ) -> [bool; MAX_SYNC_CONCURRENCY],
 ) {
     let mut reps = std::mem::take(&mut store.sync_reps);
     let mut slots = std::mem::take(&mut store.sync_slots);
@@ -1698,18 +1667,7 @@ fn sync_partition_once_with(
     failures.resize(reps.len(), 1);
     let concurrency = store.config.max_sync_concurrency;
     for (wave_index, wave) in reps.chunks(concurrency).enumerate() {
-        let failed = sync_wave(
-            wave,
-            &|(state_index, local_index): &(usize, usize)| {
-                let pending = captured
-                    .get(*state_index)
-                    .and_then(|item| item.as_ref())
-                    .and_then(|item| item.pending_sync.get(*local_index))
-                    .ok_or_else(|| std::io::Error::other("missing staged partition sync"))?;
-                sync(pending)
-            },
-            allow_spawn,
-        );
+        let failed = sync_wave(&mut store.sync_workers, captured, wave);
         for (index, failed) in failed.into_iter().take(wave.len()).enumerate() {
             if let Some(slot) = failures.get_mut(wave_index * concurrency + index) {
                 *slot = u8::from(failed);
@@ -2058,7 +2016,7 @@ fn process_inner(
                                 part_at,
                                 id,
                                 index: part.index,
-                                file: staged.file,
+                                file: Some(staged.file),
                                 batch_count: staged.batch_count,
                                 failed: false,
                                 log_start,
@@ -2083,7 +2041,7 @@ fn process_inner(
             pending_sync,
         }));
     }
-    sync_staged(&mut pending_sync, store.config.max_sync_concurrency);
+    sync_staged(store, &mut pending_sync);
     for item in pending_sync {
         let Some(part) = results
             .get_mut(item.topic_at)
@@ -2996,7 +2954,9 @@ mod tests {
             part_at: 0,
             id,
             index,
-            file: journal::SyncFile::untracked(File::open("/dev/null").expect("null device")),
+            file: Some(journal::SyncFile::untracked(
+                File::open("/dev/null").expect("null device"),
+            )),
             batch_count: 1,
             failed: false,
             log_start: Some(0),
@@ -3036,53 +2996,85 @@ mod tests {
         clippy::disallowed_methods,
         reason = "This synchronous test holds worker threads briefly to observe overlap"
     )]
-    fn bounded_sync_waves_join_all_workers_and_handle_failures() {
-        use std::sync::atomic::{AtomicUsize, Ordering};
+    fn bounded_sync_waves_complete_and_reuse_helpers_with_failures() {
+        use std::{
+            cell::Cell,
+            sync::{
+                atomic::{AtomicUsize, Ordering},
+                Arc,
+            },
+            thread::ThreadId,
+        };
+
+        #[derive(Default)]
+        struct Counts {
+            active: AtomicUsize,
+            peak: AtomicUsize,
+        }
+
         struct Active<'a>(&'a AtomicUsize);
         impl Drop for Active<'_> {
             fn drop(&mut self) {
                 self.0.fetch_sub(1, Ordering::SeqCst);
             }
         }
-        let items: Vec<usize> = (0..33).collect();
-        let seen: Vec<AtomicUsize> = (0..items.len()).map(|_| AtomicUsize::new(0)).collect();
-        let active = AtomicUsize::new(0);
-        let peak = AtomicUsize::new(0);
-        let fallback = AtomicUsize::new(0);
+
+        struct Item {
+            index: usize,
+            counts: Arc<Counts>,
+            calls: Cell<usize>,
+            thread: Cell<Option<ThreadId>>,
+        }
+
+        let counts = Arc::new(Counts::default());
+        let mut items: Vec<_> = (0..33)
+            .map(|index| {
+                Some(Item {
+                    index,
+                    counts: counts.clone(),
+                    calls: Cell::new(0),
+                    thread: Cell::new(None),
+                })
+            })
+            .collect();
         let owner = std::thread::current().id();
-        let operation = |item: &usize| -> std::io::Result<()> {
-            seen[*item].fetch_add(1, Ordering::SeqCst);
-            let current = active.fetch_add(1, Ordering::SeqCst) + 1;
-            peak.fetch_max(current, Ordering::SeqCst);
-            let _active = Active(&active);
-            if item % DEFAULT_SYNC_CONCURRENCY == 2 && std::thread::current().id() == owner {
-                fallback.fetch_add(1, Ordering::SeqCst);
-            }
+        let mut workers = sync::Pool::new(|item: &Item| {
+            item.calls.set(item.calls.get() + 1);
+            let current = item.counts.active.fetch_add(1, Ordering::SeqCst) + 1;
+            item.counts.peak.fetch_max(current, Ordering::SeqCst);
+            let _active = Active(&item.counts.active);
+            item.thread.set(Some(std::thread::current().id()));
             std::thread::sleep(Duration::from_millis(2));
-            if *item == 17 {
+            if item.index == 17 {
                 return Err(std::io::Error::other("injected sync failure"));
             }
-            assert_ne!(*item, 23, "injected worker panic");
+            assert_ne!(item.index, 23, "injected worker panic");
             Ok(())
-        };
-        let mut outcomes = Vec::new();
-        for wave in items.chunks(DEFAULT_SYNC_CONCURRENCY) {
-            let results = sync_wave(wave, &operation, &|index| index != 2);
-            outcomes.extend(results.into_iter().take(wave.len()));
-            assert_eq!(active.load(Ordering::SeqCst), 0, "worker outlived wave");
+        });
+        let mut threads = [Some(owner), None, Some(owner), None];
+        for wave in items.chunks_mut(DEFAULT_SYNC_CONCURRENCY) {
+            let width = wave.len();
+            let results = workers.wave(wave, width, |wave, i| wave.get_mut(i), |i| i != 2);
+            assert_eq!(counts.active.load(Ordering::SeqCst), 0, "worker outlived wave");
+            for (lane, (item, failed)) in wave.iter().zip(results).enumerate() {
+                let item = item.as_ref().expect("lease returned to the actor");
+                assert_eq!(item.calls.get(), 1);
+                assert_eq!(failed, item.index == 17 || item.index == 23);
+                let thread = item.thread.get().expect("thread recorded");
+                if let Some(previous) = threads[lane] {
+                    assert_eq!(thread, previous, "lane {lane} changed threads");
+                } else {
+                    assert_ne!(thread, owner);
+                    threads[lane] = Some(thread);
+                }
+            }
         }
-        assert_eq!(outcomes.len(), items.len());
-        for (index, failed) in outcomes.into_iter().enumerate() {
-            assert_eq!(failed, index == 17 || index == 23, "slot {index}");
-            assert_eq!(seen[index].load(Ordering::SeqCst), 1, "slot {index}");
-        }
-        assert!(peak.load(Ordering::SeqCst) <= DEFAULT_SYNC_CONCURRENCY);
-        assert_eq!(fallback.load(Ordering::SeqCst), 8);
+        assert_ne!(threads[1], threads[3]);
+        assert!(counts.peak.load(Ordering::SeqCst) <= DEFAULT_SYNC_CONCURRENCY);
     }
 
     #[test]
     fn grouped_sync_propagates_one_partition_failure_to_all_its_batches() {
-        use std::sync::atomic::{AtomicUsize, Ordering};
         let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
@@ -3102,21 +3094,20 @@ mod tests {
             None,
             Some(captured(vec![null_sync(orders, 0), null_sync(payments, 0)])),
         ];
-        let calls = AtomicUsize::new(0);
-        sync_partition_once_with(
-            &mut store,
-            &mut requests,
-            &|pending| {
-                calls.fetch_add(1, Ordering::SeqCst);
-                if pending.id == orders && pending.index == 0 {
-                    Err(std::io::Error::other("injected partition sync failure"))
-                } else {
-                    Ok(())
-                }
-            },
-            &|_| false,
-        );
-        assert_eq!(calls.load(Ordering::SeqCst), 3, "one sync per partition");
+        let mut calls = 0;
+        sync_partition_once_with(&mut store, &mut requests, |_, captured, wave| {
+            let mut failed = [true; MAX_SYNC_CONCURRENCY];
+            for (&(state, local), failed) in wave.iter().zip(&mut failed) {
+                let pending = captured[state]
+                    .as_ref()
+                    .and_then(|request| request.pending_sync.get(local))
+                    .expect("partition representative");
+                calls += 1;
+                *failed = pending.id == orders && pending.index == 0;
+            }
+            failed
+        });
+        assert_eq!(calls, 3, "one sync per partition");
         for request in requests.iter().flatten() {
             for pending in &request.pending_sync {
                 assert_eq!(pending.failed, pending.id == orders && pending.index == 0);
@@ -3142,12 +3133,16 @@ mod tests {
                 .unwrap_or_else(|error| panic!("{error:?}"));
             file.write_all(&[index as u8])
                 .unwrap_or_else(|error| panic!("{error:?}"));
-            files.push(file);
+            files.push(Some(file));
         }
-        for wave in files.chunks(DEFAULT_SYNC_CONCURRENCY) {
-            let failed = sync_wave(wave, &File::sync_data, &|_| true);
-            assert!(failed.into_iter().take(wave.len()).all(|failed| !failed));
+        let mut workers = sync::Pool::new(File::sync_data);
+        for wave in files.chunks_mut(DEFAULT_SYNC_CONCURRENCY) {
+            let width = wave.len();
+            let failed = workers.wave(wave, width, |wave, i| wave.get_mut(i), |_| true);
+            assert!(failed.into_iter().take(width).all(|failed| !failed));
+            assert!(wave.iter().all(Option::is_some));
         }
+        drop(workers);
         drop(files);
         for index in 0..9 {
             let mut actual = Vec::new();
