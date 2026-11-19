@@ -1,0 +1,91 @@
+{
+  "peer": "Apache Avro Java 1.12.1",
+  "codec": "apache-avro =0.22.0, default-features=false",
+  "schema_inputs": "partitionline-schema/tests/fixtures/avro",
+  "schema_id": 42,
+  "cases": [
+    "null",
+    "present",
+    "negative",
+    "intmax",
+    "root-null",
+    "boolean",
+    "int-long",
+    "long-double",
+    "float-double"
+  ],
+  "jars": [
+    {
+      "name": "avro",
+      "version": "1.12.1",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/avro/avro/1.12.1/avro-1.12.1.jar",
+      "sha256": "72600f057bfbe2efe35fa55433e7756d45667dc938934be38a6e2be368aca237",
+      "repository_sha1": "1c6294ac1d67ce396f51827c87ba2e01de304500"
+    },
+    {
+      "name": "jackson-core",
+      "version": "2.20.0",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.20.0/jackson-core-2.20.0.jar",
+      "sha256": "bc0cf46075877201f8406ee7de2741ae7df6c066f5f0457bd80632a718c06e72",
+      "repository_sha1": "3c97f7fad069f7cfae639d790bd93d6a0b2dff31"
+    },
+    {
+      "name": "jackson-databind",
+      "version": "2.20.0",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.20.0/jackson-databind-2.20.0.jar",
+      "sha256": "a70e146a6bf2cba4f9cd367169787f50adcfbb57122bc2e9c8390cd0b397ac30",
+      "repository_sha1": "f0a5e62fbd21285e9a5498a60dccb097e1ef793b"
+    },
+    {
+      "name": "jackson-annotations",
+      "version": "2.20",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.20/jackson-annotations-2.20.jar",
+      "sha256": "959a2ffb2d591436f51f183c6a521fc89347912f711bf0cae008cdf045d95319",
+      "repository_sha1": "6a5e7291ea3f2b590a7ce400adb7b3aea4d7e12c"
+    },
+    {
+      "name": "slf4j-api",
+      "version": "2.0.17",
+      "url": "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar",
+      "sha256": "7b751d952061954d5abfed7181c1f645d336091b679891591d63329c622eb832",
+      "repository_sha1": "d9e58ac9c7779ba3bf8142aff6c830617a7fe60f"
+    },
+    {
+      "name": "slf4j-simple",
+      "version": "2.0.17",
+      "url": "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-simple/2.0.17/slf4j-simple-2.0.17.jar",
+      "sha256": "ddfea59ac074c6d3e24ac2c38622d2d963895e17f70b38ed4bdae4d780be6964",
+      "repository_sha1": "9872a3fd794ffe7b18d17747926a64d61526ca96"
+    }
+  ],
+  "artifact_sha256": {
+    "boolean.frame.bin": "dde16e0dfcde09612d0bfd3df6d46499ca21d0d0fd6397b05d9c5ed31403d3a9",
+    "boolean.reader.json": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+    "boolean.writer.json": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+    "float-double.frame.bin": "93dea28987fc00af5a9d11d49c62b0597baa17c45493e5db2c4f5d0ef0b37983",
+    "float-double.reader.json": "9f29a130438b81170b92a42650f9a94291ecad60bd47af2a3886e75f7f728725",
+    "float-double.writer.json": "9f29a130438b81170b92a42650f9a94291ecad60bd47af2a3886e75f7f728725",
+    "int-long.frame.bin": "b6484b19307513b78b24c367e24ece94d6334b0bb613f64540928a8ad361ebee",
+    "int-long.reader.json": "56bb3b3a6aa1747def7c225256374c5e73f2fc46555adc47ea16e2d782159387",
+    "int-long.writer.json": "56bb3b3a6aa1747def7c225256374c5e73f2fc46555adc47ea16e2d782159387",
+    "intmax.frame.bin": "c0af3ddc0fc087795124845ec5ea604b038b36b8c15e96c819ff389d33c935ab",
+    "intmax.reader.json": "46afc82983b7df4fcd50ce784f1bb287588e720797c571c68ca73eb7dbd81dc2",
+    "intmax.writer.json": "c7612290c1396f54eaf36eea0cea17ad03524b38732e612e7f98ae462d89bc19",
+    "long-double.frame.bin": "721241f16cb0d54a69fb34e0eb33b17fa7936ea47f02d7fd5db9708bb90412f3",
+    "long-double.reader.json": "816a4b7c0e4d192f51f8770c41325c23e6ae3891525f889a22d73b9546331f1d",
+    "long-double.writer.json": "a1c367c29158357e62a3ff5d3e800fb7698a22396439dbc0a9d4929322afd35d",
+    "negative.frame.bin": "86bf6198a67de61cdf48dde30fa568f539b7124f1ddd035fc8d06136af7a6ddc",
+    "negative.reader.json": "967daf47b2f332112fcb5b9b306ab0d0789a3f28a650ddfe5062fba4e4adfd89",
+    "negative.writer.json": "0d02a7824711d45e80c51655046db90f832e3b0017bab8456391e2581ed98ec8",
+    "null.frame.bin": "601b4e40e7b5c662fcadd5d670e7011becc4fb5850f402ebf7e9296e2512633b",
+    "null.reader.json": "71b09e075a45f75d57ce902d45702fda7096e447e62e371e960a4911ce20bb6a",
+    "null.writer.json": "ba4e2d8402be7cd275cfa38aba5d6a549e81db883a306c4a41cd00ecc281f12d",
+    "present.frame.bin": "e2236e9c3403363c02e05dead0f8b7787a6bd6bc8a07141fb97a9dbbc6ce6a91",
+    "present.reader.json": "87af571693ea1d6abc0d5bd00366d7916fc756cfd10f0c3114911f2ef0ab24b2",
+    "present.writer.json": "6e083507b48faa45159008f606a8953f5f29c265169a9e9c2ae498018566d915",
+    "root-null.frame.bin": "c9fbac009d8eda5d25c9aabb2b6794bc9a801afd17adef7878c6539204eb0f82",
+    "root-null.reader.json": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+    "root-null.writer.json": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+  },
+  "scope": "Offline finite datum profile through caller-selected test codec; no live registry, broker, publication, arbitrary-schema, production deployment or performance qualification."
+}

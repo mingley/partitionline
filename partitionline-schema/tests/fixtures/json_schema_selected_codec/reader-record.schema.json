@@ -1,0 +1,1 @@
+{"$id":"urn:partitionline:selected-json:record-reader","$schema":"https://json-schema.org/draft/2020-12/schema","additionalProperties":false,"properties":{"id":{"$ref":"urn:partitionline:selected-json:integer"},"note":{"default":"default-must-not-be-inserted","type":["null","string"]}},"required":["id"],"type":"object"}

@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 fn fixture(name: &str) -> Vec<u8> {
     std::fs::read(
         Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../tests/fixtures/generic_schema_header")
+            .join("tests/fixtures/generic_schema_header")
             .join(format!("{name}.bin")),
     )
     .unwrap()

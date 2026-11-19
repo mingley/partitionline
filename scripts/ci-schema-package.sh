@@ -34,6 +34,9 @@ test ! -e "$package/tests/live-kafka"
 for license in LICENSE-APACHE LICENSE-MIT; do
   cmp -- "$license" "$package/$license"
 done
+for corpus in generic_schema_header avro_selected_codec json_schema_selected_codec; do
+  diff -r -- "tests/fixtures/$corpus" "$package/tests/fixtures/$corpus"
+done
 python3 -B scripts/check-package-docs.py "$package" --report "$report/package-docs.json"
 
 for profile in default no-default all; do
