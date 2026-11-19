@@ -1,0 +1,139 @@
+name: LZ4 bounded decode qualification
+on:
+  push:
+    branches: [qualification/lz4-direct-decode-20261119]
+    paths:
+      - src/protocol/records.rs
+      - benchmarks/codec/src/bin/lz4-decode-timing.rs
+      - benchmarks/codec/lz4-decode-compare.py
+      - .github/workflows/lz4-direct-decode-qualification.yml
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+env:
+  BASE: 51a4d86ec8c0e51e1c6dd231487bfe27e0725a70
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: never
+jobs:
+  correctness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format and strict lint
+        run: |
+          git rev-parse HEAD
+          git hash-object src/protocol/records.rs
+          rustc -Vv
+          cargo fmt --all -- --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Bounded decoder and wire checks
+        env:
+          RUST_TEST_THREADS: '1'
+        run: |
+          cargo test --locked --lib protocol::records::tests::
+          cargo test --locked --all-features --lib protocol::records::tests::
+          cargo test --locked --all-features --test produce_wire_conformance produce_wire_committed_corpus -- --exact
+  allocations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Codec allocation guardrails
+        run: bash scripts/ci-alloc-budget.sh
+  timing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 3
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Time paired exact-source releases
+        run: |
+          scratch="$RUNNER_TEMP/lz4-decode"
+          evidence="$scratch/evidence"
+          mkdir -p "$evidence"
+          (
+            git rev-parse HEAD
+            rustc -Vv
+            cargo -V
+            uname -sm
+            printf 'image=%s version=%s runner_arch=%s\n' "$ImageOS" "$ImageVersion" "$RUNNER_ARCH"
+            git worktree add --detach "$scratch/base" "$BASE"
+            test "$(git -C "$scratch/base" rev-parse HEAD)" = "$BASE"
+            git -C "$scratch/base" hash-object src/protocol/records.rs
+            git hash-object src/protocol/records.rs
+            cmp "$scratch/base/src/protocol/buf.rs" src/protocol/buf.rs
+            cmp "$scratch/base/benchmarks/codec/Cargo.lock" benchmarks/codec/Cargo.lock
+            tool=benchmarks/codec/src/bin/lz4-decode-timing.rs
+            git hash-object "$tool"
+            git hash-object benchmarks/codec/lz4-decode-compare.py
+            mkdir -p "$scratch/base/benchmarks/codec/src/bin"
+            cp "$tool" "$scratch/base/$tool"
+            CARGO_TARGET_DIR="$scratch/a" cargo build --locked --release \
+              --manifest-path "$scratch/base/benchmarks/codec/Cargo.toml" --features zstd --bin lz4-decode-timing
+            CARGO_TARGET_DIR="$scratch/b" cargo build --locked --release \
+              --manifest-path benchmarks/codec/Cargo.toml --features zstd --bin lz4-decode-timing
+            a="$scratch/a/release/lz4-decode-timing"
+            b="$scratch/b/release/lz4-decode-timing"
+            sha256sum "$a" "$b"
+            if cmp -s "$a" "$b"; then exit 1; fi
+            python3 -B benchmarks/codec/lz4-decode-compare.py "$a" "$b" "$evidence/pairs.jsonl"
+          ) 2>&1 | tee "$evidence/timing.log"
+      - name: Retain paired timing evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lz4-decode-pairs
+          path: ${{ runner.temp }}/lz4-decode/evidence
+          if-no-files-found: error
+          retention-days: 30
+  instructions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 3
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install the codec counter
+        run: |
+          sudo apt-get update && sudo apt-get install -y valgrind
+          cargo install iai-callgrind-runner --version 0.14.2 --locked
+      - name: Compare both builds against the committed instruction gate
+        run: |
+          scratch="$RUNNER_TEMP/lz4-decode-ir"
+          evidence="$scratch/evidence"
+          mkdir -p "$evidence"
+          git worktree add --detach "$scratch/base" "$BASE"
+          test "$(git -C "$scratch/base" rev-parse HEAD)" = "$BASE"
+          cmp "$scratch/base/benchmarks/codec/perf-baseline.json" benchmarks/codec/perf-baseline.json
+          git rev-parse HEAD
+          git hash-object src/protocol/records.rs
+          rustc -Vv
+          valgrind --version
+          CARGO_TARGET_DIR="$scratch/a" bash "$scratch/base/scripts/ci-perf-gate.sh" | tee "$evidence/baseline.txt"
+          grep -Fx 'ci-perf-gate: PASS' "$evidence/baseline.txt"
+          CARGO_TARGET_DIR="$scratch/b" bash scripts/ci-perf-gate.sh | tee "$evidence/candidate.txt"
+          grep -Fx 'ci-perf-gate: PASS' "$evidence/candidate.txt"
+      - name: Retain instruction gate outputs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lz4-decode-instructions
+          path: ${{ runner.temp }}/lz4-decode-ir/evidence
+          if-no-files-found: error
+          retention-days: 30

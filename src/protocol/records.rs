@@ -1,9 +1,10 @@
 //! Magic-v2 RecordBatch codec (gzip, snappy, LZ4; optional zstd).
 
 use std::fmt;
-use std::io::{Read, Write};
+use std::io::{BufRead, Read, Write};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use lz4_flex::frame::FrameDecoder;
 
 use super::buf;
 use crate::error::{Error, Result};
@@ -1967,13 +1968,18 @@ async fn gzip_compress_into_cooperative(src: &[u8], out: &mut Vec<u8>) -> Result
     Ok(())
 }
 
-fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize, reserve: usize) -> Result<Vec<u8>> {
+fn decompression_output(max_bytes: usize, reserve: usize) -> Result<Vec<u8>> {
     let mut out = Vec::new();
     let hint = reserve.min(max_bytes);
     if hint > 0 {
         out.try_reserve(hint)
             .map_err(|_| Error::protocol("decompressed batch reserve"))?;
     }
+    Ok(out)
+}
+
+fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize, reserve: usize) -> Result<Vec<u8>> {
+    let mut out = decompression_output(max_bytes, reserve)?;
     let mut chunk = [0u8; 8192];
     loop {
         let remaining_budget_plus_one = max_bytes.saturating_sub(out.len()).saturating_add(1);
@@ -2005,12 +2011,7 @@ async fn read_bounded_cooperative<R: Read>(
     max_bytes: usize,
     reserve: usize,
 ) -> Result<Vec<u8>> {
-    let mut out = Vec::new();
-    let hint = reserve.min(max_bytes);
-    if hint > 0 {
-        out.try_reserve(hint)
-            .map_err(|_| Error::protocol("decompressed batch reserve"))?;
-    }
+    let mut out = decompression_output(max_bytes, reserve)?;
     let mut chunk = [0u8; 8192];
     let mut since_yield = 0usize;
     loop {
@@ -2306,16 +2307,58 @@ fn lz4_decompress_reserve(src: &[u8], max_bytes: usize) -> Result<usize> {
     Ok(reserve)
 }
 
+fn append_lz4_bytes(
+    decoder: &mut FrameDecoder<&[u8]>,
+    out: &mut Vec<u8>,
+    max_bytes: usize,
+    copy_limit: usize,
+) -> Result<usize> {
+    // FrameDecoder has already decoded the block. Copy directly from its buffer.
+    let available = decoder
+        .fill_buf()
+        .map_err(|e| Error::protocol(e.to_string()))?;
+    let len = available.len().min(copy_limit);
+    if len > max_bytes.saturating_sub(out.len()) {
+        return Err(Error::protocol(
+            "Decompressed batch exceeds maximum allowable size",
+        ));
+    }
+    let piece = available
+        .get(..len)
+        .ok_or_else(|| Error::protocol("invalid chunk slice"))?;
+    out.extend_from_slice(piece);
+    decoder.consume(len);
+    Ok(len)
+}
+
 fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
     let reserve = lz4_decompress_reserve(src, max_bytes)?;
-    let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
-    read_bounded(&mut decoder, max_bytes, reserve)
+    let mut out = decompression_output(max_bytes, reserve)?;
+    let mut decoder = FrameDecoder::new(src);
+    while append_lz4_bytes(&mut decoder, &mut out, max_bytes, usize::MAX)? > 0 {}
+    Ok(out)
 }
 
 async fn lz4_decompress_cooperative(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
+    const COPY_CHUNK: usize = 8 * 1024;
     let reserve = lz4_decompress_reserve(src, max_bytes)?;
-    let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
-    read_bounded_cooperative(&mut decoder, max_bytes, reserve).await
+    let mut out = decompression_output(max_bytes, reserve)?;
+    let mut decoder = FrameDecoder::new(src);
+    let mut left_before_yield = COPY_CHUNK;
+    loop {
+        let copied = append_lz4_bytes(&mut decoder, &mut out, max_bytes, left_before_yield)?;
+        if copied == 0 {
+            break;
+        }
+        left_before_yield -= copied;
+        if left_before_yield == 0 {
+            left_before_yield = COPY_CHUNK;
+            if out.len() < max_bytes {
+                tokio::task::yield_now().await;
+            }
+        }
+    }
+    Ok(out)
 }
 
 /// One record as borrowed slices for the produce encode path.
@@ -8432,6 +8475,51 @@ mod tests {
             !trunc_err.contains("Decompressed batch exceeds maximum allowable size"),
             "{trunc_err}"
         );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn lz4_multiblock_decode_preserves_limits_and_frame_boundary() {
+        use lz4_flex::frame::{BlockMode, BlockSize, FrameEncoder, FrameInfo};
+
+        let payload: Vec<u8> = (0..=u8::MAX).cycle().take(128 * 1024 + 173).collect();
+        let next = Compression::Lz4.codec_compress(b"next frame").unwrap();
+        for mode in [BlockMode::Independent, BlockMode::Linked] {
+            let info = FrameInfo::new()
+                .block_mode(mode)
+                .block_size(BlockSize::Max64KB)
+                .block_checksums(true)
+                .content_checksum(true);
+            let mut encoder = FrameEncoder::with_frame_info(info, Vec::new());
+            encoder.write_all(&payload).unwrap();
+            let mut frame = encoder.finish().unwrap();
+            assert_eq!(lz4_declared_size(&frame), None);
+            frame.extend_from_slice(&next);
+
+            let limit = payload.len();
+            let mut reader = FrameDecoder::new(frame.as_slice());
+            assert_eq!(read_bounded(&mut reader, limit, 0).unwrap(), payload);
+            assert_eq!(lz4_decompress(&frame, limit).unwrap(), payload);
+
+            let mut pending = std::pin::pin!(lz4_decompress_cooperative(&frame, limit));
+            assert!(
+                std::future::Future::poll(
+                    pending.as_mut(),
+                    &mut std::task::Context::from_waker(std::task::Waker::noop()),
+                )
+                .is_pending()
+            );
+            assert_eq!(pending.await.unwrap(), payload);
+
+            let error = lz4_decompress(&frame, limit - 1).unwrap_err().to_string();
+            assert!(error.contains("Decompressed batch exceeds maximum allowable size"));
+            assert_eq!(
+                lz4_decompress_cooperative(&frame, limit - 1)
+                    .await
+                    .unwrap_err()
+                    .to_string(),
+                error
+            );
+        }
     }
 
     #[test]
