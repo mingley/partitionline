@@ -95,10 +95,7 @@ async fn lookup_and_cache_against_redpanda() {
         std::slice::from_ref(&reference_json),
     );
     assert_ne!(order_v2_id, order_v1_id);
-    let live = fixture.request_json(
-        &format!("/subjects/{ORDER_SUBJECT}/versions/latest"),
-        None,
-    );
+    let live = fixture.request_json(&format!("/subjects/{ORDER_SUBJECT}/versions/latest"), None);
     assert_eq!(live["id"], order_v2_id);
     assert_eq!(live["version"], 2);
 

@@ -22,12 +22,11 @@ jobs:
         run: |
           rustup update stable
           rustc +stable --version --verbose
-      - name: Check formatting and retain formatted fixture source
+      - name: Check fixture formatting
         run: |
           for manifest in partitionline-schema/Cargo.toml partitionline-schema/tests/live-kafka/Cargo.toml; do
-            cargo +stable fmt --manifest-path "$manifest"
+            cargo +stable fmt --manifest-path "$manifest" -- --check
           done
-          git diff --exit-code || git diff --name-only
       - name: Companion tests and linting
         run: |
           cargo +stable clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings

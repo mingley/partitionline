@@ -11,7 +11,8 @@ pub(super) struct RegistryFixture {
 
 impl RegistryFixture {
     pub(super) fn from_env() -> Self {
-        let url = env::var("PARTITIONLINE_REGISTRY_LIVE_URL").expect("set the loopback registry URL");
+        let url =
+            env::var("PARTITIONLINE_REGISTRY_LIVE_URL").expect("set the loopback registry URL");
         let (prefix, suffix, ca_file) = if let Some(port) = url.strip_prefix("http://127.0.0.1:") {
             ("http://127.0.0.1:", port, None)
         } else {
@@ -89,7 +90,10 @@ impl RegistryFixture {
             ]);
         }
         let url = format!("{}{path}", self.base);
-        let response = curl.arg(&url).output().expect("run curl against the fixture");
+        let response = curl
+            .arg(&url)
+            .output()
+            .expect("run curl against the fixture");
         assert!(
             response.status.success(),
             "fixture request {url} failed ({})\n{}\n{}",

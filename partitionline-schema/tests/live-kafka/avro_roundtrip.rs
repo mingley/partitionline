@@ -132,31 +132,40 @@ async fn avro_produce_and_fetch_against_redpanda() {
     expected_frame.extend_from_slice(&writer_id.to_be_bytes());
     expected_frame.extend_from_slice(DATUM);
     assert_eq!(frame, expected_frame);
+    println!("HTTPS schema id={writer_id}, Place id={place_id}, Avro frame verified");
 
-    let producer = Producer::new(
-        ProducerConfig::bootstrap([bootstrap.clone()])
-            .acks(Acks::All)
-            .linger(Duration::ZERO),
-    )
-    .await
-    .unwrap();
+    let mut producer_config = ProducerConfig::bootstrap([bootstrap.clone()])
+        .acks(Acks::All)
+        .linger(Duration::ZERO);
+    producer_config.request_timeout = Duration::from_secs(5);
+    producer_config.max_block = Duration::from_secs(5);
+    producer_config.delivery_timeout = Duration::from_secs(10);
+    let producer = Producer::new(producer_config)
+        .await
+        .expect("connect the Kafka producer");
+    println!("Kafka producer connected");
     let ack = producer
         .send(ProduceRecord::to(TOPIC).partition(0).key(KEY).value(frame))
         .await
-        .unwrap();
+        .expect("produce the Avro frame");
+    println!("Kafka write acknowledged at {}@{}", ack.partition, ack.offset);
     assert_eq!(ack.topic.as_ref(), TOPIC);
     assert_eq!(ack.partition, 0);
     assert_eq!(ack.offset, 0);
-    producer.close().await.unwrap();
+    producer.close().await.expect("close the Kafka producer");
 
-    let mut config_consumer = ConsumerConfig::bootstrap([bootstrap]);
-    config_consumer.max_wait_ms = 500;
-    let mut consumer = Consumer::new(config_consumer).await.unwrap();
+    let mut consumer_config = ConsumerConfig::bootstrap([bootstrap]);
+    consumer_config.request_timeout = Duration::from_secs(5);
+    consumer_config.max_wait_ms = 500;
+    let mut consumer = Consumer::new(consumer_config)
+        .await
+        .expect("connect the Kafka consumer");
+    println!("Kafka consumer connected");
     consumer
         .assign(TOPIC, ack.partition, ack.offset)
         .await
-        .unwrap();
-    let fetched = consumer.fetch().await.unwrap();
+        .expect("assign the acknowledged Kafka partition and offset");
+    let fetched = consumer.fetch().await.expect("fetch the Avro frame");
     let [record] = &*fetched else {
         panic!("expected one Kafka record at the acknowledged offset");
     };
