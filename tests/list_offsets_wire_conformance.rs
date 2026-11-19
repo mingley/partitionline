@@ -8,9 +8,10 @@
 use bytes::BytesMut;
 use partitionline::protocol::offsets::{
     decode_list_offsets_topics_request, decode_list_offsets_topics_response,
-    encode_list_offsets_topics_request_with_replica_id, encode_list_offsets_topics_response_with_throttle,
-    ListOffsetsPartition, ListOffsetsPartitionRequest, ListOffsetsRequest,
-    ListOffsetsResponsePartition, ListOffsetsTopicRequest, ListOffsetsTopicResponse,
+    encode_list_offsets_topics_request_with_replica_id,
+    encode_list_offsets_topics_response_with_throttle, ListOffsetsPartition,
+    ListOffsetsPartitionRequest, ListOffsetsRequest, ListOffsetsResponsePartition,
+    ListOffsetsTopicRequest, ListOffsetsTopicResponse,
 };
 use std::{error::Error, fmt::Write};
 
@@ -35,8 +36,7 @@ fn request_topics(version: i16, cell: &str) -> Vec<ListOffsetsTopicRequest> {
         return Vec::new();
     }
     let epoch = if version >= 4 { 17 } else { -1 };
-    let partition =
-        |index, timestamp| ListOffsetsPartitionRequest::new(index, epoch, timestamp);
+    let partition = |index, timestamp| ListOffsetsPartitionRequest::new(index, epoch, timestamp);
     let mut recent = vec![partition(3, -2)];
     let mut archive = vec![partition(7, -1)];
     if cell != "error" {
@@ -143,12 +143,16 @@ fn verify_corpus(text: &str, max: i16) -> Result<String, Box<dyn Error>> {
             } else {
                 30 + i32::from(version)
             };
-            let decoded_request =
-                decode_list_offsets_topics_request(&mut request_reader, version)?;
+            let decoded_request = decode_list_offsets_topics_request(&mut request_reader, version)?;
             assert!(request_reader.is_empty(), "unconsumed request {identity}");
             assert_eq!(
                 decoded_request,
-                (0, topics.clone(), (version >= 10).then_some(timeout), replica),
+                (
+                    0,
+                    topics.clone(),
+                    (version >= 10).then_some(timeout),
+                    replica
+                ),
                 "ListOffsets request fields differ {identity}"
             );
             let decoded_response =
@@ -171,7 +175,13 @@ fn verify_corpus(text: &str, max: i16) -> Result<String, Box<dyn Error>> {
             )?;
             let mut response_out = BytesMut::new();
             if cell == "error" {
-                ListOffsetsRequest::error_response(&mut response_out, version, &topics, 6, throttle)?;
+                ListOffsetsRequest::error_response(
+                    &mut response_out,
+                    version,
+                    &topics,
+                    6,
+                    throttle,
+                )?;
             } else {
                 encode_list_offsets_topics_response_with_throttle(
                     &mut response_out,
@@ -192,8 +202,14 @@ fn verify_corpus(text: &str, max: i16) -> Result<String, Box<dyn Error>> {
             };
             let request = encode_hex(&request_out);
             let response = encode_hex(&response_out);
-            assert_eq!(request, expected_request, "Rust request bytes differ {identity}");
-            assert_eq!(response, expected_response, "Rust response bytes differ {identity}");
+            assert_eq!(
+                request, expected_request,
+                "Rust request bytes differ {identity}"
+            );
+            assert_eq!(
+                response, expected_response,
+                "Rust response bytes differ {identity}"
+            );
             writeln!(reverse, "{identity} {request} {response}")?;
         }
     }
