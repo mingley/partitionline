@@ -17433,7 +17433,8 @@ mod tests {
             {
                 let mut work = std::pin::pin!(reserve_grouped_topic_counts(&order, &mut buckets));
                 for poll in 1..=last_poll {
-                    let state = std::future::poll_fn(|cx| Poll::Ready(work.as_mut().poll(cx))).await;
+                    let state =
+                        std::future::poll_fn(|cx| Poll::Ready(work.as_mut().poll(cx))).await;
                     assert_eq!(
                         state.is_pending(),
                         poll <= yields,
