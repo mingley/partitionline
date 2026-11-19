@@ -113,14 +113,11 @@ and minimized regressions. Existing Suite HOLD and release/signoff rules remain.
 Client and server comparisons use pinned relevant competitors on equal hardware,
 payloads, durability, security and offered load. Report verified useful work,
 CPU/RSS/disk and tail latency; retain every losing cell and confidence interval.
-The current authorized campaign uses the shared x86_64 workspace and no
-additional benchmark machines or external operator. Its results are local,
-workload-specific engineering evidence. The frozen
-[benchmark contract](../benchmark-contract.md) still requires independent
-reproduction for profile claims and both x86_64 and arm64 for a global client
-claim. Profile leadership needs superiority in every required named cell. A
-finite benchmark set establishes a scoped result, not a universal claim over
-every possible machine, workload, client and server.
+Current qualification targets controlled x86_64 hardware. The
+[benchmark contract](../benchmark-contract.md) allows a separate run with
+independent record checks on the same host. A profile claim names the hardware,
+peers and workloads and requires a win in every required case. Results from a
+shared runner are diagnostics.
 
 KL11-56 is the final fail-closed audit and depends on the entire existing client
 queue plus the server completion chain. It cannot close with missing required

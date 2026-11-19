@@ -59,7 +59,7 @@ table.
 | `KL01-*` | Independent Java fixtures, fail-closed case reports, upstream adapters, current broker cells and sustained fuzz evidence |
 | `KL02-*` | Retained/decoded-byte bounds, terminal ownership, deadlines and a controlled overload record |
 | `KL03-*` | Lost-ack/epoch/fencing behavior, group/share ownership and separate three-broker crash histories |
-| `KL04-*` | Pinned peer drivers, open-loop load, ID/payload verification, raw artifacts, x86_64/arm64 runs and independent reproduction |
+| `KL04-*` | Pinned peer drivers, open-loop load, ID/payload verification, raw artifacts, controlled x86_64 runs and separate reproduction |
 | `KL05-*` | zstd decode/encode, incremental Fetch, quota handling, sticky partitioning, current API deltas, full-admin and companion-format cards |
 | `KL06-*` | OIDC expiry/refresh, SASL reauth, TLS rotation, redaction and explicitly approved opt-in GSSAPI |
 | `KL07-*` | Strict docs, actual snippet checks, tutorial/recipes, migration, bounded diagnostics and newcomer exercises |

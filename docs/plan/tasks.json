@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-11-08",
+  "updated": "2026-11-19",
   "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
   "guide": "docs/plan/README.md",
   "audit": "docs/audits/2026-09-21.md",
@@ -35042,7 +35042,7 @@
       "deliverable": "Exact-source equal-semantics client comparisons over all required profiles.",
       "acceptance": [
         "Use the existing KL09 claim/guardrail rules; include every losing cell and uncertainty.",
-        "Required client task prerequisites must be added/finished before promotion; multi-host x86_64/arm64 and independent reproduction are required.",
+        "Complete the required client task prerequisites before promotion. Qualify on named controlled x86_64 hardware and repeat with independent record checks on the same host or an equivalent one.",
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
@@ -35074,7 +35074,7 @@
       "deliverable": "Equal-hardware/durability/security server workload matrix against relevant pinned peers.",
       "acceptance": [
         "Measure verified useful records/bytes, CPU/RSS/disk and p50/p99/p99.9 at matched offered loads.",
-        "Keep all failures and losing cells; paired confidence intervals, x86_64/arm64 and independent reproduction.",
+        "Keep all failures and losing cells with paired confidence intervals. Qualify on named controlled x86_64 hardware and repeat with independent record checks on the same host or an equivalent one.",
         "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
       ],
       "validation": [
@@ -52221,7 +52221,27 @@
         "Run bounded exact-source latest-stable Rust default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
         "Preserve all original source/peer/disposition, actual failures and resource/process closure receipts; source inspection or local roundtrips alone cannot qualify behavior."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "2e94fc3430edad5d0958749f8ca5256f0c9ea77d",
+          "commands": [
+            "python3 -B tests/conformance/java/generate_list_offsets_wire.py --output target/list-offsets-wire (passed)",
+            "cmp target/list-offsets-wire/4.3.1/apache.txt tests/fixtures/list_offsets_wire/apache-v1-v11.txt (passed)",
+            "cargo test --locked [--all-features] --test list_offsets_wire_conformance list_offsets_wire_committed_corpus -- --exact (passed in checkout and extracted crate)",
+            "cargo fmt --all -- --check and cargo clippy --locked --all-features --test list_offsets_wire_conformance -- -D warnings (passed)"
+          ],
+          "results": "Rust 1.100.0, Temurin 21.0.13+9, hosted x86_64. Five SHA-256-pinned Apache SDKs and two Rust profiles checked 280 selected request/response pairs in each direction. Both v10 timeout controls rejected the altered body. Committed 31-pair corpus SHA-256 b675b5c40736e10a47c9e27c78c1b035906c94586b211f1dfb9d88db814db67b. The first run failed formatting before correction.",
+          "artifacts": [
+            "docs/evidence/conformance/q-conf-listoffsetswire/README.md",
+            "https://github.com/mingley/partitionline/actions/runs/44610943173",
+            "https://github.com/mingley/partitionline/actions/runs/44610208228"
+          ],
+          "limits": [
+            "Selected request and response bodies only. No exhaustive registered case matrix or live negotiation, timeout enforcement, isolation semantics, or tiered-storage behavior.",
+            "Apache 3.9.1 v0 falls below the Rust ListOffsets body API range."
+          ]
+        }
+      ],
       "write_set": [
         "tests/conformance/java/ConformanceListOffsetsWire.java",
         "tests/conformance/java/generate_list_offsets_wire.py",

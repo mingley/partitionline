@@ -73,6 +73,9 @@ interoperability, packaged consumers and the finite resource soak. The
    The [Produce wire fixtures](../evidence/conformance/q-conf-producewire/README.md)
    add selected v4, v6, v7 and v12 body checks against pinned Apache SDKs.
    KL01-18 remains open for broader cases and live Produce behavior.
+   The [ListOffsets fixtures](../evidence/conformance/q-conf-listoffsetswire/README.md)
+   cover selected v1–v11 bodies in both directions across five Apache SDKs.
+   KL01-21 remains open for live offset behavior and the complete registered matrix.
 
    The [Admin cursor guard](../evidence/client/admin-cursor-history-20261109/README.md)
    catches some non-adjacent repeats with fixed-size history. It can reject a
