@@ -1,0 +1,28 @@
+name: Check basic registry fixture
+
+on:
+  push:
+    branches: [qualification/schema-registry-basic-20261119]
+    paths:
+      - partitionline-schema/**
+      - .github/workflows/schema-registry-basic-qualification.yml
+
+permissions:
+  contents: read
+
+jobs:
+  fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - run: |
+          rustup update stable
+          rustc +stable --version --verbose
+          cargo +stable fmt --manifest-path partitionline-schema/Cargo.toml -- --check
+          cargo +stable clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings
+          cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features
+          cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --all-features
+          cargo +stable clippy --locked --manifest-path partitionline-schema/tests/live-kafka/Cargo.toml --test avro_roundtrip -- -D warnings
