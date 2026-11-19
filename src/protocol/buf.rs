@@ -626,11 +626,15 @@ pub fn get_varint<B: Buf>(buf: &mut B) -> Result<i32> {
     Ok(unzigzag_i32(get_unsigned_varint(buf)?))
 }
 
-/// Write `width` unsigned varint groups. One-byte values use a single `put_u8`.
+/// Write `width` unsigned varint groups, with direct writes for short values.
 #[inline]
 fn put_unsigned_groups(buf: &mut BytesMut, mut v: u64, width: usize) {
     if width == 1 {
         buf.put_u8(u7_64(v));
+        return;
+    }
+    if width == 2 {
+        buf.extend_from_slice(&[u7_64(v) | 0x80, u7_64(v >> 7)]);
         return;
     }
     let mut tmp = [0u8; 10];

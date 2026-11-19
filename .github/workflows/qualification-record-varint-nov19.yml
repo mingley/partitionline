@@ -1,0 +1,147 @@
+name: Record varint qualification
+on:
+  push:
+    branches: [qualification/record-varint-nov19]
+    paths:
+      - src/protocol/buf.rs
+      - benchmarks/codec/src/bin/record-varint-timing.rs
+      - benchmarks/codec/record-varint-compare.py
+      - .github/workflows/qualification-record-varint-nov19.yml
+permissions:
+  contents: read
+env:
+  BASE: 713c8a3d861a843bc1e6e229eecf53ce5632b3bf
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: never
+jobs:
+  correctness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Identity, format and strict lint
+        run: |
+          git rev-parse HEAD
+          git hash-object src/protocol/buf.rs
+          rustc -Vv
+          cargo fmt --all -- --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Varint boundaries, record encoding and Produce wire fixtures
+        env:
+          RUST_TEST_THREADS: '1'
+        run: |
+          cargo test --locked --lib protocol::buf::tests::
+          cargo test --locked --lib protocol::records::tests::
+          cargo test --locked --all-features --lib protocol::buf::tests::
+          cargo test --locked --all-features --lib protocol::records::tests::
+          cargo test --locked --all-features --test produce_wire_conformance produce_wire_committed_corpus -- --exact
+  allocations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Exact-source serial codec allocation guardrails
+        run: bash scripts/ci-alloc-budget.sh
+  timing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Measure separately built baseline and candidate
+        run: |
+          scratch="$RUNNER_TEMP/record-varint"
+          mkdir -p "$scratch/evidence"
+          (
+            git rev-parse HEAD
+            rustc -Vv
+            cargo -V
+            uname -sm
+            printf 'image=%s version=%s runner_arch=%s\n' "$ImageOS" "$ImageVersion" "$RUNNER_ARCH"
+            git worktree add --detach "$scratch/base" "$BASE"
+            test "$(git -C "$scratch/base" rev-parse HEAD)" = "$BASE"
+            git -C "$scratch/base" hash-object src/protocol/buf.rs
+            git hash-object src/protocol/buf.rs
+            git hash-object benchmarks/codec/src/bin/record-varint-timing.rs
+            git hash-object benchmarks/codec/record-varint-compare.py
+            cmp "$scratch/base/benchmarks/codec/Cargo.lock" benchmarks/codec/Cargo.lock
+            tool=benchmarks/codec/src/bin/record-varint-timing.rs
+            mkdir -p "$scratch/base/benchmarks/codec/src/bin"
+            cp "$tool" "$scratch/base/$tool"
+            CARGO_TARGET_DIR="$scratch/a" cargo build --locked --release --manifest-path "$scratch/base/benchmarks/codec/Cargo.toml" --features zstd --bin record-varint-timing
+            CARGO_TARGET_DIR="$scratch/b" cargo build --locked --release --manifest-path benchmarks/codec/Cargo.toml --features zstd --bin record-varint-timing
+            a="$scratch/a/release/record-varint-timing"
+            b="$scratch/b/release/record-varint-timing"
+            sha256sum "$a" "$b"
+            if cmp -s "$a" "$b"; then exit 1; fi
+            python3 -B benchmarks/codec/record-varint-compare.py "$a" "$b" "$scratch/evidence/pairs.jsonl"
+          ) 2>&1 | tee "$scratch/evidence/timing.log"
+      - name: Retain paired timings and exact build provenance
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: record-varint-timing
+          path: ${{ runner.temp }}/record-varint/evidence
+          if-no-files-found: error
+          retention-days: 30
+  instructions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install the existing codec counter
+        run: |
+          sudo apt-get update && sudo apt-get install -y valgrind
+          cargo install iai-callgrind-runner --version 0.14.2 --locked
+      - name: Measure the existing codec cases at both commits
+        run: |
+          scratch="$RUNNER_TEMP/record-varint-ir"
+          mkdir -p "$scratch/evidence"
+          git worktree add --detach "$scratch/base" "$BASE"
+          test "$(git -C "$scratch/base" rev-parse HEAD)" = "$BASE"
+          {
+            git rev-parse HEAD
+            git -C "$scratch/base" hash-object src/protocol/buf.rs
+            git hash-object src/protocol/buf.rs
+            rustc -Vv
+            valgrind --version
+            iai-callgrind-runner --version
+          } | tee "$scratch/evidence/identity.log"
+          CARGO_TARGET_DIR="$scratch/a" cargo bench --locked --manifest-path "$scratch/base/benchmarks/codec/Cargo.toml" --bench iai -- --allow-aslr --output-format=json >"$scratch/evidence/a.jsonl"
+          CARGO_TARGET_DIR="$scratch/b" cargo bench --locked --manifest-path benchmarks/codec/Cargo.toml --bench iai -- --allow-aslr --output-format=json >"$scratch/evidence/b.jsonl"
+          python3 scripts/ci-perf-gate-extract.py --self-test
+          python3 scripts/ci-perf-gate-extract.py "$scratch/evidence/a.jsonl" | tee "$scratch/evidence/a.tsv"
+          python3 scripts/ci-perf-gate-extract.py "$scratch/evidence/b.jsonl" | tee "$scratch/evidence/b.tsv"
+          python3 - "$scratch/evidence" <<'PY'
+          import pathlib, sys
+          evidence = pathlib.Path(sys.argv[1])
+          a, b = [dict(row.split("\t") for row in (evidence / f"{arm}.tsv").read_text().splitlines())
+                  for arm in ("a", "b")]
+          assert a.keys() == b.keys() and len(a) == 10
+          for name in sorted(a):
+              baseline, candidate = int(a[name]), int(b[name])
+              print(f"VARINT_IR {name} {baseline} {candidate} {(candidate / baseline - 1) * 100:+.4f}%")
+          PY
+      - name: Retain codec counter inputs and outputs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: record-varint-instructions
+          path: ${{ runner.temp }}/record-varint-ir/evidence
+          if-no-files-found: error
+          retention-days: 30
