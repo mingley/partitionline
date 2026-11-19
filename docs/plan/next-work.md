@@ -1,6 +1,6 @@
 # Next work
 
-Updated 18 November 2026. The [task registry](tasks.json) tracks status and
+Updated 19 November 2026. The [task registry](tasks.json) tracks status and
 dependencies. Use the latest stable Rust for validation.
 
 ## Qualification
@@ -10,13 +10,10 @@ companion are unpublished. Production readiness and x86_64 performance
 leadership remain open. See the [release record](../RELEASE.md) and
 [current validation](../STATUS.md#validation).
 
-The latest recorded `main` snapshot at `753a35b` passed the client, Kafka
-compatibility, package, and broker suites. The resource-soak job stopped
-because the OS denied process descriptor sampling. The preceding complete
-client run at `b41727f` passed the finite soak. That job covers a short run
-on one host. The later `b248dd2` snapshot passed the same finite soak, the current
-Kafka profiles and broker CI. The 24-hour fault and seven-day continuity
-campaigns remain open.
+Client and broker CI passed at `713c8a3`, including current Kafka
+interoperability, packaged consumers and the finite resource soak. The
+24-hour fault and seven-day continuity campaigns remain open. See the
+[validation results](../STATUS.md#validation).
 
 ## Priorities
 
@@ -123,7 +120,9 @@ campaigns remain open.
    Parsing and allocation remain synchronous, and the body limit is not an RSS
    or time bound. Earlier and adaptive variants remain experiments.
 
-5. **Performance.** Establish correctness before comparing throughput or
+5. **Performance.** The [x86_64 codec gate](../evidence/perf/codec-instructions-20261119/README.md)
+   checks ten instruction counts on the current stable Rust toolchain.
+   Establish correctness before comparing throughput or
    latency. The isolated [indexed Fetch experiment](../evidence/broker/fetch-indexed-vectored-20261109/README.md)
    and [producer sampling-harness repair](../evidence/perf/kafka-ack-sampling-20261109/README.md)
    remain unapplied and need their recorded qualification gaps resolved. The
