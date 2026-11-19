@@ -1,0 +1,33 @@
+name: Broker sync source pins
+on:
+  push:
+    branches: [qualification/broker-sync-source-pins-20261119]
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Reproduce stale Produce source checksum
+        run: |
+          git show HEAD^:tests/conformance/broker/implemented-api-versions.json > "$RUNNER_TEMP/stale.json"
+          git show HEAD^:scripts/check-broker-api-matrix.py > scripts/check-broker-api-matrix-old.py
+          if python3 -B scripts/check-broker-api-matrix-old.py --registry "$RUNNER_TEMP/stale.json" > "$RUNNER_TEMP/stale.log"; then
+            exit 1
+          fi
+          grep -F 'produce_source: profile source checksum mismatch' "$RUNNER_TEMP/stale.log"
+          rm scripts/check-broker-api-matrix-old.py
+      - name: Verify upstream inventory and both source checksums
+        run: |
+          git diff --check HEAD^ HEAD
+          sha256sum partitionline-broker/src/produce.rs partitionline-broker/src/produce/sync.rs
+          python3 -B scripts/check-broker-api-matrix.py --report target/broker-ci/api-matrix.json
+          python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v

@@ -572,9 +572,10 @@ class BrokerApiMatrix(unittest.TestCase):
             for invalid in (False, 0.0, -1, 99):
                 with self.subTest(profile=profile, invalid=invalid), self.assertRaises(ValueError):
                     self.implementation_mutation(lambda registry: registry[profile][0].__setitem__("min_version", invalid))
-        with self.assertRaisesRegex(ValueError, "profile source checksum"):
-            self.implementation_mutation(mutate_files=lambda root, registry:
-                (root / registry["produce_source"]).write_text("forged"))
+        for source in ("produce_source", "produce_sync_source"):
+            with self.subTest(source=source), self.assertRaisesRegex(ValueError, f"{source}: profile source checksum"):
+                self.implementation_mutation(mutate_files=lambda root, registry:
+                    (root / registry[source]).write_text("changed source"))
 
     def test_produce_report_missing_forged_bytes_outcomes_and_profiles_fail(self):
         for mutate in (
