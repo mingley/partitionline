@@ -626,12 +626,19 @@ pub fn get_varint<B: Buf>(buf: &mut B) -> Result<i32> {
     Ok(unzigzag_i32(get_unsigned_varint(buf)?))
 }
 
-/// Write `width` unsigned varint groups, with direct writes for short values.
+/// Write `width` unsigned varint groups.
 #[inline]
 fn put_unsigned_groups(buf: &mut BytesMut, v: u64, width: usize) {
     if width == 1 {
         buf.put_u8(u7_64(v));
-    } else if width == 2 {
+    } else {
+        put_multi_byte_unsigned_groups(buf, v, width);
+    }
+}
+
+#[inline(never)]
+fn put_multi_byte_unsigned_groups(buf: &mut BytesMut, v: u64, width: usize) {
+    if width == 2 {
         buf.extend_from_slice(&[u7_64(v) | 0x80, u7_64(v >> 7)]);
     } else if width == 3 {
         buf.extend_from_slice(&[u7_64(v) | 0x80, u7_64(v >> 7) | 0x80, u7_64(v >> 14)]);

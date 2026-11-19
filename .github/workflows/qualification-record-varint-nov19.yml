@@ -1,7 +1,7 @@
 name: Record varint qualification
 on:
   push:
-    branches: [qualification/record-varint-nov19]
+    branches: [qualification/record-tiny-guard-20261119]
     paths:
       - src/protocol/buf.rs
       - benchmarks/codec/src/bin/record-varint-timing.rs
@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 4
+          fetch-depth: 8
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
       - name: Measure separately built baseline and candidate
@@ -104,7 +104,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 4
+          fetch-depth: 8
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
       - name: Install the existing codec counter
