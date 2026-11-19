@@ -1,0 +1,61 @@
+name: Schema companion archive qualification
+
+on:
+  push:
+    branches: [qualification/schema-archive-20261119]
+
+permissions:
+  contents: read
+
+jobs:
+  previous-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 7ad99cc16b94be7ac67b478ef8006d2f7e86e254
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record earlier archive inventory
+        run: |
+          set -euo pipefail
+          mkdir -p target/schema-archive-before
+          git rev-parse HEAD > target/schema-archive-before/source.txt
+          rustc -Vv >> target/schema-archive-before/source.txt
+          cargo package --locked --no-verify --manifest-path partitionline-schema/Cargo.toml \
+            > target/schema-archive-before/package.log 2>&1
+          tar -tzf partitionline-schema/target/package/partitionline-schema-0.0.0.crate \
+            > target/schema-archive-before/archive-files.txt
+          for file in LICENSE-APACHE LICENSE-MIT NOTICE; do
+            if grep -Fx "partitionline-schema-0.0.0/$file" target/schema-archive-before/archive-files.txt; then
+              echo "The prior archive already included $file" >&2
+              exit 1
+            fi
+            echo "Missing archive entry $file"
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: schema-archive-before
+          path: target/schema-archive-before
+          if-no-files-found: error
+          retention-days: 30
+
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Verify archive, documentation and feature profiles
+        run: bash scripts/ci-schema-package.sh
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: schema-archive-after
+          path: target/schema-package
+          if-no-files-found: error
+          retention-days: 30

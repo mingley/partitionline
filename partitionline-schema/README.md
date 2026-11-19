@@ -62,7 +62,7 @@ limit.
 Clones of one client share a cache for that URL and those credentials. A
 second client has its own cache. `disabled()` turns completed caching off
 and keeps request coalescing. The client starts no background tasks.
-Hard maximums are in [the companion guide](../docs/schema-companion.md).
+Hard maximums are in [the companion guide](https://github.com/mingley/partitionline/blob/7ad99cc16b94be7ac67b478ef8006d2f7e86e254/docs/schema-companion.md).
 
 | Setting | Default |
 |---|---|
@@ -176,7 +176,7 @@ resolved values in both directions for a bounded profile of records, primitives,
 nullable unions and explicit references. The test bridge rejects truncated strings
 that the pinned Rust backend can otherwise convert to null. Schema/decode limits,
 reproduction commands and retained failures are in the
-[conformance evidence](../docs/evidence/conformance/avro-selected-codec/README.md).
+[conformance evidence](https://github.com/mingley/partitionline/blob/7ad99cc16b94be7ac67b478ef8006d2f7e86e254/docs/evidence/conformance/avro-selected-codec/README.md).
 This codec is a test dependency; applications still choose their serializer.
 
 ## Opt-in JSON Schema adapter
@@ -225,7 +225,7 @@ null, signed 32-bit integers, nullable record fields and exact URI references;
 missing resources, cycles, unsupported keywords and numeric spellings outside
 the profile fail explicitly. Defaults leave absent fields absent. Limits and
 reproduction commands are in the
-[conformance evidence](../docs/evidence/conformance/json-schema-selected-codec/README.md).
+[conformance evidence](https://github.com/mingley/partitionline/blob/7ad99cc16b94be7ac67b478ef8006d2f7e86e254/docs/evidence/conformance/json-schema-selected-codec/README.md).
 The validator is a test dependency; applications still supply their codec.
 
 ## Live registry check
@@ -250,10 +250,14 @@ plus bearer or basic credentials. It does not speak Kerberos to the
 registry. Live credential checks and a Kafka TLS round trip remain open.
 Pilot demand is
 [issue 85](https://github.com/mingley/partitionline/issues/85). The
-longer description is [the companion guide](../docs/schema-companion.md).
+longer description is [the companion guide](https://github.com/mingley/partitionline/blob/7ad99cc16b94be7ac67b478ef8006d2f7e86e254/docs/schema-companion.md).
 
 ```bash
 cargo test --manifest-path partitionline-schema/Cargo.toml
 cargo test --manifest-path partitionline-schema/Cargo.toml --features avro
 cargo test --manifest-path partitionline-schema/Cargo.toml --features json-schema
 ```
+
+From the repository root, `bash scripts/ci-schema-package.sh` checks the
+generated crate's license files and README links, then tests the extracted
+crate under default, all, and no default features.
