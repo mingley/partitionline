@@ -9,10 +9,10 @@ The [status page](../STATUS.md) records the source tested by each run.
 - Follow accepted records through sticky partition selection, grouping, encoding,
   transmission, retry, flush and close. Verify receipts, callback outcomes,
   partition order and reservation release with a real Kafka broker. Ambiguous
-  writes still need an ownership and producer-epoch policy. Bound the work
-  per poll for wide mixed-topic reservations. Both tested implementations
-  slowed representative smaller mixed batches.
-  [Reservation trials](../evidence/client/producer-group-reservation-20261119/chunked.md)
+  writes still need an ownership and producer-epoch policy. Mixed-topic
+  reservation now counts partition visits toward the per-poll budget.
+  Check the scheduling and throughput of wide batches against Kafka.
+  [Reservation trials](../evidence/client/producer-group-reservation-20261119/slot-replacement.md)
 - Expand the registered wire and live case matrix. Check negotiated versions,
   authentication renewal, group churn, transaction recovery and the independent
   consumer histories. The support matrix describes what is exercised today.
