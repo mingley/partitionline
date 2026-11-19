@@ -55,10 +55,10 @@ The 0.2.0 release came from its own tag.
   pairs in each direction, including the v10 timeout field. The retained
   corpus passed in the checkout and the packaged crate.
   [Wire checks](https://github.com/mingley/partitionline/blob/cb5bbece36d085de82d1ea856889a662c4aafe63/docs/evidence/conformance/q-conf-listoffsetswire/README.md)
-- The live Redpanda Registry check passed with default and all features.
-  It covered Avro lookup, exact and latest versions, named references,
-  cache refresh and a missing-subject error over plain HTTP.
-  [Registry check](https://github.com/mingley/partitionline/blob/5697254c9ca8f2dec88f7758e8b50868753295cc/docs/evidence/schema/registry-live-20261119/README.md)
+- Both Registry feature profiles passed live Redpanda lookup, caching and
+  reference checks. They also passed by-ID and pinned-version Avro lookups
+  over HTTPS with CA and hostname verification.
+  [Registry checks](https://github.com/mingley/partitionline/blob/552de2c3fc73e45250d66b32f92aad70324a3992/docs/evidence/schema/registry-tls-20261119/README.md)
 - The x86_64 codec gate measures ten instruction counts on stable Rust.
   Its self-test caught a 6.03% increase against the 1% limit. CI at
   `51a4d86` measured 920,136 LZ4 decode instructions against 903,610
@@ -78,9 +78,9 @@ The 0.2.0 release came from its own tag.
 The client needs more live compatibility and delivery histories. The broker
 still has an RF1 data path. Partition replication, native KRaft, transaction
 markers, Kafka wire quotas and process-wide bounds are open. The Schema
-Registry companion still needs live TLS and a Kafka round trip. The 24-hour
+Registry companion still needs live credential checks and a Kafka round trip. The 24-hour
 fault and seven-day continuity campaigns are open.
-[Support matrix](support.md) · [Work plan](https://github.com/mingley/partitionline/blob/da2f6217de83824fad70bb3cb23bd32f807c4dc5/docs/plan/next-work.md)
+[Support matrix](support.md) · [Work plan](https://github.com/mingley/partitionline/blob/552de2c3fc73e45250d66b32f92aad70324a3992/docs/plan/next-work.md)
 
 All 12 required client comparison cases remain `not_run` in the scenario
 registry. Controlled x86_64 client and broker comparisons and a separate
