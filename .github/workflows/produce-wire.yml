@@ -91,5 +91,6 @@ jobs:
             target/produce-wire/**/*.txt
             target/produce-wire/**/*.log
             target/produce-wire/**/*.json
+            target/produce-wire/**/*.java
           if-no-files-found: warn
           retention-days: 30

@@ -33,7 +33,10 @@ fn has_record_errors(version: i16) -> bool {
 }
 
 fn topic_ids() -> [(String, [u8; 16]); 2] {
-    [(TOPIC.into(), TOPIC_ID), (OTHER_TOPIC.into(), OTHER_TOPIC_ID)]
+    [
+        (TOPIC.into(), TOPIC_ID),
+        (OTHER_TOPIC.into(), OTHER_TOPIC_ID),
+    ]
 }
 
 fn request_partition(index: i32, version: i16) -> ProducePartitionData {
@@ -118,7 +121,11 @@ fn response(version: i16) -> (Vec<ProducePartitionResponse>, Vec<NodeEndpoint>, 
         parts.push(invalid);
     }
     if version == 13 {
-        parts.push(ProducePartitionResponse::partition_response(OTHER_TOPIC, 2, 100));
+        parts.push(ProducePartitionResponse::partition_response(
+            OTHER_TOPIC,
+            2,
+            100,
+        ));
     }
     let throttle = if matches!(version, 10 | 12) { 0 } else { 37 };
     (parts, endpoints, throttle)
@@ -141,7 +148,8 @@ fn encode_hex(bytes: &[u8]) -> String {
 
 fn verify_request(version: i16, mut input: &[u8]) -> Result<BytesMut, Box<dyn Error>> {
     let (txn, acks, timeout_ms, topics) = if version == 13 {
-        let (txn, acks, timeout_ms, topics, ids) = decode_produce_request_with_topic_ids(&mut input)?;
+        let (txn, acks, timeout_ms, topics, ids) =
+            decode_produce_request_with_topic_ids(&mut input)?;
         assert_eq!(ids, [TOPIC_ID, OTHER_TOPIC_ID], "v13 request topic IDs");
         (txn, acks, timeout_ms, topics)
     } else {
@@ -165,7 +173,10 @@ fn verify_request(version: i16, mut input: &[u8]) -> Result<BytesMut, Box<dyn Er
         assert_eq!(topic.partitions.len(), expected.partitions.len());
         for (part, expected_part) in topic.partitions.iter().zip(&expected.partitions) {
             assert_eq!(part.index, expected_part.index, "v{version} partition");
-            assert_eq!(part.records, expected_part.records, "v{version} record batch");
+            assert_eq!(
+                part.records, expected_part.records,
+                "v{version} record batch"
+            );
         }
     }
 
@@ -195,7 +206,8 @@ fn verify_request(version: i16, mut input: &[u8]) -> Result<BytesMut, Box<dyn Er
 fn verify_response(version: i16, mut input: &[u8]) -> Result<BytesMut, Box<dyn Error>> {
     let (parts, endpoints, throttle) = response(version);
     let (actual_parts, actual_endpoints, actual_throttle) = if version == 13 {
-        let (mut decoded, endpoints, throttle, ids) = decode_produce_response_with_topic_ids(&mut input)?;
+        let (mut decoded, endpoints, throttle, ids) =
+            decode_produce_response_with_topic_ids(&mut input)?;
         assert_eq!(
             ids,
             [TOPIC_ID, TOPIC_ID, TOPIC_ID, OTHER_TOPIC_ID],
@@ -211,7 +223,10 @@ fn verify_response(version: i16, mut input: &[u8]) -> Result<BytesMut, Box<dyn E
     };
     assert!(input.is_empty(), "unconsumed Produce response bytes");
     assert_eq!(actual_parts, parts, "v{version} partition responses differ");
-    assert_eq!(actual_endpoints, endpoints, "v{version} node endpoints differ");
+    assert_eq!(
+        actual_endpoints, endpoints,
+        "v{version} node endpoints differ"
+    );
     assert_eq!(actual_throttle, throttle, "v{version} throttle differs");
 
     let mut out = BytesMut::new();
@@ -231,7 +246,10 @@ fn verify_response(version: i16, mut input: &[u8]) -> Result<BytesMut, Box<dyn E
     Ok(out)
 }
 
-fn verify_corpus(text: &str, versions: impl IntoIterator<Item = i16>) -> Result<String, Box<dyn Error>> {
+fn verify_corpus(
+    text: &str,
+    versions: impl IntoIterator<Item = i16>,
+) -> Result<String, Box<dyn Error>> {
     assert!(
         text.len() <= 16_384,
         "Produce corpus exceeds fixture budget"
@@ -264,7 +282,8 @@ fn verify_corpus(text: &str, versions: impl IntoIterator<Item = i16>) -> Result<
 
 #[test]
 fn produce_wire_committed_corpus() -> Result<(), Box<dyn Error>> {
-    let corpus = include_str!("fixtures/produce_wire/apache-v3-through-v13.txt").replace("\r\n", "\n");
+    let corpus =
+        include_str!("fixtures/produce_wire/apache-v3-through-v13.txt").replace("\r\n", "\n");
     let (min, max) = ProduceRequest::builder(false);
     assert_eq!(verify_corpus(&corpus, min..=max)?, corpus);
     let legacy =
