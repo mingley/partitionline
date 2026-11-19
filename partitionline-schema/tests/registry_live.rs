@@ -49,7 +49,10 @@ fn curl_json(url: &str, body: Option<Value>) -> Value {
             &body.to_string(),
         ]);
     }
-    let response = curl.arg(url).output().expect("run curl against the fixture");
+    let response = curl
+        .arg(url)
+        .output()
+        .expect("run curl against the fixture");
     assert!(
         response.status.success(),
         "fixture request {url} failed ({})\n{}\n{}",
@@ -69,7 +72,9 @@ fn register(base: &str, subject: &str, schema: &Value, references: &[Value]) -> 
             "references": references,
         })),
     );
-    let id = response["id"].as_u64().expect("registration returned an ID");
+    let id = response["id"]
+        .as_u64()
+        .expect("registration returned an ID");
     let id = u32::try_from(id).expect("schema ID fits in u32");
     assert!(id > 0);
     id
@@ -139,7 +144,11 @@ async fn lookup_and_cache_against_redpanda() {
     assert_eq!(latest_v1.version, 1);
     assert_eq!(latest_v1.id, order_v1_id);
     assert_eq!(latest_v1.references, [reference]);
-    assert_avro(&latest_v1.schema, latest_v1.schema_type.as_deref(), &order_v1);
+    assert_avro(
+        &latest_v1.schema,
+        latest_v1.schema_type.as_deref(),
+        &order_v1,
+    );
     let pinned = client
         .get_schema_by_subject(ORDER_SUBJECT, SchemaVersion::Pinned(1))
         .await
@@ -167,7 +176,10 @@ async fn lookup_and_cache_against_redpanda() {
         std::slice::from_ref(&reference_json),
     );
     assert_ne!(order_v2_id, order_v1_id);
-    let live = curl_json(&format!("{base}/subjects/{ORDER_SUBJECT}/versions/latest"), None);
+    let live = curl_json(
+        &format!("{base}/subjects/{ORDER_SUBJECT}/versions/latest"),
+        None,
+    );
     assert_eq!(live["id"], order_v2_id);
     assert_eq!(live["version"], 2);
 
@@ -190,7 +202,11 @@ async fn lookup_and_cache_against_redpanda() {
     assert_eq!(latest_v2.version, 2);
     assert_eq!(latest_v2.id, order_v2_id);
     assert_eq!(latest_v2.references, latest_v1.references);
-    assert_avro(&latest_v2.schema, latest_v2.schema_type.as_deref(), &order_v2);
+    assert_avro(
+        &latest_v2.schema,
+        latest_v2.schema_type.as_deref(),
+        &order_v2,
+    );
     assert_eq!(
         client
             .get_schema_by_subject(ORDER_SUBJECT, SchemaVersion::Pinned(1))
