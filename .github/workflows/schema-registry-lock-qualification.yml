@@ -1,0 +1,27 @@
+name: Generate isolated live fixture lock
+
+on:
+  push:
+    branches: [qualification/schema-tls-roundtrip-20261119]
+    paths:
+      - partitionline-schema/tests/live-kafka/Cargo.toml
+      - .github/workflows/schema-registry-lock-qualification.yml
+
+permissions:
+  contents: read
+
+jobs:
+  lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - run: |
+          rustup update stable
+          rustc +stable --version --verbose
+          cargo +stable generate-lockfile --manifest-path partitionline-schema/tests/live-kafka/Cargo.toml
+          lock=partitionline-schema/tests/live-kafka/Cargo.lock
+          sha256sum "$lock"
+          sed 's/^/FIXTURE_LOCK |/' "$lock"

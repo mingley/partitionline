@@ -1,98 +1,25 @@
 #![cfg(feature = "registry")]
 
-use std::{env, process::Command, time::Duration};
+#[path = "support/live_registry.rs"]
+mod live_registry;
+
+use std::time::Duration;
+
+use live_registry::{assert_avro, RegistryFixture};
 
 use partitionline_schema::registry::{
-    RegistryCacheConfig, RegistryClient, RegistryClientConfig, RegistryError, SchemaReference,
-    SchemaVersion,
+    RegistryCacheConfig, RegistryClient, RegistryError, SchemaReference, SchemaVersion,
 };
-use serde_json::{json, Value};
+use serde_json::json;
 
 const ADDRESS_SUBJECT: &str = "pl-live-address";
 const ORDER_SUBJECT: &str = "pl-live-order";
 
-fn registry_url() -> String {
-    let url = env::var("PARTITIONLINE_REGISTRY_LIVE_URL").expect("set the loopback registry URL");
-    let port = url
-        .strip_prefix("http://127.0.0.1:")
-        .and_then(|port| port.parse::<u16>().ok())
-        .expect("use http://127.0.0.1:<port> for the isolated registry");
-    assert!(port > 0);
-    format!("http://127.0.0.1:{port}")
-}
-
-fn curl_json(url: &str, body: Option<Value>) -> Value {
-    let mut curl = Command::new("curl");
-    curl.args([
-        "--disable",
-        "--silent",
-        "--show-error",
-        "--fail-with-body",
-        "--noproxy",
-        "*",
-        "--proto",
-        "=http",
-        "--connect-timeout",
-        "2",
-        "--max-time",
-        "5",
-        "--max-filesize",
-        "65536",
-        "--header",
-        "Accept: application/vnd.schemaregistry.v1+json",
-    ]);
-    if let Some(body) = body {
-        curl.args([
-            "--header",
-            "Content-Type: application/vnd.schemaregistry.v1+json",
-            "--data-binary",
-            &body.to_string(),
-        ]);
-    }
-    let response = curl
-        .arg(url)
-        .output()
-        .expect("run curl against the fixture");
-    assert!(
-        response.status.success(),
-        "fixture request {url} failed ({})\n{}\n{}",
-        response.status,
-        String::from_utf8_lossy(&response.stderr),
-        String::from_utf8_lossy(&response.stdout)
-    );
-    serde_json::from_slice(&response.stdout).expect("JSON response from the fixture")
-}
-
-fn register(base: &str, subject: &str, schema: &Value, references: &[Value]) -> u32 {
-    let response = curl_json(
-        &format!("{base}/subjects/{subject}/versions"),
-        Some(json!({
-            "schema": schema.to_string(),
-            "schemaType": "AVRO",
-            "references": references,
-        })),
-    );
-    let id = response["id"]
-        .as_u64()
-        .expect("registration returned an ID");
-    let id = u32::try_from(id).expect("schema ID fits in u32");
-    assert!(id > 0);
-    id
-}
-
-fn assert_avro(schema: &str, schema_type: Option<&str>, expected: &Value) {
-    assert_eq!(schema_type.unwrap_or("AVRO"), "AVRO");
-    assert_eq!(
-        &serde_json::from_str::<Value>(schema).expect("Avro schema JSON"),
-        expected
-    );
-}
-
 #[tokio::test]
 #[ignore = "requires an empty loopback Schema Registry and curl"]
 async fn lookup_and_cache_against_redpanda() {
-    let base = registry_url();
-    assert_eq!(curl_json(&format!("{base}/subjects"), None), json!([]));
+    let fixture = RegistryFixture::from_env();
+    assert_eq!(fixture.request_json("/subjects", None), json!([]));
 
     let address = json!({
         "type": "record", "name": "Address",
@@ -114,9 +41,8 @@ async fn lookup_and_cache_against_redpanda() {
         version: 1,
     };
 
-    let address_id = register(&base, ADDRESS_SUBJECT, &address, &[]);
-    let order_v1_id = register(
-        &base,
+    let address_id = fixture.register(ADDRESS_SUBJECT, &address, &[]);
+    let order_v1_id = fixture.register(
         ORDER_SUBJECT,
         &order_v1,
         std::slice::from_ref(&reference_json),
@@ -129,13 +55,7 @@ async fn lookup_and_cache_against_redpanda() {
         latest_ttl,
         Duration::from_secs(1),
     );
-    let client = RegistryClient::new(
-        RegistryClientConfig::new(&base)
-            .request_timeout(Duration::from_secs(5))
-            .max_attempts(1)
-            .cache(cache),
-    )
-    .unwrap();
+    let client = RegistryClient::new(fixture.client_config().await.cache(cache)).unwrap();
     let latest_v1 = client
         .get_schema_by_subject(ORDER_SUBJECT, SchemaVersion::Latest)
         .await
@@ -169,15 +89,14 @@ async fn lookup_and_cache_against_redpanda() {
     assert!(resolved.references.is_empty());
     assert_avro(&resolved.schema, resolved.schema_type.as_deref(), &address);
 
-    let order_v2_id = register(
-        &base,
+    let order_v2_id = fixture.register(
         ORDER_SUBJECT,
         &order_v2,
         std::slice::from_ref(&reference_json),
     );
     assert_ne!(order_v2_id, order_v1_id);
-    let live = curl_json(
-        &format!("{base}/subjects/{ORDER_SUBJECT}/versions/latest"),
+    let live = fixture.request_json(
+        &format!("/subjects/{ORDER_SUBJECT}/versions/latest"),
         None,
     );
     assert_eq!(live["id"], order_v2_id);
@@ -228,4 +147,34 @@ async fn lookup_and_cache_against_redpanda() {
     println!(
         "Redpanda registry verified address id={address_id}, order v1 id={order_v1_id}, order v2 id={order_v2_id}, latest cache expiry and missing-subject error"
     );
+}
+
+#[tokio::test]
+#[ignore = "requires an isolated HTTPS Schema Registry, its CA PEM, and curl"]
+async fn lookup_over_tls_against_redpanda() {
+    const SUBJECT: &str = "pl-live-tls";
+
+    let fixture = RegistryFixture::from_env();
+    fixture.assert_https();
+    let expected = json!({
+        "type": "record", "name": "TlsEvent",
+        "fields": [{"name": "id", "type": "long"}],
+    });
+    let id = fixture.register(SUBJECT, &expected, &[]);
+    let client = RegistryClient::new(fixture.client_config().await).unwrap();
+
+    let version = client
+        .get_schema_by_subject(SUBJECT, SchemaVersion::Pinned(1))
+        .await
+        .unwrap();
+    assert_eq!(version.subject, SUBJECT);
+    assert_eq!(version.version, 1);
+    assert_eq!(version.id, id);
+    assert!(version.references.is_empty());
+    assert_avro(&version.schema, version.schema_type.as_deref(), &expected);
+    let by_id = client.get_schema_by_id(id).await.unwrap();
+    assert_eq!(by_id.id, id);
+    assert!(by_id.references.is_empty());
+    assert_avro(&by_id.schema, by_id.schema_type.as_deref(), &expected);
+    println!("Redpanda HTTPS registry verified localhost with the generated CA and schema id={id}, subject {SUBJECT} v1");
 }
