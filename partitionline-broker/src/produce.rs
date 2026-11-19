@@ -2140,9 +2140,27 @@ fn write_produce_response(
     }
     writer.i32(0)?;
     if flex {
-        writer.byte(0)?;
+        writer.put(&RESPONSE_TRAILER_TAGS)?;
     }
     Ok(Some(std::mem::take(&mut writer.bytes)))
+}
+
+// The supported flexible Produce responses emit an empty final tag block.
+const RESPONSE_TRAILER_TAGS: [u8; 1] = [0];
+
+/// Set the throttle slot in a response from `write_produce_response`.
+pub(crate) fn apply_throttle_ms(version: i16, response: &mut [u8], millis: i32) -> Option<()> {
+    let end = if version >= 9 {
+        response.strip_suffix(&RESPONSE_TRAILER_TAGS)?.len()
+    } else {
+        response.len()
+    };
+    let field = response.get_mut(end.checked_sub(4)?..end)?;
+    if *field != [0; 4] {
+        return None;
+    }
+    field.copy_from_slice(&millis.to_be_bytes());
+    Some(())
 }
 
 /// Empty sync list sized for every partition that can still be staged.

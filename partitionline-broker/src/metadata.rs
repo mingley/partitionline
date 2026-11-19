@@ -328,6 +328,10 @@ pub struct Router {
     wakeup: Weak<watch::Sender<()>>,
 }
 impl Router {
+    pub(crate) fn produce_request_limits(&self) -> Option<protocol::Limits> {
+        self.data.then_some(self.config.protocol_limits)
+    }
+
     /// Open/replay on a blocking actor; cancellation before startup drops it.
     pub async fn open(
         path: impl Into<PathBuf>,

@@ -143,17 +143,31 @@ limits retain at most 64 metadata positions and 1 MiB of source payload; the
 mode does not automatically prune that history. This mode does not run a
 replicated Kafka data plane or interoperate with Kafka KRaft.
 
-## Quota window
+## Produce pacing
 
-`quotas::Window` is an in-memory utility. It does not throttle listener
-traffic or encode Kafka responses.
+To pace Produce traffic on `operator serve`, add
+`--produce-quota 10485760:2097152:5000`. The three values set bytes per second,
+burst bytes, and the maximum pause in milliseconds. The cap can be 1–60,000 ms.
+Pacing is off unless configured.
 
-`quotas::Error::code()` now returns `None` for `Throttled`; earlier
-revisions returned `Some(89)`. Handle a local refusal according to the
-operation, rather than automatically sending a Kafka error. The
-`THROTTLING_QUOTA_EXCEEDED` constant remains 89 for APIs that define it.
-The broker crate is not published; users building from Git should update
-any code that relied on the earlier mapping.
+Add `--produce-quota-clients alpha,bravo` to give each listed client ID its own
+bucket with those settings. Connections with the same listed ID share a bucket.
+The remaining client IDs share one bucket. Client IDs are labels supplied by
+clients. Use this policy to pace cooperating clients.
+
+The listener charges the Produce request header and body. It reports the
+remaining pause in the Produce response and waits before serving the next
+request on that connection. With `acks=0`, it waits without sending a response.
+The cap bounds each pause, and the bucket retains excess debt. Rates are
+approximate with multiple active connections. Restarting the listener clears
+quota debt.
+
+This setting covers plaintext Produce only. Kafka's quota administration APIs,
+authenticated user quotas and wire quotas for Fetch and replication are pending.
+Embedded users can enable the same policy with
+`transport::Transport::bind_with_produce_quota`. The separate `quotas::Window`
+utility provides in-memory accounting for embedders. Its local refusal has no
+generic Kafka error code.
 
 ## File descriptors
 

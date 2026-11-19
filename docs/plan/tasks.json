@@ -9075,29 +9075,46 @@
       "validation": ["cargo test --locked --manifest-path partitionline-schema/Cargo.toml", "Inspect the companion feature/dependency tree and failure-message redaction."],
       "evidence": [
         {
-                "source_sha": "ebe9e0e26ad512dbe423f1191da16ff06b966f33",
-                "commands": [
-                        "cargo test --locked --manifest-path partitionline-schema/Cargo.toml (43 passed, exit 0)",
-                        "cargo test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features (4 passed, exit 0)",
-                        "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --lib (43 passed, MSRV, exit 0)",
-                        "cargo clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings (exit 0)",
-                        "bash scripts/check-schema-companion-scaffold.sh (exit 0)"
-                ],
-                "results": "Bounded read-only Schema Registry client in the companion only: get_schema_by_id, get_schema_by_subject, fetch_references over GET-only HTTP/1.1 (tokio+rustls, webpki roots or custom ca_pem, full hostname verification). Typed RegistryError, explicit timeout/retry/backoff bounds, redacted Debug/errors. 43 tests incl. TLS positive/negative, auth, rate-limit, malformed, and redaction cases; no-default-features core stays dep-free.",
-                "artifacts": [
-                        "partitionline-schema/src/registry.rs",
-                        "partitionline-schema/Cargo.toml",
-                        "partitionline-schema/Cargo.lock",
-                        "partitionline-schema/src/lib.rs",
-                        "docs/schema-companion.md",
-                        "docs/plan/evidence/KL05-23.json"
-                ],
-                "limits": [
-                        "No live Schema Registry exercised; loopback mock HTTP/TLS servers plus embedded private-CA fixtures only.",
-                        "Default webpki-roots path verified negatively (rejects private CA); no external PKI touched.",
-                        "cargo audit/deny not run on the companion lockfile (no such card gate); deps reuse core-cleared families, rustls 0.23.45 pinned.",
-                        "Sequential reference resolution, no caching/dedup, no redirects, no mTLS; ca_pem replaces (not unions) webpki roots."
-                ]
+          "source_sha": "ebe9e0e26ad512dbe423f1191da16ff06b966f33",
+          "commands": [
+            "cargo test --locked --manifest-path partitionline-schema/Cargo.toml (43 passed, exit 0)",
+            "cargo test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features (4 passed, exit 0)",
+            "cargo +1.85.0 test --locked --manifest-path partitionline-schema/Cargo.toml --lib (43 passed, MSRV, exit 0)",
+            "cargo clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings (exit 0)",
+            "bash scripts/check-schema-companion-scaffold.sh (exit 0)"
+          ],
+          "results": "Bounded read-only Schema Registry client in the companion only: get_schema_by_id, get_schema_by_subject, fetch_references over GET-only HTTP/1.1 (tokio+rustls, webpki roots or custom ca_pem, full hostname verification). Typed RegistryError, explicit timeout/retry/backoff bounds, redacted Debug/errors. 43 tests incl. TLS positive/negative, auth, rate-limit, malformed, and redaction cases; no-default-features core stays dep-free.",
+          "artifacts": [
+            "partitionline-schema/src/registry.rs",
+            "partitionline-schema/Cargo.toml",
+            "partitionline-schema/Cargo.lock",
+            "partitionline-schema/src/lib.rs",
+            "docs/schema-companion.md",
+            "docs/plan/evidence/KL05-23.json"
+          ],
+          "limits": [
+            "No live Schema Registry exercised; loopback mock HTTP/TLS servers plus embedded private-CA fixtures only.",
+            "Default webpki-roots path verified negatively (rejects private CA); no external PKI touched.",
+            "cargo audit/deny not run on the companion lockfile (no such card gate); deps reuse core-cleared families, rustls 0.23.45 pinned.",
+            "Sequential reference resolution, no caching/dedup, no redirects, no mTLS; ca_pem replaces (not unions) webpki roots."
+          ]
+        },
+        {
+          "source_sha": "9ae9536c98f11be3c5f58a1ae519a6d4e5dd15ca",
+          "commands": [
+            "Stable default and all-feature live Redpanda Registry checks",
+            "Stable all-feature isolated Avro Produce/Fetch fixture",
+            "Strict Clippy, Rustfmt, no-default and all-feature companion suites"
+          ],
+          "results": "Both feature profiles passed trusted HTTPS by-ID and pinned-version lookup. The all-feature fixture independently resolved the Avro schema and named reference over HTTPS, then verified the acks=all offset, exact stored frame and decoded nested value on pinned Redpanda 26.2.2. Cleanup completed.",
+          "artifacts": [
+            "docs/evidence/schema/registry-avro-roundtrip-20261119/README.md",
+            "https://github.com/mingley/partitionline/actions/runs/44635876530",
+            "https://github.com/mingley/partitionline/actions/runs/44635876449"
+          ],
+          "limits": [
+            "The Kafka listener is plaintext. Credentials, Kafka TLS and other format profiles have separate qualification work. The core client dependency is confined to the isolated fixture."
+          ]
         }
       ]
     },
@@ -33254,7 +33271,7 @@
       "status": "in_progress",
       "owner": "codex-goal-qualification-20261028",
       "previous_owner": "cursor-cloud",
-      "scope": "In-memory quota accounting is being repaired; Kafka wire throttling, durable administration and independent overload fairness remain open. Earlier evidence describes an in-memory foundation and does not satisfy the full deliverable.",
+      "scope": "Opt-in plaintext Produce pacing has exact-source tests and a pinned Apache Kafka v3/v6 comparison. Authenticated quotas, quota administration, Fetch and replication pacing, and sustained overload remain open.",
       "depends_on": [
         "KL11-02",
         "KL11-21"
@@ -33272,7 +33289,26 @@
         "Run the named behavioral/fault cases for this contract on latest stable Rust, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": ["docs/plan/evidence/KL11-22.json"]
+      "evidence": [
+        "docs/plan/evidence/KL11-22.json",
+        {
+          "source_sha": "b957d5b5f0817c187d7537cbbce843f80fe9c213",
+          "commands": [
+            "cargo test and strict Clippy under default/all-features on stable Rust",
+            "Pinned Apache Kafka 4.3.1 and candidate v3/v6 Produce pacing probe",
+            "Paired normal Produce benchmark with pacing disabled"
+          ],
+          "results": "826 default and 974 all-feature tests passed with four ignored per lane. All 55 inventory controls passed. The independent v3/v6 loopback probe exercised client-label pacing and shared debt. With pacing disabled, median throughput changes were +1.10%, −2.72%, −1.42%, and −1.26%. Every paired range included zero. The probe verified 122,496 record batches after restart.",
+          "artifacts": [
+            "docs/evidence/broker/plaintext-produce-pacing-20261119/README.md",
+            "https://github.com/mingley/partitionline/actions/runs/44635263910",
+            "https://github.com/mingley/partitionline/actions/runs/44635382413"
+          ],
+          "limits": [
+            "Plaintext RF1 Produce only. Authenticated quotas, quota administration, Fetch and replication pacing, and sustained overload remain open."
+          ]
+        }
+      ]
     },
     {
       "id": "KL11-23",

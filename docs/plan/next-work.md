@@ -25,7 +25,10 @@ The [status page](../STATUS.md) records the source tested by each run.
 ## Broker
 
 - Complete replicated partition data, high-watermark and min-ISR semantics,
-  native KRaft, transaction marker propagation and Kafka wire quotas.
+  native KRaft and transaction marker propagation.
+- Extend plaintext Produce pacing to authenticated quotas, Kafka quota
+  administration, Fetch and replication. Verify sustained overload.
+  [Produce pacing](../evidence/broker/plaintext-produce-pacing-20261119/README.md)
 - Verify process-wide bounds with real contention, overload, graceful shutdown,
   mixed-version upgrades, backup and restore. The benchmark plan depends on the
   same durability and security behavior for each peer.

@@ -1,0 +1,12 @@
+{"broker":"kafka-4.3.1","version":3,"client":"alpha","attempt":1,"offset":0,"throttle_ms":0,"rtt_ms":19.058}
+{"broker":"kafka-4.3.1","version":3,"client":"alpha","attempt":2,"offset":1,"throttle_ms":4694,"rtt_ms":4.002}
+{"broker":"kafka-4.3.1","version":3,"client":"bravo","first_offset":2,"second_offset":3,"first_throttle_ms":0,"second_throttle_ms":4698,"first_rtt_ms":1.779,"second_rtt_ms":1.593,"alpha_previous_throttle_ms":4694,"alpha_metadata_rtt_ms":4698.805}
+{"broker":"kafka-4.3.1","version":6,"client":"alpha","attempt":1,"offset":4,"throttle_ms":0,"rtt_ms":3.155}
+{"broker":"kafka-4.3.1","version":6,"client":"alpha","attempt":2,"offset":5,"throttle_ms":4698,"rtt_ms":2.15}
+{"broker":"kafka-4.3.1","version":6,"client":"bravo","first_offset":6,"second_offset":7,"first_throttle_ms":0,"second_throttle_ms":4698,"first_rtt_ms":1.809,"second_rtt_ms":1.607,"alpha_previous_throttle_ms":4698,"alpha_metadata_rtt_ms":4699.119}
+{"broker":"partitionline","version":3,"client":"alpha","attempt":1,"offset":0,"throttle_ms":0,"rtt_ms":1.627}
+{"broker":"partitionline","version":3,"client":"alpha","attempt":2,"offset":1,"throttle_ms":4698,"rtt_ms":0.581}
+{"broker":"partitionline","version":3,"client":"bravo","first_offset":2,"second_offset":3,"first_throttle_ms":0,"second_throttle_ms":4699,"first_rtt_ms":0.537,"second_rtt_ms":0.495,"alpha_previous_throttle_ms":4698,"alpha_metadata_rtt_ms":4700.295}
+{"broker":"partitionline","version":6,"client":"alpha","attempt":1,"offset":4,"throttle_ms":0,"rtt_ms":0.846}
+{"broker":"partitionline","version":6,"client":"alpha","attempt":2,"offset":5,"throttle_ms":4699,"rtt_ms":0.911}
+{"broker":"partitionline","version":6,"client":"bravo","first_offset":6,"second_offset":7,"first_throttle_ms":0,"second_throttle_ms":4699,"first_rtt_ms":0.603,"second_rtt_ms":0.487,"alpha_previous_throttle_ms":4699,"alpha_metadata_rtt_ms":4699.317}
