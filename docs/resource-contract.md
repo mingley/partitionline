@@ -20,9 +20,11 @@ allocation can be reused. Header vectors and strings shed spare capacity.
 Caller aliases and inputs awaiting admission remain caller-owned.
 
 A reservation follows the record through queueing, batching, transmission and
-retry. A failed admission releases its temporary reservation. Acknowledgment,
-terminal error and shutdown release accepted reservations once. Cancelling a
-caller future after admission does not remove the record from a worker.
+retry. Failed admission releases its temporary reservation. An acknowledgment
+or terminal error releases the accepted reservation. Canceling a caller future
+after admission leaves the record with the worker. If the worker is dropped
+during queue scanning or grouping, its pending and staged records go through
+the existing retry or shutdown handling.
 
 `try_send` success means accepted into the client. With `acks=0`, completion
 means the socket write finished. Neither establishes replicated durability.

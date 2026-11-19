@@ -7326,6 +7326,11 @@ struct Worker {
 
 #[derive(Default)]
 struct ProduceGroupScratch {
+    /// Accepted records remain in these collections, or in `buckets`,
+    /// whenever the grouping future yields.
+    grouping_input: VecDeque<Pending>,
+    grouping_output: Vec<(Arc<str>, i32, Vec<Pending>)>,
+    grouping_topic: VecDeque<(i32, Vec<Pending>)>,
     buckets: ProduceBuckets,
     /// First group index of each topic, in first-seen order.
     topics: Vec<usize>,
@@ -7361,6 +7366,37 @@ struct PendingParts {
 }
 
 type ProduceBuckets = HashMap<Arc<str>, PendingParts>;
+
+impl ProduceGroupScratch {
+    fn take_interrupted_batch(&mut self) -> Vec<Pending> {
+        if self.grouping_input.is_empty()
+            && self.grouping_output.is_empty()
+            && self.grouping_topic.is_empty()
+            && self.buckets.is_empty()
+        {
+            return Vec::new();
+        }
+
+        // Each partition's moved records precede its remaining input. A
+        // partition's moved list has exactly one owner: the output, the topic
+        // being assembled, or its bucket.
+        let mut pending = Vec::from(std::mem::take(&mut self.grouping_input));
+        let ungrouped = pending.len();
+        for (_, _, records) in self.grouping_output.drain(..) {
+            pending.extend(records);
+        }
+        for (_, records) in self.grouping_topic.drain(..) {
+            pending.extend(records);
+        }
+        for (_, parts) in self.buckets.drain() {
+            for (_, records) in parts.order {
+                pending.extend(records);
+            }
+        }
+        pending.rotate_left(ungrouped);
+        pending
+    }
+}
 
 #[derive(Default)]
 struct AckIndex {
@@ -7556,6 +7592,12 @@ impl Drop for Worker {
     fn drop(&mut self) {
         self.admission.close();
         self.data.close();
+        let interrupted = self.group_scratch.take_interrupted_batch();
+        if !interrupted.is_empty() {
+            let queued = self.pending.len();
+            self.pending.extend(interrupted);
+            self.pending.rotate_left(queued);
+        }
         while let Ok(p) = self.data.try_recv() {
             self.pending.push(p);
         }
@@ -9700,9 +9742,11 @@ async fn reserve_grouped_topic_counts(
     }
 }
 
+const PRODUCE_GROUP_WALK_CHUNK: usize = 8 * 1024;
+
 async fn pause_walk(walked: &mut usize) {
     *walked = walked.saturating_add(1);
-    if *walked == 8 * 1024 {
+    if *walked == PRODUCE_GROUP_WALK_CHUNK {
         *walked = 0;
         tokio::task::yield_now().await;
     }
@@ -9721,12 +9765,15 @@ async fn reserve_additional<T>(items: &mut Vec<T>, count: usize) {
 }
 
 async fn group_pending(
-    mut batch: Vec<Pending>,
+    batch: Vec<Pending>,
     scratch: &mut ProduceGroupScratch,
 ) -> (ProduceGroups, Vec<Pending>) {
-    if batch.is_empty() {
-        return (ProduceGroups::Empty, batch);
-    }
+    // The worker either awaits this operation to completion or drops and
+    // settles the unfinished grouping alongside its pending queue.
+    debug_assert!(scratch.grouping_input.is_empty());
+    debug_assert!(scratch.grouping_output.is_empty());
+    debug_assert!(scratch.grouping_topic.is_empty());
+    debug_assert!(scratch.buckets.is_empty());
     let (topic0, part0) = {
         let Some(first) = batch.first() else {
             return (ProduceGroups::Empty, batch);
@@ -9738,32 +9785,50 @@ async fn group_pending(
             .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
         (topic0, part0)
     };
-    let same_topic =
-        |topic: &Arc<str>| Arc::ptr_eq(topic, &topic0) || topic.as_ref() == topic0.as_ref();
-    // One pass classifies the batch. A second topic stops the scan; a single
-    // topic does not walk the records again just to learn that.
+    let same_topic = |pending: &Pending, one_partition: &mut bool| {
+        *one_partition &= pending.rec.partition == Some(part0);
+        let topic = &pending.rec.topic;
+        Arc::ptr_eq(topic, &topic0) || topic.as_ref() == topic0.as_ref()
+    };
+    // Classify the first bounded slice with the original allocation. A second
+    // topic stops the walk, and a small homogeneous batch returns directly.
     let mut one_partition = true;
-    let mut one_topic = true;
-    let mut walked = 0usize;
-    for pending in batch.iter().skip(1) {
-        if pending.rec.partition != Some(part0) {
-            one_partition = false;
+    let mut one_topic = batch
+        .iter()
+        .skip(1)
+        .take(PRODUCE_GROUP_WALK_CHUNK)
+        .all(|pending| same_topic(pending, &mut one_partition));
+    let needs_pause = batch.len() > PRODUCE_GROUP_WALK_CHUNK;
+    if !needs_pause && one_topic && one_partition {
+        return (ProduceGroups::One((topic0, part0, batch)), Vec::new());
+    }
+
+    scratch.grouping_input = batch.into();
+    if needs_pause && one_topic {
+        tokio::task::yield_now().await;
+        let mut walked = 0usize;
+        for pending in scratch
+            .grouping_input
+            .iter()
+            .skip(PRODUCE_GROUP_WALK_CHUNK + 1)
+        {
+            if !same_topic(pending, &mut one_partition) {
+                one_topic = false;
+                break;
+            }
+            pause_walk(&mut walked).await;
         }
-        if !same_topic(&pending.rec.topic) {
-            one_topic = false;
-            break;
-        }
-        pause_walk(&mut walked).await;
     }
     if one_partition && one_topic {
+        let batch = std::mem::take(&mut scratch.grouping_input).into();
         return (ProduceGroups::One((topic0, part0, batch)), Vec::new());
     }
     if one_topic {
-        let mut groups = take_group_shell(scratch);
+        let groups = take_group_shell(scratch);
         scratch.partition_slots.clear();
         scratch.partition_order.clear();
         let mut walked = 0usize;
-        for pending in &batch {
+        for pending in &scratch.grouping_input {
             let partition = pending
                 .rec
                 .partition
@@ -9776,25 +9841,31 @@ async fn group_pending(
             }
             pause_walk(&mut walked).await;
         }
-        groups = shell_one_topic_groups(&topic0, scratch, groups).await;
+        scratch.grouping_output = shell_one_topic_groups(&topic0, scratch, groups).await;
         let mut walked = 0usize;
-        for pending in batch.drain(..) {
+        while let Some(pending) = scratch.grouping_input.pop_front() {
             let partition = pending
                 .rec
                 .partition
                 .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
             let slot = scratch.partition_slots.get(&partition).copied();
-            if let Some((_, _, records)) = slot.and_then(|slot| groups.get_mut(slot)) {
+            if let Some((_, _, records)) =
+                slot.and_then(|slot| scratch.grouping_output.get_mut(slot))
+            {
                 records.push(pending);
             } else {
-                let slot = groups.len();
+                let slot = scratch.grouping_output.len();
                 let _inserted = scratch.partition_slots.insert(partition, slot);
                 let mut part = take_part_list(scratch);
                 part.push(pending);
-                groups.push((Arc::clone(&topic0), partition, part));
+                scratch
+                    .grouping_output
+                    .push((Arc::clone(&topic0), partition, part));
             }
             pause_walk(&mut walked).await;
         }
+        let groups = std::mem::take(&mut scratch.grouping_output);
+        let batch = std::mem::take(&mut scratch.grouping_input).into();
         return (ProduceGroups::Many(groups), batch);
     }
     let mut spare_parts = std::mem::take(&mut scratch.spare_parts);
@@ -9806,7 +9877,7 @@ async fn group_pending(
     {
         let buckets = &mut scratch.buckets;
         let mut walked = 0usize;
-        for pending in &batch {
+        for pending in &scratch.grouping_input {
             pause_walk(&mut walked).await;
             let partition = pending
                 .rec
@@ -9843,8 +9914,11 @@ async fn group_pending(
         }
         reserve_grouped_topic_counts(&order, buckets, &mut counts).await;
         let mut walked = 0usize;
-        for pending in batch.drain(..) {
+        while !scratch.grouping_input.is_empty() {
             pause_walk(&mut walked).await;
+            let Some(pending) = scratch.grouping_input.pop_front() else {
+                break;
+            };
             let partition = pending
                 .rec
                 .partition
@@ -9888,6 +9962,7 @@ async fn group_pending(
     scratch.spare_slots = spare_slots;
     scratch.spare_orders = spare_orders;
     let out = assemble_mixed_groups(scratch, order).await;
+    let batch = std::mem::take(&mut scratch.grouping_input).into();
     (ProduceGroups::from_vec(out), batch)
 }
 
@@ -9920,35 +9995,44 @@ async fn assemble_mixed_groups(
             tokio::task::yield_now().await;
         }
     }
-    let mut out = take_group_shell(scratch);
-    reserve_len(&mut out, total);
+    scratch.grouping_output = take_group_shell(scratch);
+    reserve_len(&mut scratch.grouping_output, total);
     walked = 0;
     for topic in order.drain(..) {
-        let Some(mut groups) = scratch.buckets.remove(topic.as_ref()) else {
+        let Some(PendingParts {
+            order: partitions,
+            mut slots,
+        }) = scratch.buckets.remove(topic.as_ref())
+        else {
             continue;
         };
-        for (partition, pending) in groups.order.drain(..) {
-            out.push((Arc::clone(&topic), partition, pending));
+        // Keep the unassembled partitions of this topic in worker storage
+        // across yields, along with the groups already moved to the output.
+        scratch.grouping_topic = partitions.into();
+        while let Some((partition, pending)) = scratch.grouping_topic.pop_front() {
+            scratch
+                .grouping_output
+                .push((Arc::clone(&topic), partition, pending));
             walked = walked.saturating_add(1);
             if walked == 2 * 1024 {
                 walked = 0;
                 tokio::task::yield_now().await;
             }
         }
-        groups.slots.clear();
+        slots.clear();
         if spare_slots.len() < 64 {
-            spare_slots.push(groups.slots);
+            spare_slots.push(slots);
         }
-        groups.order.clear();
+        let partitions = std::mem::take(&mut scratch.grouping_topic);
         if spare_orders.len() < 64 {
-            spare_orders.push(groups.order);
+            spare_orders.push(partitions.into());
         }
     }
     scratch.spare_parts = spare_parts;
     scratch.spare_slots = spare_slots;
     scratch.spare_orders = spare_orders;
     scratch.spare_topic_order = order;
-    out
+    std::mem::take(&mut scratch.grouping_output)
 }
 
 /// Partition groups for one Produce request.
@@ -15720,6 +15804,13 @@ mod tests {
     type DrainReceipts = Vec<oneshot::Receiver<Result<RecordMetadata>>>;
 
     async fn drain_pending_fixture(n: usize) -> (Worker, DrainReceipts) {
+        pending_worker_fixture(n, None).await
+    }
+
+    async fn pending_worker_fixture(
+        n: usize,
+        retry_tx: Option<mpsc::Sender<Pending>>,
+    ) -> (Worker, DrainReceipts) {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap().to_string();
         let meta = BrokerConn::connect(&addr, "drain-meta", Duration::from_secs(1))
@@ -15730,7 +15821,10 @@ mod tests {
             .await
             .unwrap();
         let (_worker_peer, _) = listener.accept().await.unwrap();
-        let shared = test_shared(ProducerConfig::default(), meta);
+        let mut shared = test_shared(ProducerConfig::default(), meta);
+        if let Some(retry_tx) = retry_tx {
+            Arc::get_mut(&mut shared).unwrap().retry_tx = retry_tx;
+        }
         let (_data, data_rx) = mpsc::channel(1);
         let (_ctrl, ctrl_rx) = mpsc::channel(1);
         let id = Arc::new(());
@@ -15848,6 +15942,166 @@ mod tests {
         // Removing only the earliest record makes the retained suffix the
         // first scan that can yield.
         check_cancelled_drain(1, 8_193).await;
+    }
+
+    #[derive(Clone, Copy)]
+    enum GroupingCancellation {
+        Classification,
+        SingleTopicScatter,
+        MixedScatter,
+        Assembly,
+    }
+
+    async fn cancel_pending_grouping(worker: &mut Worker, stage: GroupingCancellation) {
+        use std::task::Poll;
+
+        let topic: Arc<str> = Arc::from("grouping-fixture");
+        let other: Arc<str> = Arc::from("grouping-other");
+        let (selected, polls) = match stage {
+            GroupingCancellation::Classification => (8_193, 1),
+            GroupingCancellation::SingleTopicScatter => (8_193, 3),
+            GroupingCancellation::MixedScatter => (8_193, 2),
+            GroupingCancellation::Assembly => (2_051, 1),
+        };
+        for (i, pending) in worker.pending.iter_mut().enumerate() {
+            let (other_topic, partition) = match stage {
+                GroupingCancellation::Classification => (false, 0),
+                GroupingCancellation::SingleTopicScatter => (false, i % 2),
+                GroupingCancellation::MixedScatter => (!i.is_multiple_of(2), i % 3),
+                // 2,050 partitions in the first topic and one in the second.
+                // Assembly yields with both its output and its active topic populated.
+                GroupingCancellation::Assembly => (i == 1, i),
+            };
+            pending.rec.topic = if other_topic {
+                Arc::clone(&other)
+            } else {
+                Arc::clone(&topic)
+            };
+            pending.rec.partition = Some(i32::try_from(partition).unwrap());
+            pending.rec.timestamp = Some(i64::try_from(i).unwrap());
+        }
+        worker.pending_estimate = worker.pending.iter().map(estimate).sum();
+        let batch = worker.drain_pending(selected).await;
+        let mut grouping = Box::pin(group_pending(batch, &mut worker.group_scratch));
+        for _ in 0..polls {
+            let state = std::future::poll_fn(|cx| Poll::Ready(grouping.as_mut().poll(cx))).await;
+            assert!(
+                state.is_pending(),
+                "grouping did not reach the chosen yield"
+            );
+        }
+        drop(grouping);
+    }
+
+    fn assert_grouping_receipts_pending(
+        receivers: &mut [oneshot::Receiver<Result<RecordMetadata>>],
+    ) {
+        for receiver in receivers {
+            assert!(
+                matches!(
+                    receiver.try_recv(),
+                    Err(oneshot::error::TryRecvError::Empty)
+                ),
+                "dropping grouping closed a pending receipt"
+            );
+        }
+    }
+
+    async fn check_grouping_cancellation(stage: GroupingCancellation) {
+        let total = match stage {
+            GroupingCancellation::Assembly => 2_055,
+            _ => 8_197,
+        };
+        let (mut worker, mut receivers) = drain_pending_fixture(total).await;
+        let shared = Arc::clone(&worker.shared);
+        let budget = Arc::new(StickyRecordBudget::new(total));
+        for (i, record) in worker.pending.iter_mut().enumerate() {
+            record.sticky_record = Some(budget.acquire().unwrap());
+            record.retry = u32::from(i.is_multiple_of(3));
+        }
+        let charge = shared.buffered_bytes.load(Ordering::SeqCst);
+
+        cancel_pending_grouping(&mut worker, stage).await;
+        assert_grouping_receipts_pending(&mut receivers);
+        assert_eq!(budget.used.load(Ordering::SeqCst), total);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), charge);
+        drop(worker);
+
+        for (i, receiver) in receivers.iter_mut().enumerate() {
+            let result = receiver.try_recv();
+            if i.is_multiple_of(3) {
+                assert!(matches!(result, Ok(Err(Error::Timeout))));
+            } else {
+                assert!(matches!(result, Ok(Err(Error::Closed))));
+            }
+        }
+        assert_eq!(budget.used.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert_eq!(shared.m_errors.load(Ordering::SeqCst), charge);
+        assert_eq!(shared.live_workers.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_cancellation_classification() {
+        check_grouping_cancellation(GroupingCancellation::Classification).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_cancellation_single_topic_scatter() {
+        check_grouping_cancellation(GroupingCancellation::SingleTopicScatter).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_cancellation_mixed_scatter() {
+        check_grouping_cancellation(GroupingCancellation::MixedScatter).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_cancellation_assembly() {
+        check_grouping_cancellation(GroupingCancellation::Assembly).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_cancellation_retry_fifo() {
+        let total = 8_197;
+        let (retry_tx, mut retry_rx) = mpsc::channel(total);
+        let (mut worker, mut receivers) = pending_worker_fixture(total, Some(retry_tx)).await;
+        let shared = Arc::clone(&worker.shared);
+        shared.closed.store(false, Ordering::SeqCst);
+        let charge = shared.buffered_bytes.load(Ordering::SeqCst);
+
+        cancel_pending_grouping(&mut worker, GroupingCancellation::MixedScatter).await;
+        assert_grouping_receipts_pending(&mut receivers);
+        drop(worker);
+        assert_grouping_receipts_pending(&mut receivers);
+        assert_eq!(shared.retries_out.load(Ordering::SeqCst), total);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), charge);
+
+        let mut seen = vec![false; total];
+        let mut last = HashMap::new();
+        let mut recovered = Vec::with_capacity(total);
+        for _ in 0..total {
+            let pending = retry_rx.try_recv().unwrap();
+            let index = usize::try_from(pending.rec.timestamp.unwrap()).unwrap();
+            assert!(!std::mem::replace(&mut seen[index], true));
+            let key = (
+                Arc::clone(&pending.rec.topic),
+                pending.rec.partition.unwrap(),
+            );
+            if let Some(previous) = last.insert(key, index) {
+                assert!(previous < index, "records reordered inside a partition");
+            }
+            assert_eq!(pending.retry, 1);
+            recovered.push(pending);
+        }
+        assert!(retry_rx.try_recv().is_err());
+        assert!(seen.into_iter().all(|seen| seen));
+        shared.retries_out.store(0, Ordering::SeqCst);
+        fail_pendings(&shared, recovered, Error::Closed);
+        assert_eq!(shared.buffered_bytes.load(Ordering::SeqCst), 0);
+        assert!(receivers
+            .iter_mut()
+            .all(|rx| matches!(rx.try_recv(), Ok(Err(Error::Closed)))));
     }
 
     #[tokio::test(flavor = "current_thread")]
