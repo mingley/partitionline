@@ -51964,6 +51964,24 @@
             "Selected uncompressed bodies only. Broader option coverage, negotiation, compressed batches, transactional v2, retries and live Kafka behavior remain open. This card's status remains pending.",
             "Packaging used --no-verify followed by targeted fixture tests."
           ]
+        },
+        {
+          "source_sha": "a378c4c03f453087f39ceddb46c8a635c183ef2d",
+          "commands": [
+            "Pinned Apache Produce body generation and validation under stable default/all features",
+            "Same corpus in checkout and extracted cargo package --locked --no-verify",
+            "cargo fmt and strict test Clippy"
+          ],
+          "results": "Five authentic Apache SDKs checked 106 pairs per direction across both Rust profiles. Four peers checked v3–v13, while 3.9.1 checked v3–v11. The complete corpus SHA-256 is fc165b845ee9c527f1fcdc48606b0e92e2ea75d63164369d84772dc806bbdeb1. The old four-version bytes matched. Both languages rejected the altered v4 throttle. The first full run caught eight formatting differences.",
+          "artifacts": [
+            "docs/evidence/conformance/q-conf-producewire/all-supported-versions-20261119.md",
+            "https://github.com/mingley/partitionline/actions/runs/44636092080",
+            "https://github.com/mingley/partitionline/actions/runs/44635263726",
+            "https://github.com/mingley/partitionline/actions/runs/44636092080/artifacts/14583913097"
+          ],
+          "limits": [
+            "One selected valid uncompressed body per shared version. Full upstream applicability, compression, negotiation and live transaction behavior remain open."
+          ]
         }
       ],
       "write_set": [

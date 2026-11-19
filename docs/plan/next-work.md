@@ -15,7 +15,8 @@ The [status page](../STATUS.md) records the source tested by each run.
   reservation now counts partition visits toward the per-poll budget.
   Check the scheduling and throughput of wide batches against Kafka.
   [Reservation trials](../evidence/client/producer-group-reservation-20261119/slot-replacement.md)
-- Expand the registered wire and live case matrix. Check negotiated versions,
+- Expand the registered wire and live case matrix beyond the selected Produce
+  and ListOffsets bodies. Check negotiated versions,
   authentication renewal, group churn, transaction recovery and the independent
   consumer histories. The support matrix describes what is exercised today.
   [Support matrix](../support.md) · [Client capabilities](../gaps.md)

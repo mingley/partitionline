@@ -2,7 +2,7 @@ name: Apache Produce wire
 on:
   workflow_dispatch:
   push:
-    branches: [main, qualification/produce-wire-20261118]
+    branches: [main]
     paths:
       - 'src/protocol/**'
       - 'src/error.rs'
@@ -48,13 +48,17 @@ jobs:
       - name: Record source and toolchain
         run: |
           git rev-parse HEAD
-          rustc --version
+          rustc +stable -Vv
           java -version
-          sha256sum tests/conformance/java/ConformanceProduceWire.java tests/conformance/java/generate_produce_wire.py tests/produce_wire_conformance.rs tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt
+          sha256sum tests/conformance/java/ConformanceProduceWire.java tests/conformance/java/generate_produce_wire.py tests/produce_wire_conformance.rs tests/fixtures/produce_wire/*.txt
       - name: Compare Apache and Rust Produce bodies
         run: timeout 900s python3 -B tests/conformance/java/generate_produce_wire.py --output target/produce-wire
       - name: Match the committed Apache corpus
-        run: cmp target/produce-wire/4.1.0/apache.txt tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt
+        run: |
+          generated=target/produce-wire/4.1.0/apache.txt
+          cmp "$generated" tests/fixtures/produce_wire/apache-v3-through-v13.txt
+          awk '$1 == 4 || $1 == 6 || $1 == 7 || $1 == 12' "$generated" |
+            cmp tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt -
       - name: Offline corpus in the checkout
         run: |
           cargo test --locked --test produce_wire_conformance produce_wire_committed_corpus -- --exact
@@ -69,6 +73,7 @@ jobs:
           tar -xzf "target/package/$crate_stem.crate" -C "$package_dir"
           manifest="$package_dir/$crate_stem/Cargo.toml"
           test -f "$package_dir/$crate_stem/tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt"
+          test -f "$package_dir/$crate_stem/tests/fixtures/produce_wire/apache-v3-through-v13.txt"
           CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --manifest-path "$manifest" --test produce_wire_conformance produce_wire_committed_corpus -- --exact
           CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --all-features --manifest-path "$manifest" --test produce_wire_conformance produce_wire_committed_corpus -- --exact
       - name: Check formatting
@@ -86,5 +91,6 @@ jobs:
             target/produce-wire/**/*.txt
             target/produce-wire/**/*.log
             target/produce-wire/**/*.json
+            target/produce-wire/**/*.java
           if-no-files-found: warn
           retention-days: 30
