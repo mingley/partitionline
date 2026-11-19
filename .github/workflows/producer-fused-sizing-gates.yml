@@ -1,0 +1,138 @@
+name: Producer fused sizing wire and gates
+on:
+  push:
+    branches: [qualification/producer-fused-sizing-fmt-20261119]
+    paths:
+      - .github/workflows/producer-fused-sizing-gates.yml
+permissions:
+  contents: read
+jobs:
+  ordinary-mock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check ordinary Produce against the mock broker
+        env:
+          FUSION_FEATURES: ${{ matrix.features }}
+        shell: bash
+        run: |
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD:src/producer.rs)" = "0f6b6a8f892e0ea72e56b7674ce8a758a8cd4080"
+          rustc -Vv
+          features=()
+          if [ "$FUSION_FEATURES" = all ]; then features=(--all-features); fi
+          cargo test --locked "${features[@]}" --test mock_produce produce_one_record_against_mock -- --exact
+          cargo test --locked "${features[@]}" --test mock_produce send_all_produces_known_topics_while_loading_metadata -- --exact
+  instruction-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Bind the producer and unchanged instruction gate
+        run: |
+          test "$(uname -m)" = x86_64
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD:src/producer.rs)" = "0f6b6a8f892e0ea72e56b7674ce8a758a8cd4080"
+          test "$(git rev-parse HEAD:benchmarks/codec/perf-baseline.json)" = "7798aa9cefab619bd3d6cad4326e799aaa03858e"
+          test "$(git rev-parse HEAD:scripts/ci-perf-gate.sh)" = "ccc16f656c3a81286694942bb8c9fef21c040ca3"
+          rustc -Vv
+      - run: sudo apt-get update && sudo apt-get install -y valgrind
+      - run: cargo install iai-callgrind-runner --version 0.14.2 --locked
+      - name: Check the frozen instruction counts
+        run: bash scripts/ci-perf-gate.sh
+  alloc-budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Bind the producer and unchanged allocation gate
+        run: |
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD:src/producer.rs)" = "0f6b6a8f892e0ea72e56b7674ce8a758a8cd4080"
+          test "$(git rev-parse HEAD:scripts/ci-alloc-budget.sh)" = "faab180e28451cab47636b4c7cabed57111cbfec"
+      - name: Allocation gate failure-preservation tests
+        run: python3 -B -m unittest discover -s tests/ci -p test_alloc_gate.py
+      - name: Both serial allocation census tests (unchanged budgets)
+        run: bash scripts/ci-alloc-budget.sh
+      - name: Retain compiler identity and complete allocation failure
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: alloc-budget-${{ github.sha }}
+          path: artifacts/alloc-budget/
+          if-no-files-found: error
+          retention-days: 30
+
+  wire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Record source and toolchain
+        run: |
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD:src/producer.rs)" = "0f6b6a8f892e0ea72e56b7674ce8a758a8cd4080"
+          rustc +stable -Vv
+          java -version
+          sha256sum tests/conformance/java/ConformanceProduceWire.java tests/conformance/java/generate_produce_wire.py tests/produce_wire_conformance.rs tests/fixtures/produce_wire/*.txt
+      - name: Compare Apache and Rust Produce bodies
+        run: timeout 900s python3 -B tests/conformance/java/generate_produce_wire.py --output target/produce-wire
+      - name: Match the committed Apache corpus
+        run: |
+          generated=target/produce-wire/4.1.0/apache.txt
+          cmp "$generated" tests/fixtures/produce_wire/apache-v3-through-v13.txt
+          awk '$1 == 4 || $1 == 6 || $1 == 7 || $1 == 12' "$generated" |
+            cmp tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt -
+      - name: Offline corpus in the checkout
+        run: |
+          cargo test --locked --test produce_wire_conformance produce_wire_committed_corpus -- --exact
+          cargo test --locked --all-features --test produce_wire_conformance produce_wire_committed_corpus -- --exact
+      - name: Offline corpus in the packaged crate
+        run: |
+          test -z "$(git status --porcelain)"
+          cargo package --locked --no-verify
+          crate_stem=$(python3 -c 'import tomllib; p=tomllib.load(open("Cargo.toml","rb"))["package"]; print(p["name"]+"-"+p["version"])')
+          package_dir="$RUNNER_TEMP/produce-wire-package"
+          mkdir -p "$package_dir"
+          tar -xzf "target/package/$crate_stem.crate" -C "$package_dir"
+          manifest="$package_dir/$crate_stem/Cargo.toml"
+          test -f "$package_dir/$crate_stem/tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt"
+          test -f "$package_dir/$crate_stem/tests/fixtures/produce_wire/apache-v3-through-v13.txt"
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --manifest-path "$manifest" --test produce_wire_conformance produce_wire_committed_corpus -- --exact
+          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --all-features --manifest-path "$manifest" --test produce_wire_conformance produce_wire_committed_corpus -- --exact
+      - name: Check formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Strict test lint
+        if: always()
+        run: cargo clippy --locked --all-features --test produce_wire_conformance -- -D warnings
+      - name: Retain fixtures and process receipts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: produce-wire-${{ github.sha }}
+          path: |
+            target/produce-wire/**/*.txt
+            target/produce-wire/**/*.log
+            target/produce-wire/**/*.json
+            target/produce-wire/**/*.java
+          if-no-files-found: warn
+          retention-days: 30
