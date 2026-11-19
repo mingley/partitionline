@@ -1,0 +1,93 @@
+name: Codec LZ4 instruction attribution
+on:
+  push:
+    branches: [qualification/record-lz4-count-20261119]
+    paths:
+      - .github/workflows/qualification-record-lz4-count-20261119.yml
+permissions:
+  contents: read
+jobs:
+  lz4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    defaults:
+      run:
+        shell: bash
+    env:
+      BASE: 713c8a3d861a843bc1e6e229eecf53ce5632b3bf
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 8
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record measurement tooling
+        run: |
+          git rev-parse HEAD
+          git hash-object src/protocol/buf.rs
+          rustc -Vv
+          test "$(uname -m)" = x86_64
+          sudo apt-get update && sudo apt-get install -y valgrind
+          cargo install iai-callgrind-runner --version 0.14.2 --locked
+          valgrind --version
+      - name: Compare the unchanged benchmark and its LZ4 setup bytes
+        run: |
+          scratch="$RUNNER_TEMP/record-lz4-count"
+          evidence="$scratch/evidence"
+          mkdir -p "$evidence"
+          git worktree add --detach "$scratch/base" "$BASE"
+          test "$(git -C "$scratch/base" rev-parse HEAD)" = "$BASE"
+          cmp "$scratch/base/benchmarks/codec/Cargo.lock" benchmarks/codec/Cargo.lock
+          cmp "$scratch/base/benchmarks/codec/benches/iai.rs" benchmarks/codec/benches/iai.rs
+          cat >"$scratch/lz4-fixture-identity.rs" <<'RUST'
+          use bytes::{Bytes, BytesMut};
+          use codec::{build_records, compressed_batch};
+          use partitionline::protocol::records::{decode_record_batch, encode_record_batch, Compression};
+          use sha2::{Digest, Sha256};
+
+          fn main() {
+              let batch = compressed_batch(
+                  build_records(0xC0DEC, 500, 16, 100, "text", 0),
+                  Compression::Lz4,
+              );
+              let mut wire = BytesMut::new();
+              encode_record_batch(&mut wire, &batch).expect("encode LZ4 fixture");
+              let mut decode = Bytes::copy_from_slice(&wire);
+              assert_eq!(decode_record_batch(&mut decode).expect("decode LZ4 fixture"), batch);
+              assert!(decode.is_empty());
+              println!("{:x} {}", Sha256::digest(&wire), wire.len());
+          }
+          RUST
+          for arm in baseline candidate; do
+            root="$GITHUB_WORKSPACE"
+            if [[ "$arm" == baseline ]]; then
+              root="$scratch/base"
+            fi
+            export CARGO_TARGET_DIR="$scratch/$arm"
+            manifest="$root/benchmarks/codec/Cargo.toml"
+            cargo bench --locked --manifest-path "$manifest" --bench iai -- \
+              --allow-aslr --output-format=json >"$evidence/$arm.jsonl"
+            python3 scripts/ci-perf-gate-extract.py "$evidence/$arm.jsonl" >"$evidence/$arm.tsv"
+            mkdir -p "$root/benchmarks/codec/src/bin"
+            cp "$scratch/lz4-fixture-identity.rs" "$root/benchmarks/codec/src/bin/lz4-fixture-identity.rs"
+            cargo run --quiet --locked --release --manifest-path "$manifest" --bin lz4-fixture-identity \
+              | tee "$evidence/$arm-fixture.sha256"
+            mapfile -t captures < <(rg --files "$CARGO_TARGET_DIR/iai" -g 'callgrind.*' \
+              | rg 'iai_decompress_lz4|decompress_lz4')
+            test "${#captures[@]}" -eq 1
+            callgrind_annotate --show=Ir --threshold=99 --auto=no \
+              "${captures[0]}" >"$evidence/$arm-annotated.txt"
+            rg '^iai_decompress_lz4/text' "$evidence/$arm.tsv"
+            sed -n '1,55p' "$evidence/$arm-annotated.txt"
+          done
+          cmp "$evidence/baseline-fixture.sha256" "$evidence/candidate-fixture.sha256"
+      - name: Retain source and attribution evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: record-lz4-count
+          path: ${{ runner.temp }}/record-lz4-count/evidence
+          if-no-files-found: error
+          retention-days: 30
