@@ -1,0 +1,130 @@
+name: Producer fused sizing timing
+
+on:
+  push:
+    branches: [qualification/producer-fused-sizing-20261119]
+    paths:
+      - .github/workflows/producer-fused-sizing-timing.yml
+      - src/producer.rs
+
+permissions:
+  contents: read
+
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 12
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Attach an identical diagnostic to both exact sources
+        shell: bash
+        run: |
+          rustc -Vv
+          git rev-parse HEAD
+          git worktree add --detach "$RUNNER_TEMP/grouping-baseline" 7ad99cc16b94be7ac67b478ef8006d2f7e86e254
+          git worktree add --detach "$RUNNER_TEMP/grouping-candidate" b603b5db83b182f4ce18c34977cf0e3b88050b51
+          python3 -B - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          import subprocess
+
+          root = Path(os.environ["RUNNER_TEMP"])
+          diag = Path("docs/evidence/client/producer-fused-sizing-20261119/timing.rs.txt").read_bytes()
+          marker = b"#[cfg(test)]\nmod tests {"
+          anchor = (
+              b'    #[tokio::test(flavor = "current_thread")]\n'
+              b"    async fn timestamp_freezing_at_existing_encode_yields() {"
+          )
+          new_test = (
+              b'    #[tokio::test(flavor = "current_thread")]\n'
+              b"    async fn ordinary_produce_keeps_timestamp_bounds_on_reencode() {"
+          )
+          after_test = b"    #[test]\n    fn an_uncompressed_produce_sizes_its_batch_once() {"
+          pinned = {"baseline": "bc015178dada0a49c466d4d3b815434687e779ac", "candidate": "41c22d7d53b2c31a9397d2361d4833c2f0d04241"}
+          test_modules = []
+          build_files = {}
+          for arm, expected in pinned.items():
+              work = root / f"grouping-{arm}"
+              source = work / "src/producer.rs"
+              blob = subprocess.check_output(["git", "hash-object", source], text=True).strip()
+              if blob != expected:
+                  raise ValueError(f"unexpected release input for {arm}")
+              original = source.read_bytes()
+              if original.count(marker) != 1 or original.count(anchor) != 1:
+                  raise ValueError("expected one test module and one diagnostic anchor")
+              production = original.split(marker, 1)[0]
+              if arm == "candidate":
+                  if original.count(new_test) != 1 or original.count(after_test) != 1:
+                      raise ValueError("expected one new unit test")
+                  original = original[:original.index(new_test)] + original[original.index(after_test):]
+              instrumented = original.replace(anchor, diag + anchor, 1)
+              prefix, tests = instrumented.split(marker, 1)
+              if prefix != production:
+                  raise ValueError("diagnostic changed the production prefix")
+              test_modules.append(tests)
+              source.write_bytes(instrumented)
+              print(f"SIZING_SOURCE arm={arm} blob={blob} "
+                    f"instrumented_sha256={hashlib.sha256(instrumented).hexdigest()} "
+                    f"production_sha256={hashlib.sha256(production).hexdigest()}")
+              build_files[arm] = [(work / name).read_bytes() for name in ("Cargo.toml", "Cargo.lock")]
+          if test_modules[0] != test_modules[1] or build_files["baseline"] != build_files["candidate"]:
+              raise ValueError("paired inputs differ outside of the production change")
+          for name, data in zip(("Cargo.toml", "Cargo.lock"), build_files["baseline"]):
+              print(f"SIZING_BUILD_FILE {name} sha256={hashlib.sha256(data).hexdigest()}")
+          PY
+      - name: Build release test binaries in separate targets
+        shell: bash
+        run: |
+          for arm in baseline candidate; do
+            (
+              cd "$RUNNER_TEMP/grouping-$arm"
+              export CARGO_TARGET_DIR="$RUNNER_TEMP/grouping-$arm-target"
+              if ! cargo test --locked --release --lib --features zstd --no-run --message-format=json > "$RUNNER_TEMP/grouping-$arm-build.jsonl"; then
+                python3 -B - "$RUNNER_TEMP/grouping-$arm-build.jsonl" <<'DIAGNOSTICS'
+          import json
+          import sys
+          from pathlib import Path
+
+          for line in Path(sys.argv[1]).read_text().splitlines():
+              row = json.loads(line)
+              if row.get("reason") == "compiler-message":
+                  msg = row["message"]
+                  print(msg.get("rendered") or msg["message"])
+          DIAGNOSTICS
+                exit 1
+              fi
+              python3 -B - "$arm" <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          arm = sys.argv[1]
+          temp = Path(os.environ["RUNNER_TEMP"])
+          target = (temp / f"grouping-{arm}-target").resolve()
+          log = temp / f"grouping-{arm}-build.jsonl"
+          paths = []
+          for line in log.read_text().splitlines():
+              row = json.loads(line)
+              if row.get("reason") != "compiler-artifact":
+                  continue
+              if row["profile"]["test"] and row["target"]["name"] == "partitionline" and row.get("executable"):
+                  paths.append(Path(row["executable"]).resolve(strict=True))
+          if len(paths) != 1 or not paths[0].is_relative_to(target):
+              raise ValueError(f"could not locate a unique test binary for {arm}: {paths}")
+          (temp / f"grouping-{arm}-bin.txt").write_text(str(paths[0]))
+          PY
+            )
+          done
+      - name: Measure eight alternating pairs and compare the complete body hashes
+        run: |
+          python3 -B docs/evidence/client/producer-fused-sizing-20261119/timing.py.txt \
+            "$RUNNER_TEMP/grouping-baseline-bin.txt" "$RUNNER_TEMP/grouping-candidate-bin.txt"
