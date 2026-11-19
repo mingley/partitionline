@@ -43,7 +43,7 @@ over HTTPS, produced with `acks=all`, and fetched and decoded the exact
 frame through a plaintext Kafka listener.
 [Live Registry and Kafka](https://github.com/mingley/partitionline/blob/d5d9ff7065560cb8cab2f14d1b9b18190b3d6209/docs/evidence/schema/registry-avro-roundtrip-20261119/README.md)
 
-## Release and performance
+## Validation
 
 Docs, packaging and the finite resource soak passed at `b6d6d44`.
 Its x86_64 instruction gate measured 920,136 LZ4 decode instructions
@@ -52,6 +52,8 @@ LZ4 trials missed either the instruction or paired timing checks. The
 trial records retain the raw results.
 [CI](https://github.com/mingley/partitionline/actions/runs/44635563626) ·
 [Decoder trials](https://github.com/mingley/partitionline/blob/f91f62ed412ec94c102f5654b5b741e1987ee057/docs/evidence/client/lz4-read-dispatch-20261119/README.md)
+
+## Release gates
 
 Open work includes broker replication, authenticated quotas and quota
 administration, live Registry credentials, 24-hour fault qualification
