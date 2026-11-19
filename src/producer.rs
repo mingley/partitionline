@@ -9723,12 +9723,8 @@ async fn reserve_grouped_topic_counts(order: &[Arc<str>], buckets: &mut ProduceB
             let (chunk, rest) = partitions.split_at_mut(len);
             for (partition, records) in chunk {
                 // The count pass adds each partition to its topic's order once.
-                if let Some(slot) = groups.slots.get_mut(partition) {
-                    reserve_len(records, *slot);
-                    *slot = index;
-                } else {
-                    let _ = groups.slots.insert(*partition, index);
-                }
+                let count = groups.slots.insert(*partition, index).unwrap_or_default();
+                reserve_len(records, count);
                 index += 1;
             }
             walked += len.max(1);
