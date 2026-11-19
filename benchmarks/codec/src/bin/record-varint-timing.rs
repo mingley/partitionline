@@ -151,6 +151,7 @@ fn main() {
             iterations: 180,
             ..text
         },
+        #[cfg(feature = "zstd")]
         Case {
             name: "zstd-1024-h2",
             compression: Compression::Zstd,
