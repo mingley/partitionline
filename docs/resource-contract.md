@@ -71,6 +71,7 @@ leaders are still looked up, and a repeated name is still stored once.
 - Queue records passed to a multi-record produce.
 - Split queued sends that still need topic metadata.
 - Index many partitions of one topic, then assemble groups when a batch names many topics.
+- Reserve partition buffers in a mixed-topic batch, with at most 8,192 partition visits before yielding.
 - Encode those topics into one Produce request.
 - Write partition batches of a Produce request. The request bytes stay the same.
 - Write partition rows of a Produce response. The response bytes stay the same.
