@@ -7340,8 +7340,6 @@ struct ProduceGroupScratch {
     partition_slots: HashMap<i32, usize>,
     /// First-seen partitions for a one-topic batch. Cleared on each use.
     partition_order: Vec<i32>,
-    /// Record counts copied out while a mixed batch sizes its partition lists.
-    record_counts: Vec<usize>,
     /// Emptied partition lists from a previous split batch.
     spare_parts: Vec<Vec<Pending>>,
     /// Group list from the previous split batch.
@@ -9710,34 +9708,23 @@ fn take_part_list(scratch: &mut ProduceGroupScratch) -> Vec<Pending> {
     part
 }
 
-/// Size each topic's partition lists after a mixed batch has been counted.
-///
-/// Reserving 2,000,000 topics held the caller for 3405ms. A partition list is still reserved.
-async fn reserve_grouped_topic_counts(
-    order: &[Arc<str>],
-    buckets: &mut ProduceBuckets,
-    counts: &mut Vec<usize>,
-) {
+/// Reserve each partition list and replace its count with its slot.
+async fn reserve_grouped_topic_counts(order: &[Arc<str>], buckets: &mut ProduceBuckets) {
     let mut walked = 0usize;
     for topic in order {
         let Some(groups) = buckets.get_mut(topic.as_ref()) else {
+            pause_walk(&mut walked).await;
             continue;
         };
-        counts.clear();
-        reserve_len(counts, groups.order.len());
-        for (partition, _) in &groups.order {
-            counts.push(groups.slots.get(partition).copied().unwrap_or(0));
+        if groups.order.is_empty() {
+            pause_walk(&mut walked).await;
         }
-        for ((_, records), count) in groups.order.iter_mut().zip(counts.iter().copied()) {
-            reserve_len(records, count);
-        }
-        for (index, (partition, _)) in groups.order.iter().enumerate() {
-            let _inserted = groups.slots.insert(*partition, index);
-        }
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
+        for (index, (partition, records)) in groups.order.iter_mut().enumerate() {
+            // The count pass adds each partition to its topic's order once.
+            let slot = groups.slots.entry(*partition).or_default();
+            reserve_len(records, *slot);
+            *slot = index;
+            pause_walk(&mut walked).await;
         }
     }
 }
@@ -9872,7 +9859,6 @@ async fn group_pending(
     let mut spare_slots = std::mem::take(&mut scratch.spare_slots);
     let mut spare_orders = std::mem::take(&mut scratch.spare_orders);
     let mut order = std::mem::take(&mut scratch.spare_topic_order);
-    let mut counts = std::mem::take(&mut scratch.record_counts);
     order.clear();
     {
         let buckets = &mut scratch.buckets;
@@ -9912,7 +9898,7 @@ async fn group_pending(
                 },
             );
         }
-        reserve_grouped_topic_counts(&order, buckets, &mut counts).await;
+        reserve_grouped_topic_counts(&order, buckets).await;
         let mut walked = 0usize;
         while !scratch.grouping_input.is_empty() {
             pause_walk(&mut walked).await;
@@ -9957,7 +9943,6 @@ async fn group_pending(
             );
         }
     }
-    scratch.record_counts = counts;
     scratch.spare_parts = spare_parts;
     scratch.spare_slots = spare_slots;
     scratch.spare_orders = spare_orders;
@@ -15948,6 +15933,7 @@ mod tests {
     enum GroupingCancellation {
         Classification,
         SingleTopicScatter,
+        Reservation,
         MixedScatter,
         Assembly,
     }
@@ -15960,6 +15946,7 @@ mod tests {
         let (selected, polls) = match stage {
             GroupingCancellation::Classification => (8_193, 1),
             GroupingCancellation::SingleTopicScatter => (8_193, 3),
+            GroupingCancellation::Reservation => (8_194, 2),
             GroupingCancellation::MixedScatter => (8_193, 2),
             GroupingCancellation::Assembly => (2_051, 1),
         };
@@ -15968,9 +15955,8 @@ mod tests {
                 GroupingCancellation::Classification => (false, 0),
                 GroupingCancellation::SingleTopicScatter => (false, i % 2),
                 GroupingCancellation::MixedScatter => (!i.is_multiple_of(2), i % 3),
-                // 2,050 partitions in the first topic and one in the second.
-                // Assembly yields with both its output and its active topic populated.
-                GroupingCancellation::Assembly => (i == 1, i),
+                // A wide first topic and one partition in the second topic.
+                GroupingCancellation::Reservation | GroupingCancellation::Assembly => (i == 1, i),
             };
             pending.rec.topic = if other_topic {
                 Arc::clone(&other)
@@ -15991,6 +15977,10 @@ mod tests {
             );
         }
         drop(grouping);
+        if matches!(stage, GroupingCancellation::Reservation) {
+            // The pause was during reservation, before scatter moved any records.
+            assert_eq!(worker.group_scratch.grouping_input.len(), selected);
+        }
     }
 
     fn assert_grouping_receipts_pending(
@@ -16049,6 +16039,11 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn grouping_cancellation_single_topic_scatter() {
         check_grouping_cancellation(GroupingCancellation::SingleTopicScatter).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn grouping_cancellation_wide_reservation() {
+        check_grouping_cancellation(GroupingCancellation::Reservation).await;
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -17411,64 +17406,75 @@ mod tests {
         assert_eq!(index.get("beta", 2), None);
     }
 
+    async fn check_grouped_reservation_chunks(partitions_per_topic: &[usize]) {
+        use std::task::Poll;
+
+        let chunk = PRODUCE_GROUP_WALK_CHUNK;
+        let total: usize = partitions_per_topic.iter().sum();
+        let yields = total / chunk;
+        for last_poll in 1..=yields + 1 {
+            let mut order = Vec::with_capacity(partitions_per_topic.len());
+            let mut buckets = ProduceBuckets::with_capacity(partitions_per_topic.len());
+            for (topic_index, &partitions) in partitions_per_topic.iter().enumerate() {
+                let topic: Arc<str> = Arc::from(format!("topic-{topic_index}"));
+                let mut groups = PendingParts {
+                    order: Vec::with_capacity(partitions),
+                    slots: HashMap::with_capacity(partitions),
+                };
+                for index in 0..partitions {
+                    let partition = i32::try_from(partitions - index).unwrap();
+                    let count = index % 3 + 1;
+                    groups.order.push((partition, Vec::new()));
+                    let _ = groups.slots.insert(partition, count);
+                }
+                order.push(Arc::clone(&topic));
+                let _ = buckets.insert(topic, groups);
+            }
+            {
+                let mut work = std::pin::pin!(reserve_grouped_topic_counts(&order, &mut buckets));
+                for poll in 1..=last_poll {
+                    let state = std::future::poll_fn(|cx| Poll::Ready(work.as_mut().poll(cx))).await;
+                    assert_eq!(
+                        state.is_pending(),
+                        poll <= yields,
+                        "unexpected grouped reservation state at poll {poll}",
+                    );
+                }
+            }
+
+            let completed = total.min(last_poll * chunk);
+            let mut checked = 0;
+            for (topic, &partitions) in order.iter().zip(partitions_per_topic) {
+                let groups = buckets.get(topic.as_ref()).expect("topic");
+                assert_eq!(groups.order.len(), partitions);
+                assert_eq!(groups.slots.len(), partitions);
+                for (index, (partition, records)) in groups.order.iter().enumerate() {
+                    let count = index % 3 + 1;
+                    assert_eq!(*partition, i32::try_from(partitions - index).unwrap());
+                    assert!(records.is_empty());
+                    if checked < completed {
+                        assert_eq!(groups.slots.get(partition), Some(&index));
+                        assert!(records.capacity() >= count);
+                    } else {
+                        assert_eq!(groups.slots.get(partition), Some(&count));
+                        assert_eq!(records.capacity(), 0);
+                    }
+                    checked += 1;
+                }
+            }
+            assert_eq!(checked, total);
+        }
+    }
+
     #[tokio::test(flavor = "current_thread")]
-    async fn reserving_many_produce_topics_does_not_hold_the_caller() {
-        let mut buckets: ProduceBuckets = HashMap::new();
-        let mut order = Vec::with_capacity(2_000_000);
-        for index in 0..2_000_000 {
-            let topic: Arc<str> = Arc::from(format!("topic-{index}"));
-            order.push(Arc::clone(&topic));
-            let mut slots = HashMap::new();
-            let _ = slots.insert(0, 1usize);
-            let _ = buckets.insert(
-                topic,
-                PendingParts {
-                    order: vec![(0, Vec::new())],
-                    slots,
-                },
-            );
-        }
-        let mut counts = Vec::new();
-        let started = std::time::Instant::now();
-        tokio::select! {
-            () = reserve_grouped_topic_counts(&order, &mut buckets, &mut counts) => {}
-            () = tokio::time::sleep(std::time::Duration::from_millis(30)) => {}
-        }
-        assert!(
-            started.elapsed() < std::time::Duration::from_millis(80),
-            "reserving produce topics held the caller for {:?}",
-            started.elapsed()
-        );
-        let topic: Arc<str> = Arc::from("orders");
-        let mut slots = HashMap::new();
-        let _ = slots.insert(1, 2usize);
-        let _ = slots.insert(0, 1usize);
-        let mut sample: ProduceBuckets = HashMap::new();
-        let _ = sample.insert(
-            Arc::clone(&topic),
-            PendingParts {
-                order: vec![(1, Vec::new()), (0, Vec::new())],
-                slots,
-            },
-        );
-        let mut sample_counts = Vec::new();
-        reserve_grouped_topic_counts(
-            std::slice::from_ref(&topic),
-            &mut sample,
-            &mut sample_counts,
-        )
-        .await;
-        let groups = sample.get(topic.as_ref()).expect("orders");
-        assert_eq!(groups.slots.get(&1).copied(), Some(0));
-        assert_eq!(groups.slots.get(&0).copied(), Some(1));
-        assert!(groups
-            .order
-            .first()
-            .is_some_and(|(_, records)| records.capacity() >= 2));
-        assert!(groups
-            .order
-            .get(1)
-            .is_some_and(|(_, records)| records.capacity() >= 1));
+    async fn reserving_many_small_produce_topics_yields_by_partition() {
+        let partitions = vec![1; 2 * PRODUCE_GROUP_WALK_CHUNK + 3];
+        check_grouped_reservation_chunks(&partitions).await;
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn reserving_a_wide_produce_topic_yields_by_partition() {
+        check_grouped_reservation_chunks(&[2, 2 * PRODUCE_GROUP_WALK_CHUNK + 1]).await;
     }
 
     #[tokio::test(flavor = "current_thread")]
