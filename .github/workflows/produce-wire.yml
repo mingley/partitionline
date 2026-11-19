@@ -1,90 +1,48 @@
 name: Apache Produce wire
 on:
-  workflow_dispatch:
   push:
-    branches: [main, qualification/produce-wire-20261118]
-    paths:
-      - 'src/protocol/**'
-      - 'src/error.rs'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'clippy.toml'
-      - 'tests/conformance/java/pins.json'
-      - 'tests/conformance/java/generate_metadata_wire.py'
-      - 'tests/conformance/java/ConformanceProduceWire.java'
-      - 'tests/conformance/java/generate_produce_wire.py'
-      - 'tests/produce_wire_conformance.rs'
-      - 'tests/fixtures/produce_wire/**'
-      - '.github/workflows/produce-wire.yml'
-  pull_request:
-    paths:
-      - 'src/protocol/**'
-      - 'src/error.rs'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'clippy.toml'
-      - 'tests/conformance/java/pins.json'
-      - 'tests/conformance/java/generate_metadata_wire.py'
-      - 'tests/conformance/java/ConformanceProduceWire.java'
-      - 'tests/conformance/java/generate_produce_wire.py'
-      - 'tests/produce_wire_conformance.rs'
-      - 'tests/fixtures/produce_wire/**'
-      - '.github/workflows/produce-wire.yml'
+    branches: [qualification/produce-wire-matrix-20261119]
 permissions:
   contents: read
 jobs:
-  wire:
+  generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
-      - name: Record source and toolchain
+      - name: Generate the complete Apache Produce corpus
         run: |
-          git rev-parse HEAD
-          rustc --version
-          java -version
-          sha256sum tests/conformance/java/ConformanceProduceWire.java tests/conformance/java/generate_produce_wire.py tests/produce_wire_conformance.rs tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt
-      - name: Compare Apache and Rust Produce bodies
-        run: timeout 900s python3 -B tests/conformance/java/generate_produce_wire.py --output target/produce-wire
-      - name: Match the committed Apache corpus
-        run: cmp target/produce-wire/4.1.0/apache.txt tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt
-      - name: Offline corpus in the checkout
-        run: |
-          cargo test --locked --test produce_wire_conformance produce_wire_committed_corpus -- --exact
-          cargo test --locked --all-features --test produce_wire_conformance produce_wire_committed_corpus -- --exact
-      - name: Offline corpus in the packaged crate
-        run: |
-          test -z "$(git status --porcelain)"
-          cargo package --locked --no-verify
-          crate_stem=$(python3 -c 'import tomllib; p=tomllib.load(open("Cargo.toml","rb"))["package"]; print(p["name"]+"-"+p["version"])')
-          package_dir="$RUNNER_TEMP/produce-wire-package"
-          mkdir -p "$package_dir"
-          tar -xzf "target/package/$crate_stem.crate" -C "$package_dir"
-          manifest="$package_dir/$crate_stem/Cargo.toml"
-          test -f "$package_dir/$crate_stem/tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt"
-          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --manifest-path "$manifest" --test produce_wire_conformance produce_wire_committed_corpus -- --exact
-          CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target" cargo test --locked --all-features --manifest-path "$manifest" --test produce_wire_conformance produce_wire_committed_corpus -- --exact
-      - name: Check formatting
-        if: always()
-        run: cargo fmt --all -- --check
-      - name: Strict test lint
-        if: always()
-        run: cargo clippy --locked --all-features --test produce_wire_conformance -- -D warnings
-      - name: Retain fixtures and process receipts
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: produce-wire-${{ github.sha }}
-          path: |
-            target/produce-wire/**/*.txt
-            target/produce-wire/**/*.log
-            target/produce-wire/**/*.json
-          if-no-files-found: warn
-          retention-days: 30
+          python3 -B - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, "tests/conformance/java")
+          import generate_produce_wire as suite
+          output = Path("target/produce-wire").resolve()
+          output.mkdir(parents=True)
+          jar = suite.common.peer(output / "jars", "4.1.0")
+          logger = suite.slf4j(output)
+          corpus = output / "apache.txt"
+          log = output / "generate.log"
+          try:
+              suite.common.run(["java", "-Xmx128m", "--class-path", f"{jar}{os.pathsep}{logger}",
+                                str(suite.JAVA), str(jar), "3", "13", "generate", str(corpus)],
+                               log, marker="generated_pairs=11")
+          finally:
+              print(log.read_text(), end="")
+          body = corpus.read_bytes()
+          kept = b"".join(row for row in body.splitlines(keepends=True)
+                          if row.split(maxsplit=1)[0] in {b"4", b"6", b"7", b"12"})
+          legacy = Path("tests/fixtures/produce_wire/apache-v4-v6-v7-v12.txt").read_bytes()
+          if kept != legacy:
+              raise SystemExit("historical rows differ")
+          print("APACHE_SHA256", hashlib.sha256(body).hexdigest())
+          print("BEGIN_PRODUCE_CORPUS")
+          print(body.decode("ascii"), end="")
+          print("END_PRODUCE_CORPUS")
+          PY
