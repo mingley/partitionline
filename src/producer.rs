@@ -9831,7 +9831,8 @@ async fn group_pending(
                 .partition
                 .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
             let slot = scratch.partition_slots.get(&partition).copied();
-            if let Some((_, _, records)) = slot.and_then(|slot| scratch.grouping_output.get_mut(slot))
+            if let Some((_, _, records)) =
+                slot.and_then(|slot| scratch.grouping_output.get_mut(slot))
             {
                 records.push(pending);
             } else {
@@ -15948,7 +15949,7 @@ mod tests {
             let (other_topic, partition) = match stage {
                 GroupingCancellation::Classification => (false, 0),
                 GroupingCancellation::SingleTopicScatter => (false, i % 2),
-                GroupingCancellation::MixedScatter => (i % 2 != 0, i % 3),
+                GroupingCancellation::MixedScatter => (!i.is_multiple_of(2), i % 3),
                 // 2,050 partitions in the first topic and one in the second.
                 // Assembly yields with both its output and its active topic populated.
                 GroupingCancellation::Assembly => (i == 1, i),
@@ -15966,12 +15967,17 @@ mod tests {
         let mut grouping = Box::pin(group_pending(batch, &mut worker.group_scratch));
         for _ in 0..polls {
             let state = std::future::poll_fn(|cx| Poll::Ready(grouping.as_mut().poll(cx))).await;
-            assert!(state.is_pending(), "grouping did not reach the chosen yield");
+            assert!(
+                state.is_pending(),
+                "grouping did not reach the chosen yield"
+            );
         }
         drop(grouping);
     }
 
-    fn assert_grouping_receipts_pending(receivers: &mut DrainReceipts) {
+    fn assert_grouping_receipts_pending(
+        receivers: &mut [oneshot::Receiver<Result<RecordMetadata>>],
+    ) {
         for receiver in receivers {
             assert!(
                 matches!(
@@ -15993,7 +15999,7 @@ mod tests {
         let budget = Arc::new(StickyRecordBudget::new(total));
         for (i, record) in worker.pending.iter_mut().enumerate() {
             record.sticky_record = Some(budget.acquire().unwrap());
-            record.retry = u32::from(i % 3 == 0);
+            record.retry = u32::from(i.is_multiple_of(3));
         }
         let charge = shared.buffered_bytes.load(Ordering::SeqCst);
 
@@ -16005,7 +16011,7 @@ mod tests {
 
         for (i, receiver) in receivers.iter_mut().enumerate() {
             let result = receiver.try_recv();
-            if i % 3 == 0 {
+            if i.is_multiple_of(3) {
                 assert!(matches!(result, Ok(Err(Error::Timeout))));
             } else {
                 assert!(matches!(result, Ok(Err(Error::Closed))));
@@ -16060,7 +16066,10 @@ mod tests {
             let pending = retry_rx.try_recv().unwrap();
             let index = usize::try_from(pending.rec.timestamp.unwrap()).unwrap();
             assert!(!std::mem::replace(&mut seen[index], true));
-            let key = (Arc::clone(&pending.rec.topic), pending.rec.partition.unwrap());
+            let key = (
+                Arc::clone(&pending.rec.topic),
+                pending.rec.partition.unwrap(),
+            );
             if let Some(previous) = last.insert(key, index) {
                 assert!(previous < index, "records reordered inside a partition");
             }

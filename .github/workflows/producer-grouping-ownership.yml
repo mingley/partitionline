@@ -24,7 +24,7 @@ jobs:
       - name: Check format and source
         run: |
           rustc -Vv
-          test "$(git rev-parse HEAD:src/producer.rs)" = "e8f2bcd008db0cab873d51002048b97c3b70d9bd"
+          test "$(git rev-parse HEAD:src/producer.rs)" = "2b3734ef5e57a90264faddb52b3a51a552390bb6"
           cargo fmt --all -- --check
 
   candidate:
@@ -48,7 +48,7 @@ jobs:
         run: |
           rustc -Vv
           git rev-parse HEAD
-          test "$(git rev-parse HEAD:src/producer.rs)" = "e8f2bcd008db0cab873d51002048b97c3b70d9bd"
+          test "$(git rev-parse HEAD:src/producer.rs)" = "2b3734ef5e57a90264faddb52b3a51a552390bb6"
           features=()
           case "$FEATURE_MODE" in
             all) features+=(--all-features) ;;
@@ -65,14 +65,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 3
+          fetch-depth: 12
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
       - name: Install identical controls on the prior source
         shell: bash
         run: |
           rustc -Vv
-          test "$(git rev-parse HEAD:src/producer.rs)" = "e8f2bcd008db0cab873d51002048b97c3b70d9bd"
+          test "$(git rev-parse HEAD:src/producer.rs)" = "2b3734ef5e57a90264faddb52b3a51a552390bb6"
           git worktree add --detach "$RUNNER_TEMP/grouping-baseline" "713c8a3d861a843bc1e6e229eecf53ce5632b3bf"
           cd "$RUNNER_TEMP/grouping-baseline"
           test "$(git rev-parse HEAD:src/producer.rs)" = "47c4fc0c06c57a906d16af32637ebb69c7194511"
