@@ -1,0 +1,115 @@
+name: Producer grouping ownership qualification
+
+on:
+  push:
+    branches: [qualification/producer-grouping-ownership-20261119]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: never
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check format and source
+        run: |
+          rustc -Vv
+          test "$(git rev-parse HEAD:src/producer.rs)" = "e8f2bcd008db0cab873d51002048b97c3b70d9bd"
+          cargo fmt --all -- --check
+
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all, no-default]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Reproduce candidate
+        env:
+          FEATURE_MODE: ${{ matrix.features }}
+        shell: bash
+        run: |
+          rustc -Vv
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD:src/producer.rs)" = "e8f2bcd008db0cab873d51002048b97c3b70d9bd"
+          features=()
+          case "$FEATURE_MODE" in
+            all) features+=(--all-features) ;;
+            no-default) features+=(--no-default-features) ;;
+          esac
+          cargo test --locked --lib "${features[@]}" producer::tests:: -- --test-threads=1
+      - name: Check candidate lints
+        if: matrix.features == 'all'
+        run: cargo clippy --locked --all-features --lib --tests -- -D warnings
+
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 3
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install identical controls on the prior source
+        shell: bash
+        run: |
+          rustc -Vv
+          test "$(git rev-parse HEAD:src/producer.rs)" = "e8f2bcd008db0cab873d51002048b97c3b70d9bd"
+          git worktree add --detach "$RUNNER_TEMP/grouping-baseline" "713c8a3d861a843bc1e6e229eecf53ce5632b3bf"
+          cd "$RUNNER_TEMP/grouping-baseline"
+          test "$(git rev-parse HEAD:src/producer.rs)" = "47c4fc0c06c57a906d16af32637ebb69c7194511"
+          python3 -B - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import os
+
+          source = Path("src/producer.rs")
+          before = source.read_bytes()
+          candidate = (Path(os.environ["GITHUB_WORKSPACE"]) / source).read_bytes()
+          start = b"    type DrainReceipts = "
+          end = (
+              b'    #[tokio::test(flavor = "current_thread")]\n'
+              b"    async fn timestamp_freezing_at_existing_encode_yields() {"
+          )
+          for data in (before, candidate):
+              if data.count(start) != 1 or data.count(end) != 1:
+                  raise ValueError("missing unique test anchors")
+          instrumented = before[:before.index(start)] + candidate[
+              candidate.index(start):candidate.index(end)
+          ] + before[before.index(end):]
+          if instrumented[:before.index(start)] != before[:before.index(start)]:
+              raise ValueError("baseline differs before test controls")
+          source.write_bytes(instrumented)
+          print("GROUPING_BASELINE_INSTRUMENTED sha256=" + hashlib.sha256(instrumented).hexdigest())
+          PY
+      - name: Require each control to fail on the old source
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP/grouping-baseline"
+          status=0
+          cargo test --locked --lib producer::tests::grouping_cancellation_ -- --test-threads=1 > "$RUNNER_TEMP/grouping-baseline.log" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/grouping-baseline.log"
+          test "$status" -eq 101
+          for case in classification single_topic_scatter mixed_scatter assembly retry_fifo; do
+            grep -F "test producer::tests::grouping_cancellation_$case ... FAILED" "$RUNNER_TEMP/grouping-baseline.log"
+          done
+          test "$(grep -Fc 'dropping grouping closed a pending receipt' "$RUNNER_TEMP/grouping-baseline.log")" -eq 5
+          cargo test --locked --lib producer::tests:: -- --test-threads=1 --skip producer::tests::grouping_cancellation_
