@@ -9,7 +9,10 @@ The [status page](../STATUS.md) records the source tested by each run.
 - Follow accepted records through sticky partition selection, grouping, encoding,
   transmission, retry, flush and close. Verify receipts, callback outcomes,
   partition order and reservation release with a real Kafka broker. Ambiguous
-  writes still need an ownership and producer-epoch policy.
+  writes still need an ownership and producer-epoch policy. Bound the work
+  per poll for wide mixed-topic reservations. Both tested implementations
+  slowed representative smaller mixed batches.
+  [Reservation trials](../evidence/client/producer-group-reservation-20261119/chunked.md)
 - Expand the registered wire and live case matrix. Check negotiated versions,
   authentication renewal, group churn, transaction recovery and the independent
   consumer histories. The support matrix describes what is exercised today.
@@ -36,7 +39,11 @@ The [status page](../STATUS.md) records the source tested by each run.
 ## Performance and release
 
 The [x86_64 codec gate](../evidence/perf/codec-instructions-20261119/README.md)
-checks ten instruction counts. Run matched client and broker cases on a
+checks ten instruction counts. Resolve the LZ4 decode instruction miss
+recorded on `51a4d86`, then repeat the codec checks on the release candidate.
+[LZ4 trace](../evidence/client/lz4-main-decode-20261119/linked-code.md)
+
+Run matched client and broker cases on a
 controlled x86_64 host, with equal durability and security settings, raw
 measurements, all failures and independent record verification. Repeat the
 comparison on the same host or equivalent hardware. Use `--artifact-root` to
