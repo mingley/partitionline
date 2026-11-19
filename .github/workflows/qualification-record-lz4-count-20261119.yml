@@ -74,15 +74,30 @@ jobs:
             cp "$scratch/lz4-fixture-identity.rs" "$root/benchmarks/codec/src/bin/lz4-fixture-identity.rs"
             cargo run --quiet --locked --release --manifest-path "$manifest" --bin lz4-fixture-identity \
               | tee "$evidence/$arm-fixture.sha256"
-            mapfile -t captures < <(rg --files "$CARGO_TARGET_DIR/iai" -g 'callgrind.*' \
-              | rg 'iai_decompress_lz4|decompress_lz4')
-            test "${#captures[@]}" -eq 1
-            callgrind_annotate --show=Ir --threshold=99 --auto=no \
-              "${captures[0]}" >"$evidence/$arm-annotated.txt"
-            rg '^iai_decompress_lz4/text' "$evidence/$arm.tsv"
-            sed -n '1,55p' "$evidence/$arm-annotated.txt"
+            grep '^iai_decompress_lz4/text' "$evidence/$arm.tsv"
           done
           cmp "$evidence/baseline-fixture.sha256" "$evidence/candidate-fixture.sha256"
+          printf '%s\n' 'LZ4 fixture digests matched'
+          python3 - "$scratch" "$evidence" <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          scratch, evidence = map(Path, sys.argv[1:])
+          for arm in ("baseline", "candidate"):
+              captures = sorted(
+                  path for path in (scratch / arm).rglob("callgrind.*")
+                  if path.is_file() and "iai_decompress_lz4" in path.as_posix()
+                  and path.suffix == ".out"
+              )
+              print(arm, "LZ4 Callgrind captures", [str(path.relative_to(scratch)) for path in captures])
+              if len(captures) != 1:
+                  raise ValueError(f"expected exactly one LZ4 capture for {arm}")
+              args = ["callgrind_annotate", "--show=Ir", "--threshold=99", "--auto=no", str(captures[0])]
+              report = subprocess.run(args, check=True, capture_output=True, text=True).stdout
+              (evidence / f"{arm}-annotated.txt").write_text(report, encoding="utf-8")
+              print("\n".join(report.splitlines()[:70]))
+          PY
       - name: Retain source and attribution evidence
         if: always()
         uses: actions/upload-artifact@v7
