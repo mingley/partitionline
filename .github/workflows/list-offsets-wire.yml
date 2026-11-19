@@ -1,0 +1,35 @@
+name: Apache ListOffsets wire
+on:
+  push:
+    branches: [qualification/list-offsets-wire-20261119]
+permissions:
+  contents: read
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Record source and toolchain
+        run: |
+          git rev-parse HEAD
+          rustc --version
+          java -version
+          sha256sum tests/conformance/java/ConformanceListOffsetsWire.java tests/conformance/java/generate_list_offsets_wire.py tests/list_offsets_wire_conformance.rs
+      - name: Compare Apache and Rust bodies
+        run: timeout 900s python3 -B tests/conformance/java/generate_list_offsets_wire.py --output target/list-offsets-wire
+      - name: Check formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Strict test lint
+        if: always()
+        run: cargo clippy --locked --all-features --test list_offsets_wire_conformance -- -D warnings
