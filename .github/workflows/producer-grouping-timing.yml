@@ -81,7 +81,20 @@ jobs:
             (
               cd "$RUNNER_TEMP/grouping-$arm"
               export CARGO_TARGET_DIR="$RUNNER_TEMP/grouping-$arm-target"
-              cargo test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/grouping-$arm-build.jsonl"
+              if ! cargo test --locked --release --lib --no-run --message-format=json > "$RUNNER_TEMP/grouping-$arm-build.jsonl"; then
+                python3 -B - "$RUNNER_TEMP/grouping-$arm-build.jsonl" <<'DIAGNOSTICS'
+          import json
+          import sys
+          from pathlib import Path
+
+          for line in Path(sys.argv[1]).read_text().splitlines():
+              row = json.loads(line)
+              if row.get("reason") == "compiler-message":
+                  msg = row["message"]
+                  print(msg.get("rendered") or msg["message"])
+          DIAGNOSTICS
+                exit 1
+              fi
               python3 -B - "$arm" <<'PY'
           import json
           import os
