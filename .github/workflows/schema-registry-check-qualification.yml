@@ -1,0 +1,40 @@
+name: Check isolated Schema Registry fixtures
+
+on:
+  push:
+    branches: [qualification/schema-tls-roundtrip-20261119]
+    paths:
+      - partitionline-schema/**
+      - .github/workflows/schema-registry-check-qualification.yml
+
+permissions:
+  contents: read
+
+jobs:
+  fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install latest stable Rust
+        run: |
+          rustup update stable
+          rustc +stable --version --verbose
+      - name: Check formatting and retain formatted fixture source
+        run: |
+          for manifest in partitionline-schema/Cargo.toml partitionline-schema/tests/live-kafka/Cargo.toml; do
+            cargo +stable fmt --manifest-path "$manifest"
+          done
+          git diff --exit-code || git diff --name-only
+      - name: Companion tests and linting
+        run: |
+          cargo +stable clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings
+          cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features
+          cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --all-features
+      - name: Isolated fixture linting
+        run: cargo +stable clippy --locked --manifest-path partitionline-schema/tests/live-kafka/Cargo.toml --test avro_roundtrip -- -D warnings
+      - name: Verify lockfile receipt
+        run: |
+          echo '507c9fd9b5adcc69449cc8cdb9bd0d399171a7b89b94570d95ae7e3431a16b92  partitionline-schema/tests/live-kafka/Cargo.lock' | sha256sum -c -
