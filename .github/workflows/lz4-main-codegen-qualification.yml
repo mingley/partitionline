@@ -71,8 +71,32 @@ jobs:
             fi
             export CARGO_TARGET_DIR="$scratch/$arm"
             manifest="$root/benchmarks/codec/Cargo.toml"
+            cargo bench --locked --manifest-path "$manifest" --bench iai --no-run \
+              --message-format=json >"$scratch/$arm-build.jsonl"
+            python3 - "$scratch" "$arm" <<'PY'
+          from pathlib import Path
+          import json
+          import shutil
+          import sys
+
+          scratch, arm = Path(sys.argv[1]), sys.argv[2]
+          outputs = set()
+          for line in (scratch / f"{arm}-build.jsonl").read_text(encoding="utf-8").splitlines():
+              build = json.loads(line)
+              target = build.get("target", {})
+              if (build.get("reason") == "compiler-artifact" and target.get("name") == "iai"
+                      and "bench" in target.get("kind", []) and build.get("executable")):
+                  outputs.add(Path(build["executable"]))
+          if len(outputs) != 1:
+              raise ValueError(f"{arm} benchmark build outputs: {outputs}")
+          binary = outputs.pop()
+          if not binary.is_file():
+              raise ValueError(f"{arm} Cargo executable is missing: {binary}")
+          shutil.copyfile(binary, scratch / f"{arm}-iai")
+          print(f"BENCH_EXECUTABLE {arm} {binary}")
+          PY
             cargo bench --locked --manifest-path "$manifest" --bench iai -- \
-              --allow-aslr --output-format=json >"$evidence/$arm.jsonl"
+              --allow-aslr --output-format=json >"$evidence/$arm.jsonl" 2> >(tee "$evidence/$arm-cargo.log" >&2)
             python3 scripts/ci-perf-gate-extract.py "$evidence/$arm.jsonl" >"$evidence/$arm.tsv"
             mkdir -p "$root/benchmarks/codec/src/bin"
             cp "$scratch/lz4-fixture-identity.rs" "$root/benchmarks/codec/src/bin/lz4-fixture-identity.rs"
@@ -115,14 +139,8 @@ jobs:
 
           traces = {}
           for arm in ("baseline", "candidate"):
-              root = scratch / arm / "release" / "build"
-              binaries = sorted(
-                  p for p in root.glob("codec-*/out/iai-*")
-                  if p.is_file() and not p.suffix
-              )
-              if len(binaries) != 1:
-                  raise ValueError(f"{arm} benchmark binaries: {binaries}")
-              binary = binaries[0]
+              binary = scratch / f"{arm}-iai"
+              print(f"BENCH_EXECUTABLE_SHA256 {arm} {hashlib.sha256(binary.read_bytes()).hexdigest()}")
               rows = [
                   line.split(maxsplit=3) for line in
                   output("nm", "--defined-only", "--print-size", "--demangle", str(binary)).splitlines()
@@ -149,7 +167,7 @@ jobs:
                   raise ValueError(f"{arm} decoder symbol read was short")
               disassembly = output(
                   "objdump", "-d", "-w", "--no-show-raw-insn", "--demangle",
-                  f"--start-address={start}", f"--stop-address={start + size}", str(binary),
+                  f"--start-address=0x{start:x}", f"--stop-address=0x{start+size:x}", str(binary),
               )
               mnemonics = [
                   match[1] for line in disassembly.splitlines()
