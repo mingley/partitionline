@@ -24,5 +24,6 @@ jobs:
           cargo +stable fmt --manifest-path partitionline-schema/Cargo.toml -- --check
           cargo +stable clippy --locked --manifest-path partitionline-schema/Cargo.toml --all-targets --all-features -- -D warnings
           cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --no-default-features
+          cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml
           cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --all-features
           cargo +stable clippy --locked --manifest-path partitionline-schema/tests/live-kafka/Cargo.toml --test avro_roundtrip -- -D warnings

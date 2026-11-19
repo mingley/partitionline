@@ -8,7 +8,8 @@ use std::{env, time::Duration};
 use live_registry::{assert_avro, RegistryFixture};
 
 use partitionline_schema::registry::{
-    RegistryAuth, RegistryCacheConfig, RegistryClient, RegistryError, SchemaReference, SchemaVersion,
+    RegistryAuth, RegistryCacheConfig, RegistryClient, RegistryError, SchemaReference,
+    SchemaVersion,
 };
 use serde_json::{json, Value};
 
