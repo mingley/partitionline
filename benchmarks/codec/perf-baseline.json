@@ -15,8 +15,26 @@
    "git_sha": "1a40ce6",
    "rustc": "1.98.1",
    "valgrind": "3.24.0"
+  },
+  "x86_64-1.100.0": {
+   "arch": "x86_64",
+   "benches": {
+    "iai_compress_gzip/text": 11243365,
+    "iai_compress_lz4/text": 2291524,
+    "iai_compress_snappy/text": 1578383,
+    "iai_crc/f03": 96702,
+    "iai_decode/f03": 368394,
+    "iai_decompress_gzip/text": 1174945,
+    "iai_decompress_lz4/text": 903610,
+    "iai_decompress_snappy/text": 789514,
+    "iai_encode/f03": 779897,
+    "iai_request/v9": 195053
+   },
+   "git_sha": "713c8a3d861a843bc1e6e229eecf53ce5632b3bf",
+   "rustc": "1.100.0",
+   "valgrind": "3.26.0"
   }
  },
- "tolerance_pct": 1.0,
+ "tolerance_pct": 1,
  "tool": "iai-callgrind 0.14.2 (callgrind Ir, --allow-aslr)"
 }

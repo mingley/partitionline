@@ -25,12 +25,22 @@ import sys
 
 def ir_of(metrics, bench_id):
     """Return the NEW Ir value, or raise LookupError."""
+    if not isinstance(metrics, dict) or len(metrics) != 1:
+        raise ValueError("expected one Ir measurement variant")
     if "Left" in metrics:
-        return metrics["Left"]
-    if "Both" in metrics:
-        new, _old = metrics["Both"]
-        return new
-    raise LookupError(f"{bench_id}: no new measurement (Right-only entry)")
+        count = metrics["Left"]
+    elif "Both" in metrics:
+        pair = metrics["Both"]
+        if not isinstance(pair, list) or len(pair) != 2:
+            raise ValueError("expected new and prior counts in Both measurement")
+        count = pair[0]
+    elif "Right" in metrics:
+        raise LookupError(f"{bench_id}: no new measurement (Right-only entry)")
+    else:
+        raise ValueError("unknown Ir measurement variant")
+    if type(count) is not int or count <= 0:
+        raise ValueError("new Ir count must be a positive integer")
+    return count
 
 
 def extract(path):
@@ -44,6 +54,8 @@ def extract(path):
             try:
                 d = json.loads(line)
                 bid = f"{d['function_name']}/{d['id']}"
+                if bid in results:
+                    raise ValueError(f"{bid}: duplicate measurement")
                 m = d["callgrind_summary"]["callgrind_run"]["total"]["summary"][
                     "Ir"
                 ]["metrics"]
@@ -79,6 +91,12 @@ def self_test():
         ({"Both": [200, 150]}, 200),  # left is new; old must be ignored
         ({"Both": [150, 200]}, 150),  # improvement still reads new
         ({"Right": 300}, None),  # no new value: error
+        ({"Left": 0}, None),
+        ({"Left": "100"}, None),
+        ({"Left": True}, None),
+        ({"Left": 100, "Right": 300}, None),
+        ({"Both": {"new": 100, "old": 200}}, None),
+        ({"Both": [-1, 200]}, None),
     ]
     for i, (metrics, want) in enumerate(cases):
         fd, path = tempfile.mkstemp(suffix=".jsonl")
@@ -96,6 +114,22 @@ def self_test():
             assert got == {f"bench_f/c{i}": want}, f"case {i}: {got} != {want}"
         finally:
             os.unlink(path)
+    with tempfile.TemporaryDirectory() as directory:
+        from pathlib import Path
+
+        duplicate = Path(directory) / "duplicate.jsonl"
+        duplicate.write_text(
+            row("bench_f", "same", {"Left": 500}) + "\n"
+            + row("bench_f", "same", {"Left": 100}) + "\n",
+            encoding="utf-8",
+        )
+        try:
+            extract(duplicate)
+        except ValueError as error:
+            assert "duplicate measurement" in str(error), error
+        else:
+            raise AssertionError("duplicate measurement accepted")
+
     # malformed + empty inputs fail closed
     fd, path = tempfile.mkstemp(suffix=".jsonl")
     try:

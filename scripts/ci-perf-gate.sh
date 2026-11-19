@@ -5,13 +5,10 @@
 # harness declared in benchmarks/codec/Cargo.toml (dev-dependency of the
 # workspace-excluded bench crate only). It drives valgrind/callgrind over
 # the tracked library benches in benchmarks/codec/benches/iai.rs and
-# reports Ir (instructions retired) per bench. Ir is a pure function of
-# (binary, input): deterministic across runs, machines and ASLR states
-# for a fixed (arch, rustc); --allow-aslr keeps the gate working in
-# containers where setarch is blocked. Callgrind has no macOS/Windows
-# port, so this gate is Linux-only and SKIPs loudly elsewhere. Wall-clock
-# microbench numbers from shared runners are informational only and are
-# never compared here.
+# reports modeled instruction counts (Ir) per bench. Keep the build,
+# fixtures and Valgrind version consistent when comparing runs.
+# --allow-aslr keeps the gate working in containers where setarch is
+# blocked. The gate runs on Linux and does not compare elapsed time.
 #
 # The native iai baseline files (raw callgrind .out, ~430K/run with
 # absolute paths) are not portable, so the stored baseline is the compact
@@ -209,8 +206,8 @@ INJECT_BODY='    // ci-perf-gate self-test injection (reverted by trap).
     }'
 
 selftest() {
-  local tmp out log
-  tmp="$(mktemp -d)"; out="$tmp/out.jsonl"; log="$tmp/run.log"
+  local tmp out log verdict
+  tmp="$(mktemp -d)"; out="$tmp/out.jsonl"; log="$tmp/run.log"; verdict="$tmp/verdict.log"
   # The self-test mutates sources mid-run; drop the local units'
   # artifacts before re-measuring so a stale bench binary can never
   # masquerade as the mutated (or reverted) tree. Done by direct removal:
@@ -263,8 +260,19 @@ PY
   grep -q "self-test injection" "$ROOT/src/protocol/records.rs" \
     || { echo "ci-perf-gate self-test: ABORT — injection did not apply" >&2; exit 1; }
   force_rebuild
-  if measure "$out" "$log" && compare "$out"; then
+  if ! measure "$out" "$log"; then
+    echo "ci-perf-gate self-test: FAIL — injected benchmark did not run" >&2
+    tail -8 "$log" >&2
+    exit 1
+  fi
+  if compare "$out" >"$verdict"; then
+    cat "$verdict"
     echo "ci-perf-gate self-test: FAIL — injected slowdown NOT detected" >&2
+    exit 1
+  fi
+  cat "$verdict"
+  if ! grep -Eq '^  iai_encode/f03: \+[0-9.]+% exceeds \+' "$verdict"; then
+    echo "ci-perf-gate self-test: FAIL — expected iai_encode/f03 threshold failure" >&2
     exit 1
   fi
   echo "ci-perf-gate self-test: injected slowdown detected"

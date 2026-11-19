@@ -1,0 +1,30 @@
+name: x86 codec instruction gate
+on:
+  push:
+    branches: [qualification/perf-baseline-20261119]
+permissions:
+  contents: read
+jobs:
+  instruction-count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install measurement tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind
+          cargo install iai-callgrind-runner --version 0.14.2 --locked
+      - name: Check the linked baseline and the slowdown control
+        run: |
+          git rev-parse HEAD
+          git hash-object benchmarks/codec/perf-baseline.json scripts/ci-perf-gate-extract.py scripts/ci-perf-gate.sh
+          rustc --version
+          valgrind --version
+          bash -n scripts/ci-perf-gate.sh
+          python3 -B scripts/ci-perf-gate-extract.py --self-test
+          bash scripts/ci-perf-gate.sh --self-test
+          test -z "$(git status --porcelain)"
