@@ -148,7 +148,10 @@ async fn avro_produce_and_fetch_against_redpanda() {
         .send(ProduceRecord::to(TOPIC).partition(0).key(KEY).value(frame))
         .await
         .expect("produce the Avro frame");
-    println!("Kafka write acknowledged at {}@{}", ack.partition, ack.offset);
+    println!(
+        "Kafka write acknowledged at {}@{}",
+        ack.partition, ack.offset
+    );
     assert_eq!(ack.topic.as_ref(), TOPIC);
     assert_eq!(ack.partition, 0);
     assert_eq!(ack.offset, 0);

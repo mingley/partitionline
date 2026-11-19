@@ -46,8 +46,9 @@ jobs:
           rustup update stable
           rustc +stable --version --verbose
           cargo +stable --version
-      - name: Build the live tests
+      - name: Check formatting and build the live tests
         run: |
+          cargo +stable fmt --manifest-path partitionline-schema/Cargo.toml -- --check
           features=()
           if [[ "$FEATURE_PROFILE" == all-features ]]; then
             features+=(--all-features)
@@ -55,6 +56,7 @@ jobs:
           cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml \
             --test registry_live "${features[@]}" --no-run
           if [[ "$FEATURE_PROFILE" == all-features ]]; then
+            cargo +stable fmt --manifest-path partitionline-schema/tests/live-kafka/Cargo.toml -- --check
             cargo +stable test --locked --manifest-path partitionline-schema/tests/live-kafka/Cargo.toml \
               --test avro_roundtrip --no-run
             sha256sum partitionline-schema/tests/live-kafka/Cargo.lock
