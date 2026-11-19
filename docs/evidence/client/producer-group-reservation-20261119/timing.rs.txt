@@ -1,0 +1,69 @@
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore = "paired timing diagnostic"]
+    async fn grouping_timing_diagnostic() {
+        use std::hint::black_box;
+
+        let shapes = [
+            ("single-1", 1, 1, 1, 100_000),
+            ("single-64", 64, 1, 1, 20_000),
+            ("single-8193", 8_193, 1, 1, 128),
+            ("partitioned-64", 64, 1, 4, 20_000),
+            ("mixed-512", 512, 8, 4, 2_000),
+            ("mixed-scatter-8193", 8_193, 8, 4, 128),
+            ("mixed-assembly-2051", 2_051, 2, 0, 512),
+            ("mixed-wide-16387", 16_387, 2, 0, 64),
+        ];
+        for (shape, count, topic_count, parts_per_topic, iterations) in shapes {
+            let topics: Vec<Arc<str>> = (0..topic_count)
+                .map(|i| Arc::from(format!("timing-{i}")))
+                .collect();
+            let mut scratch = ProduceGroupScratch::default();
+            let mut batch = Vec::with_capacity(count);
+            let mut ns = 0;
+            let warmup = 16;
+            for iteration in 0..warmup + iterations {
+                for i in 0..count {
+                    let (topic, partition) = if parts_per_topic == 0 {
+                        (usize::from(i == 1), i)
+                    } else {
+                        (i % topic_count, i / topic_count % parts_per_topic)
+                    };
+                    let mut pending = queued("timing", Some(i32::try_from(partition).unwrap()));
+                    pending.rec.topic = Arc::clone(&topics[topic]);
+                    pending.rec.value = Some(Bytes::from_static(b"x"));
+                    batch.push(pending);
+                }
+
+                let started = Instant::now();
+                let (groups, spare) = group_pending(black_box(batch), &mut scratch).await;
+                let _observed = black_box(&groups);
+                let elapsed = started.elapsed().as_nanos();
+                if iteration >= warmup {
+                    ns += elapsed;
+                }
+                assert_eq!(
+                    groups.as_slice().iter().map(|(_, _, records)| records.len()).sum::<usize>(),
+                    count
+                );
+                batch = spare;
+                match groups {
+                    ProduceGroups::One((_, _, mut records)) => {
+                        records.clear();
+                        batch = records;
+                    }
+                    ProduceGroups::Many(mut groups) => {
+                        for (_, _, mut records) in groups.drain(..) {
+                            records.clear();
+                            if scratch.spare_parts.len() < 64 {
+                                scratch.spare_parts.push(records);
+                            }
+                        }
+                        scratch.spare_groups = groups;
+                    }
+                    ProduceGroups::Empty => panic!("empty output for a nonempty batch"),
+                }
+            }
+            println!("GROUPING_TIMING case={shape} iterations={iterations} ns={ns}");
+        }
+    }
+
