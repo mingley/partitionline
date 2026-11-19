@@ -1,0 +1,30 @@
+name: Producer slot replacement instruction gate
+on:
+  push:
+    branches: [qualification/producer-reservation-swap-counts-20261119]
+    paths:
+      - src/producer.rs
+      - .github/workflows/producer-reservation-swap-counts-perf-qualification.yml
+permissions:
+  contents: read
+jobs:
+  instruction-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record exact production source and frozen baseline
+        run: |
+          test "$(uname -m)" = x86_64
+          git rev-parse HEAD
+          rustc -Vv
+          test "$(git rev-parse HEAD:src/producer.rs)" = "bc015178dada0a49c466d4d3b815434687e779ac"
+          test "$(git rev-parse HEAD:benchmarks/codec/perf-baseline.json)" = "7798aa9cefab619bd3d6cad4326e799aaa03858e"
+          test "$(git rev-parse HEAD:scripts/ci-perf-gate.sh)" = "ccc16f656c3a81286694942bb8c9fef21c040ca3"
+      - run: sudo apt-get update && sudo apt-get install -y valgrind
+      - run: cargo install iai-callgrind-runner --version 0.14.2 --locked
+      - name: Run the committed instruction gate
+        run: bash scripts/ci-perf-gate.sh
