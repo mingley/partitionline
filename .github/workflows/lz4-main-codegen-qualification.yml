@@ -1,0 +1,185 @@
+name: LZ4 instruction attribution across current main
+on:
+  push:
+    branches: [qualification/lz4-main-codegen-20261119]
+    paths:
+      - .github/workflows/lz4-main-codegen-qualification.yml
+permissions:
+  contents: read
+jobs:
+  lz4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    defaults:
+      run:
+        shell: bash
+    env:
+      BASE: ce1de24a9f81db66d35a76194e8c8ad1dbfa1982
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 10
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Record measurement tooling
+        run: |
+          git rev-parse HEAD
+          git hash-object src/protocol/buf.rs
+          rustc -Vv
+          test "$(uname -m)" = x86_64
+          sudo apt-get update && sudo apt-get install -y valgrind
+          cargo install iai-callgrind-runner --version 0.14.2 --locked
+          valgrind --version
+      - name: Compare the unchanged benchmark and its LZ4 setup bytes
+        run: |
+          scratch="$RUNNER_TEMP/record-lz4-main"
+          evidence="$scratch/evidence"
+          mkdir -p "$evidence"
+          git worktree add --detach "$scratch/base" "$BASE"
+          test "$(git -C "$scratch/base" rev-parse HEAD)" = "$BASE"
+          for file in Cargo.lock src/protocol/buf.rs src/protocol/records.rs; do
+            cmp "$scratch/base/$file" "$file"
+            git hash-object "$file"
+          done
+          cmp "$scratch/base/benchmarks/codec/Cargo.lock" benchmarks/codec/Cargo.lock
+          cmp "$scratch/base/benchmarks/codec/benches/iai.rs" benchmarks/codec/benches/iai.rs
+          cat >"$scratch/lz4-fixture-identity.rs" <<'RUST'
+          use bytes::{Bytes, BytesMut};
+          use codec::{build_records, compressed_batch};
+          use partitionline::protocol::records::{decode_record_batch, encode_record_batch, Compression};
+          use sha2::{Digest, Sha256};
+
+          fn main() {
+              let batch = compressed_batch(
+                  build_records(0xC0DEC, 500, 16, 100, "text", 0),
+                  Compression::Lz4,
+              );
+              let mut wire = BytesMut::new();
+              encode_record_batch(&mut wire, &batch).expect("encode LZ4 fixture");
+              let mut decode = Bytes::copy_from_slice(&wire);
+              assert_eq!(decode_record_batch(&mut decode).expect("decode LZ4 fixture"), batch);
+              assert!(decode.is_empty());
+              println!("{:x} {}", Sha256::digest(&wire), wire.len());
+          }
+          RUST
+          for arm in baseline candidate; do
+            root="$GITHUB_WORKSPACE"
+            if [[ "$arm" == baseline ]]; then
+              root="$scratch/base"
+            fi
+            export CARGO_TARGET_DIR="$scratch/$arm"
+            manifest="$root/benchmarks/codec/Cargo.toml"
+            cargo bench --locked --manifest-path "$manifest" --bench iai -- \
+              --allow-aslr --output-format=json >"$evidence/$arm.jsonl"
+            python3 scripts/ci-perf-gate-extract.py "$evidence/$arm.jsonl" >"$evidence/$arm.tsv"
+            mkdir -p "$root/benchmarks/codec/src/bin"
+            cp "$scratch/lz4-fixture-identity.rs" "$root/benchmarks/codec/src/bin/lz4-fixture-identity.rs"
+            cargo run --quiet --locked --release --manifest-path "$manifest" --bin lz4-fixture-identity \
+              | tee "$evidence/$arm-fixture.sha256"
+            grep '^iai_decompress_lz4/text' "$evidence/$arm.tsv"
+          done
+          cmp "$evidence/baseline-fixture.sha256" "$evidence/candidate-fixture.sha256"
+          printf '%s\n' 'LZ4 fixture digests matched'
+          python3 - "$scratch" "$evidence" <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          scratch, evidence = map(Path, sys.argv[1:])
+          for arm in ("baseline", "candidate"):
+              captures = sorted(
+                  path for path in (scratch / arm).rglob("callgrind.*")
+                  if path.is_file() and "iai_decompress_lz4" in path.as_posix()
+                  and path.suffix == ".out"
+              )
+              print(arm, "LZ4 Callgrind captures", [str(path.relative_to(scratch)) for path in captures])
+              if len(captures) != 1:
+                  raise ValueError(f"expected exactly one LZ4 capture for {arm}")
+              args = ["callgrind_annotate", "--show=Ir", "--threshold=99", "--auto=no", str(captures[0])]
+              report = subprocess.run(args, check=True, capture_output=True, text=True).stdout
+              (evidence / f"{arm}-annotated.txt").write_text(report, encoding="utf-8")
+              print("\n".join(report.splitlines()[:70]))
+          PY
+          python3 - "$scratch" "$evidence" <<'PY'
+          from pathlib import Path
+          import hashlib
+          import re
+          import subprocess
+          import sys
+
+          scratch, evidence = map(Path, sys.argv[1:])
+          def output(*command):
+              return subprocess.check_output(command, text=True)
+
+          traces = {}
+          for arm in ("baseline", "candidate"):
+              root = scratch / arm / "release" / "build"
+              binaries = sorted(
+                  p for p in root.glob("codec-*/out/iai-*")
+                  if p.is_file() and not p.suffix
+              )
+              if len(binaries) != 1:
+                  raise ValueError(f"{arm} benchmark binaries: {binaries}")
+              binary = binaries[0]
+              rows = [
+                  line.split(maxsplit=3) for line in
+                  output("nm", "--defined-only", "--print-size", "--demangle", str(binary)).splitlines()
+                  if "FrameDecoder<&[u8]>" in line and re.search(
+                      r"Read>::read(?:::h[0-9a-f]+)?$", line
+                  )
+              ]
+              if len(rows) != 1:
+                  raise ValueError(f"{arm} decoder symbols: {rows}")
+              start, size = (int(field, 16) for field in rows[0][:2])
+              match = re.search(
+                  r"(?m)^\s*\d+\s+\.text\s+([0-9a-f]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([0-9a-f]+)\s",
+                  output("objdump", "-h", str(binary)),
+              )
+              if match is None:
+                  raise ValueError(f"{arm} binary has no text section")
+              text_size, virtual, offset = (int(field, 16) for field in match.groups())
+              if not (0 < size <= 1024 * 1024 and virtual <= start <= virtual + text_size - size):
+                  raise ValueError(f"{arm} decoder symbol falls outside the text section")
+              with binary.open("rb") as image:
+                  image.seek(offset + start - virtual)
+                  code = image.read(size)
+              if len(code) != size:
+                  raise ValueError(f"{arm} decoder symbol read was short")
+              disassembly = output(
+                  "objdump", "-d", "-w", "--no-show-raw-insn", "--demangle",
+                  f"--start-address={start}", f"--stop-address={start + size}", str(binary),
+              )
+              mnemonics = [
+                  match[1] for line in disassembly.splitlines()
+                  if (match := re.match(r"^\s*[0-9a-f]+:\s+(\S+)", line))
+              ]
+              if not mnemonics:
+                  raise ValueError(f"{arm} decoder symbol has no decoded instructions")
+              traces[arm] = code, mnemonics
+              (evidence / f"{arm}-decoder-disassembly.txt").write_text(disassembly, encoding="utf-8")
+              (evidence / f"{arm}-decoder-instruction-names.txt").write_text(
+                  "\n".join(mnemonics) + "\n", encoding="utf-8"
+              )
+              print(
+                  f"DECODER_SYMBOL {arm} start=0x{start:x} bytes={size} sha256={hashlib.sha256(code).hexdigest()} "
+                  f"instructions={len(mnemonics)}",
+              )
+
+          one, two = traces["baseline"], traces["candidate"]
+          print(f"DECODER_SYMBOL_BYTES_IDENTICAL {str(one[0] == two[0]).lower()}")
+          print(f"DECODER_INSTRUCTION_SEQUENCE_IDENTICAL {str(one[1] == two[1]).lower()}")
+          for index, (before, after) in enumerate(zip(one[1], two[1])):
+              if before != after:
+                  print(f"DECODER_FIRST_INSTRUCTION_NAME_DIFFERENCE {index} {before} {after}")
+                  break
+          PY
+      - name: Retain source and attribution evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: record-lz4-main
+          path: ${{ runner.temp }}/record-lz4-main/evidence
+          if-no-files-found: error
+          retention-days: 30
