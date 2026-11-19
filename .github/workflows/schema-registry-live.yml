@@ -5,10 +5,16 @@ on:
     branches: [main]
     paths:
       - partitionline-schema/**
+      - src/**
+      - Cargo.toml
+      - Cargo.lock
       - .github/workflows/schema-registry-live.yml
   pull_request:
     paths:
       - partitionline-schema/**
+      - src/**
+      - Cargo.toml
+      - Cargo.lock
       - .github/workflows/schema-registry-live.yml
   workflow_dispatch:
 
@@ -40,7 +46,7 @@ jobs:
           rustup update stable
           rustc +stable --version --verbose
           cargo +stable --version
-      - name: Build the live tests
+      - name: Check formatting and build the live tests
         run: |
           cargo +stable fmt --manifest-path partitionline-schema/Cargo.toml -- --check
           features=()
@@ -49,6 +55,12 @@ jobs:
           fi
           cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml \
             --test registry_live "${features[@]}" --no-run
+          if [[ "$FEATURE_PROFILE" == all-features ]]; then
+            cargo +stable fmt --manifest-path partitionline-schema/tests/live-kafka/Cargo.toml -- --check
+            cargo +stable test --locked --manifest-path partitionline-schema/tests/live-kafka/Cargo.toml \
+              --test avro_roundtrip --no-run
+            sha256sum partitionline-schema/tests/live-kafka/Cargo.lock
+          fi
       - name: Generate a registry CA and localhost certificate
         run: |
           fixture="$RUNNER_TEMP/$REGISTRY_CONTAINER"
@@ -80,10 +92,11 @@ jobs:
           docker pull --platform linux/amd64 "$REGISTRY_IMAGE"
           docker image inspect --format '{{.Os}}/{{.Architecture}} {{json .RepoDigests}}' "$REGISTRY_IMAGE"
           docker run --detach --name "$REGISTRY_CONTAINER" --pull never --platform linux/amd64 \
-            --publish 127.0.0.1::8081 --publish 127.0.0.1::18443 \
+            --publish 127.0.0.1::8081 --publish 127.0.0.1::18443 --publish 127.0.0.1:9092:9092 \
             --mount "type=bind,source=$fixture/server.pem,target=/fixture/server.pem,readonly" \
             --mount "type=bind,source=$fixture/server.key,target=/fixture/server.key,readonly" \
             "$REGISTRY_IMAGE" redpanda start --mode dev-container --smp 1 --memory 768M \
+            --kafka-addr 0.0.0.0:9092 --advertise-kafka-addr 127.0.0.1:9092 \
             --schema-registry-addr 'plain://0.0.0.0:8081,tls://0.0.0.0:18443' \
             --set 'schema_registry.schema_registry_api_tls=[{"name":"tls","enabled":true,"cert_file":"/fixture/server.pem","key_file":"/fixture/server.key"}]'
           image_id=$(docker image inspect --format '{{.Id}}' "$REGISTRY_IMAGE")
@@ -121,6 +134,15 @@ jobs:
             --cacert "$PARTITIONLINE_REGISTRY_LIVE_CA_FILE" --resolve "localhost:$tls_port:127.0.0.1"
           timeout 30s cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml \
             --test registry_live "${features[@]}" -- --ignored --exact lookup_over_tls_against_redpanda --nocapture
+          if [[ "$FEATURE_PROFILE" == all-features ]]; then
+            binding=$(docker port "$REGISTRY_CONTAINER" 9092/tcp)
+            test "$binding" = 127.0.0.1:9092
+            export PARTITIONLINE_SCHEMA_LIVE_KAFKA="$binding"
+            timeout 15s docker exec "$REGISTRY_CONTAINER" rpk topic create pl-live-avro \
+              --partitions 1 --replicas 1 -X brokers=127.0.0.1:9092
+            timeout 30s cargo +stable test --locked --manifest-path partitionline-schema/tests/live-kafka/Cargo.toml \
+              --test avro_roundtrip -- --ignored --exact avro_produce_and_fetch_against_redpanda --nocapture
+          fi
       - name: Report registry startup and test diagnostics
         if: failure()
         run: |

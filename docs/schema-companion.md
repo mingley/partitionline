@@ -140,7 +140,12 @@ On Linux x86_64, the Redpanda 26.2.2 fixture checks Avro ID and subject
 lookups, named references, cache expiry and a missing subject over HTTP.
 Its HTTPS listener uses a generated test CA and a certificate for
 `localhost`. The Rust client uses that CA for by-ID and pinned-version
-lookups. [Live CI](https://github.com/mingley/partitionline/actions/runs/44635048258)
+lookups.
+
+The all-feature job also resolves an Avro schema and its named reference
+over HTTPS, produces a framed record with `acks=all`, and fetches and
+decodes the stored value. The Kafka listener uses plaintext in this
+fixture. [Live CI](https://github.com/mingley/partitionline/actions/runs/44635876530)
 
 ## What this crate is
 
@@ -166,6 +171,6 @@ does not speak Kerberos to the registry. It is not a drop-in for
 The crate lives in this repository, is excluded from the core package,
 and is unpublished. It does not depend on librdkafka or OpenSSL. Ring's
 build needs a C compiler when the registry feature is on. The adoption
-page and the core README name it as optional. A live test combining registry lookup with Kafka Produce and Fetch
-remains open. Pilot demand is tracked in
+page and the core README name it as optional. Live credential checks and a Kafka TLS round trip remain open.
+Pilot demand is tracked in
 [issue 85](https://github.com/mingley/partitionline/issues/85).

@@ -234,7 +234,12 @@ On Linux x86_64, the Redpanda 26.2.2 fixture checks Avro ID and subject
 lookups, named references, cache expiry and a missing subject over HTTP.
 Its HTTPS listener uses a generated test CA and a certificate for
 `localhost`. The Rust client uses that CA for by-ID and pinned-version
-lookups. [Live CI](https://github.com/mingley/partitionline/actions/runs/44635048258)
+lookups.
+
+The all-feature job also resolves an Avro schema and its named reference
+over HTTPS, produces a framed record with `acks=all`, and fetches and
+decodes the stored value. The Kafka listener uses plaintext in this
+fixture. [Live CI](https://github.com/mingley/partitionline/actions/runs/44635876530)
 
 ## What this crate does not include
 
@@ -242,8 +247,8 @@ The application supplies the serializer. This crate does not embed
 libavro, a Protobuf runtime, or a JSON Schema validator. It does not
 depend on `partitionline` or on `reqwest`. Registry auth here is TLS
 plus bearer or basic credentials. It does not speak Kerberos to the
-registry. A Kafka round trip with the registry and live credential checks
-remain open. Pilot demand is
+registry. Live credential checks and a Kafka TLS round trip remain open.
+Pilot demand is
 [issue 85](https://github.com/mingley/partitionline/issues/85). The
 longer description is [the companion guide](../docs/schema-companion.md).
 
