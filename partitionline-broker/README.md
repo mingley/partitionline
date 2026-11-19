@@ -36,8 +36,10 @@ data directory at a time; other programs must not write its files while the
 server runs. The directory must retain the same cluster and broker identity on
 restart. Use
 `--advertise-port` if clients must connect to a port different from the bound
-port. `--sync-concurrency` sets the maximum concurrent partition syncs per
-storage actor (1–64, default 4); measure the setting on your storage.
+port. `--sync-concurrency` limits simultaneous partition syncs per storage actor
+(1–64, default 4). Flat journals start helpers as needed and reuse them until
+the actor shuts down. A single partition syncs on the actor. Each helper
+requests a 256 KiB stack, with up to three helpers at the default setting.
 
 The other operator commands configure a separate on-disk admin journal. Their
 backup and restore commands cover that admin journal only; they do not back up

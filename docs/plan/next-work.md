@@ -90,6 +90,9 @@ interoperability, packaged consumers and the finite resource soak. The
 3. **Broker durability and limits.** Complete and qualify partition replication,
    native Kafka KRaft, transaction marker propagation and resource bounds; the
    current broker has an RF1 data path and a separate metadata quorum. The
+   [reused sync workers](../evidence/broker/reusable-sync-20261119/README.md)
+   improved three local multi-partition Produce workloads with Acks1 and
+   readback after graceful restart. Replicated and cross-broker cases remain open. The
    applied [transport backpressure change](../evidence/broker/transport-backpressure-20261109/README.md)
    bounds read-ahead for valid pipelines, but a disconnect behind a full buffer
    can be observed later.
