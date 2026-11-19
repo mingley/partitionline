@@ -46,6 +46,12 @@ each passed 22 focused unit tests, nine Produce integration tests and one
 operator test. One existing unit test remained ignored.
 [Qualification](https://github.com/mingley/partitionline/actions/runs/44611321354)
 
+The first main inventory run rejected the stale Produce source checksum.
+The updated inventory binds both Produce source files and rejects changes
+in either file without a matching checksum.
+[Initial failure](https://github.com/mingley/partitionline/actions/runs/44612976923/job/135874289507)
+[Inventory check](https://github.com/mingley/partitionline/actions/runs/44614194954)
+
 ## Reproduce
 
 Build the two commits with stable Rust using `cargo build --locked --release

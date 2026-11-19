@@ -82,6 +82,7 @@ PROFILE_SOURCE_PATHS = {
     "fetch_source": "partitionline-broker/src/fetch.rs",
     "fetch_test_source": "partitionline-broker/tests/fetch.rs",
     "produce_source": "partitionline-broker/src/produce.rs",
+    "produce_sync_source": "partitionline-broker/src/produce/sync.rs",
     "produce_test_source": "partitionline-broker/tests/produce.rs",
     "controller_source": "partitionline-broker/src/raft/protocol.rs",
     "controller_test_source": "partitionline-broker/tests/raft_protocol.rs",
