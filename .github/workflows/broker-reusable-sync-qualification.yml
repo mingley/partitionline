@@ -41,3 +41,33 @@ jobs:
           cargo test --locked --manifest-path "$manifest" "${feature_args[@]}" --test produce
           cargo test --locked --manifest-path "$manifest" "${feature_args[@]}" --test operator_server
           cargo clippy --locked --manifest-path "$manifest" "${feature_args[@]}" --lib --test produce --test operator_server -- -D warnings
+
+  produce-pairs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 8
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build matched release binaries
+        env:
+          BASE_SHA: 713c8a3d861a843bc1e6e229eecf53ce5632b3bf
+        run: |
+          rustc -Vv
+          uname -sm
+          stat --file-system --format=%T "$RUNNER_TEMP"
+          git rev-parse HEAD
+          git hash-object partitionline-broker/src/produce.rs partitionline-broker/src/produce/sync.rs
+          git worktree add --detach "$RUNNER_TEMP/sync-base" "$BASE_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/build-sync-base" cargo build --locked --release \
+            --manifest-path "$RUNNER_TEMP/sync-base/partitionline-broker/Cargo.toml" --bin operator
+          CARGO_TARGET_DIR="$RUNNER_TEMP/build-sync-candidate" cargo build --locked --release \
+            --manifest-path partitionline-broker/Cargo.toml --bin operator
+          sha256sum "$RUNNER_TEMP"/build-sync-{base,candidate}/release/operator
+      - name: Verify Acks1 offsets and post-restart Fetch bytes in every paired arm
+        run: |
+          python3 docs/evidence/broker/reusable-sync-20261119/produce-pairs.py \
+            "$RUNNER_TEMP/build-sync-base/release/operator" \
+            "$RUNNER_TEMP/build-sync-candidate/release/operator" --scratch "$RUNNER_TEMP"

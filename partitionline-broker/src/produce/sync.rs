@@ -1,8 +1,8 @@
 use super::MAX_SYNC_CONCURRENCY;
 use std::{
     io,
-    panic::{AssertUnwindSafe, catch_unwind},
-    sync::mpsc::{Receiver, SyncSender, sync_channel},
+    panic::{catch_unwind, AssertUnwindSafe},
+    sync::mpsc::{sync_channel, Receiver, SyncSender},
     thread::{Builder, JoinHandle},
 };
 
@@ -91,7 +91,10 @@ impl<T: Send + 'static> Pool<T> {
         }
         let needed = width - 1;
         if needed > self.helpers.len()
-            && self.helpers.try_reserve(needed - self.helpers.len()).is_ok()
+            && self
+                .helpers
+                .try_reserve(needed - self.helpers.len())
+                .is_ok()
         {
             self.helpers.resize_with(needed, || None);
         }
@@ -178,7 +181,7 @@ impl<T: Send + 'static> Drop for Pool<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::mpsc::{TryRecvError, channel};
+    use std::sync::mpsc::{channel, TryRecvError};
 
     #[test]
     fn single_file_creates_no_helper() {

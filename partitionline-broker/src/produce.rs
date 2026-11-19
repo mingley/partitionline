@@ -1642,7 +1642,11 @@ fn sync_partition_once(store: &mut Store, captured: &mut [Option<CapturedProduce
             wave.len(),
             |captured, index| {
                 let &(state, local) = wave.get(index)?;
-                let pending = captured.get_mut(state)?.as_mut()?.pending_sync.get_mut(local)?;
+                let pending = captured
+                    .get_mut(state)?
+                    .as_mut()?
+                    .pending_sync
+                    .get_mut(local)?;
                 Some(&mut pending.file)
             },
             |_| true,
@@ -3055,7 +3059,11 @@ mod tests {
         for wave in items.chunks_mut(DEFAULT_SYNC_CONCURRENCY) {
             let width = wave.len();
             let results = workers.wave(wave, width, |wave, i| wave.get_mut(i), |i| i != 2);
-            assert_eq!(counts.active.load(Ordering::SeqCst), 0, "worker outlived wave");
+            assert_eq!(
+                counts.active.load(Ordering::SeqCst),
+                0,
+                "worker outlived wave"
+            );
             for (lane, (item, failed)) in wave.iter().zip(results).enumerate() {
                 let item = item.as_ref().expect("lease returned to the actor");
                 assert_eq!(item.calls.get(), 1);
