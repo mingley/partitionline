@@ -1,0 +1,57 @@
+name: Producer live receipts
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/producer.rs
+      - src/net.rs
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - tests/producer_live_receipts.rs
+      - tests/conformance/current-broker-cells.json
+      - scripts/ci-producer-live-receipts.sh
+      - .github/workflows/producer-live-receipts.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  delivery:
+    name: Kafka 4.3.1 (${{ matrix.profile }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [default, all]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install current stable Rust
+        run: |
+          rustup update stable
+          rustup component add --toolchain stable rustfmt clippy
+          rustc +stable -Vv
+      - name: Check the integration test
+        env:
+          PL_RECEIPT_PROFILE: ${{ matrix.profile }}
+        run: |
+          bash -n scripts/ci-producer-live-receipts.sh
+          cargo +stable fmt --all -- --check
+          features=()
+          if [[ "$PL_RECEIPT_PROFILE" == all ]]; then features+=(--all-features); fi
+          cargo +stable clippy --locked "${features[@]}" --test producer_live_receipts -- -D warnings
+          cargo +stable test --locked "${features[@]}" --test producer_live_receipts --no-run
+      - name: Verify producer receipts and independent readback
+        env:
+          PL_RECEIPT_PROFILE: ${{ matrix.profile }}
+        run: bash scripts/ci-producer-live-receipts.sh "$PL_RECEIPT_PROFILE"
+      - name: Retain the delivery and cleanup evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: producer-live-receipts-${{ matrix.profile }}
+          path: target/producer-live-receipts/
+          if-no-files-found: warn
+          retention-days: 30

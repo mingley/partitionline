@@ -1,0 +1,90 @@
+[
+  {
+    "profile": "default",
+    "source": "e4e94790eb51fa5c777db72f506a18da6de9b396",
+    "image": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11 linux/amd64 [\"apache/kafka@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837\"]",
+    "verified_records": 3840,
+    "partitions": [
+      {
+        "topic": "pl-receipts-a",
+        "partition": 0,
+        "records": 640,
+        "sha256": "e1a5db57b885c2d1e51a9ba12a4fbb2bd6a485bcca65130752c1355ac927e7ba"
+      },
+      {
+        "topic": "pl-receipts-a",
+        "partition": 1,
+        "records": 640,
+        "sha256": "2c73c74d0acc953301f3e9d607c3e177d6654ff02e4bc0cf8ec523d4e0dafd9f"
+      },
+      {
+        "topic": "pl-receipts-b",
+        "partition": 0,
+        "records": 640,
+        "sha256": "a55cf6b8a1bd9cf5e7770c57b511e57c15dad56bed1d7d3c959991e0a8f5d7b7"
+      },
+      {
+        "topic": "pl-receipts-b",
+        "partition": 1,
+        "records": 640,
+        "sha256": "053a4634b38d019c742aa541c4d8b41e220f15af6f47ee631229a7f550f02ec0"
+      },
+      {
+        "topic": "pl-receipts-c",
+        "partition": 0,
+        "records": 640,
+        "sha256": "f4994479c19baceaf6149ec2196d92d6e73b4b9a623a30403aa6880cdeab8d8c"
+      },
+      {
+        "topic": "pl-receipts-c",
+        "partition": 1,
+        "records": 640,
+        "sha256": "e890556996a8a51d0246bcc9ad8d972c4fb8715402308bc1f3eea4f78779a518"
+      }
+    ]
+  },
+  {
+    "profile": "all",
+    "source": "e4e94790eb51fa5c777db72f506a18da6de9b396",
+    "image": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11 linux/amd64 [\"apache/kafka@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837\"]",
+    "verified_records": 3840,
+    "partitions": [
+      {
+        "topic": "pl-receipts-a",
+        "partition": 0,
+        "records": 640,
+        "sha256": "e1a5db57b885c2d1e51a9ba12a4fbb2bd6a485bcca65130752c1355ac927e7ba"
+      },
+      {
+        "topic": "pl-receipts-a",
+        "partition": 1,
+        "records": 640,
+        "sha256": "2c73c74d0acc953301f3e9d607c3e177d6654ff02e4bc0cf8ec523d4e0dafd9f"
+      },
+      {
+        "topic": "pl-receipts-b",
+        "partition": 0,
+        "records": 640,
+        "sha256": "a55cf6b8a1bd9cf5e7770c57b511e57c15dad56bed1d7d3c959991e0a8f5d7b7"
+      },
+      {
+        "topic": "pl-receipts-b",
+        "partition": 1,
+        "records": 640,
+        "sha256": "053a4634b38d019c742aa541c4d8b41e220f15af6f47ee631229a7f550f02ec0"
+      },
+      {
+        "topic": "pl-receipts-c",
+        "partition": 0,
+        "records": 640,
+        "sha256": "f4994479c19baceaf6149ec2196d92d6e73b4b9a623a30403aa6880cdeab8d8c"
+      },
+      {
+        "topic": "pl-receipts-c",
+        "partition": 1,
+        "records": 640,
+        "sha256": "e890556996a8a51d0246bcc9ad8d972c4fb8715402308bc1f3eea4f78779a518"
+      }
+    ]
+  }
+]
