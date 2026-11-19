@@ -1,0 +1,64 @@
+name: Producer fused sizing correctness
+
+on:
+  push:
+    branches: [qualification/producer-fused-sizing-20261119]
+    paths:
+      - src/producer.rs
+      - .github/workflows/producer-fused-sizing-qualification.yml
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: never
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check format and source
+        run: |
+          rustc -Vv
+          test "$(git rev-parse HEAD:src/producer.rs)" = "41c22d7d53b2c31a9397d2361d4833c2f0d04241"
+          cargo fmt --all -- --check
+
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [default, all, no-default]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Reproduce candidate
+        env:
+          FEATURE_MODE: ${{ matrix.features }}
+        shell: bash
+        run: |
+          rustc -Vv
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD:src/producer.rs)" = "41c22d7d53b2c31a9397d2361d4833c2f0d04241"
+          features=()
+          case "$FEATURE_MODE" in
+            all) features+=(--all-features) ;;
+            no-default) features+=(--no-default-features) ;;
+          esac
+          cargo test --locked --lib "${features[@]}" producer::tests:: -- --test-threads=1
+      - name: Check candidate lints
+        if: matrix.features == 'all'
+        run: cargo clippy --locked --all-features --lib --tests -- -D warnings
+
