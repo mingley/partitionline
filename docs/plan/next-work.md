@@ -6,10 +6,12 @@ The [status page](../STATUS.md) records the source tested by each run.
 
 ## Client
 
-- Follow accepted records through sticky partition selection, grouping, encoding,
-  transmission, retry, flush and close. Verify receipts, callback outcomes,
-  partition order and reservation release with a real Kafka broker. Ambiguous
-  writes still need an ownership and producer-epoch policy. Mixed-topic
+- Kafka 4.3.1 verified mixed-topic receipts, flush, close and buffer release
+  with fixed partitions on a healthy broker.
+  [Live producer check](../evidence/client/producer-live-receipts-20261119/README.md)
+- Extend the producer proof to sticky selection, callback outcomes, idempotent
+  retry and broker faults. Ambiguous writes still need an ownership and
+  producer-epoch policy. Mixed-topic
   reservation now counts partition visits toward the per-poll budget.
   Check the scheduling and throughput of wide batches against Kafka.
   [Reservation trials](../evidence/client/producer-group-reservation-20261119/slot-replacement.md)
