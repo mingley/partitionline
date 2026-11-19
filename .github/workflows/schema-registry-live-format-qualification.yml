@@ -4,6 +4,7 @@ on:
     branches: [qualification/schema-registry-live-20261119]
     paths:
       - .github/workflows/schema-registry-live-format-qualification.yml
+      - partitionline-schema/tests/registry_live.rs
 permissions:
   contents: read
 jobs:
