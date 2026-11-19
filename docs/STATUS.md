@@ -43,8 +43,9 @@ The 0.2.0 release was built separately from tag `v0.2.0`. See the
   single-broker scenario. Broader protocol support, older peer behavior,
   group churn, authentication renewal and transaction recovery need further
   evidence. The [Produce fixtures](https://github.com/mingley/partitionline/blob/a0fd891dc584404045ece3f05e22e3722733acb2/docs/evidence/conformance/q-conf-producewire/README.md)
-  cover selected v4, v6, v7 and v12 wire bodies. See the
-  [support matrix](support.md) and [protocol gaps](gaps.md).
+  cover selected v4, v6, v7 and v12 wire bodies. The new [ListOffsets fixtures](https://github.com/mingley/partitionline/blob/cb5bbece36d085de82d1ea856889a662c4aafe63/docs/evidence/conformance/q-conf-listoffsetswire/README.md)
+  cover selected v1–v11 bodies in both directions with five Apache SDKs.
+  See the [support matrix](support.md) and [protocol gaps](gaps.md).
 - **Broker.** The server has an RF1 data path and a separate metadata quorum.
   Partition replication, native KRaft, transaction marker propagation,
   Kafka wire quotas and a process-wide memory bound remain open.
@@ -55,6 +56,6 @@ The 0.2.0 release was built separately from tag `v0.2.0`. See the
   campaigns are open. Matched x86_64 comparisons with independent record
   verification are still needed. See the [benchmark contract](benchmark-contract.md).
 
-The [work plan](https://github.com/mingley/partitionline/blob/4e1e280b794eef89cc1707d715c265f98cb039f4/docs/plan/next-work.md)
+The [work plan](https://github.com/mingley/partitionline/blob/cb5bbece36d085de82d1ea856889a662c4aafe63/docs/plan/next-work.md)
 tracks the remaining work. The [previous status](https://github.com/mingley/partitionline/blob/753a35b19cebad4155d37938a14eee219193d581/docs/STATUS.md)
 preserves detailed experiment records, earlier CI failures and stopped investigations.
