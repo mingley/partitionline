@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare selected Produce request and response bodies with pinned Apache SDKs."""
+"""Compare Produce request and response bodies with pinned Apache SDKs."""
 import argparse
 import ctypes
 import hashlib
@@ -27,7 +27,7 @@ COMMITS = {
     "4.1.0": "13f70256db3c994c590e5d262a7cc50b9e973204",
 } | common.COMMITS
 common.PINS = {pin["version"]: pin["jar_sha256_maven_central"] for pin in HISTORICAL} | common.PINS
-VERSIONS = (4, 6, 7, 12)
+VERSIONS = tuple(range(3, 14))
 SLF4J_SHA256 = "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
 SLF4J_URL = "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar"
 MAX_CORPUS_BYTES = 16_384
@@ -59,10 +59,11 @@ def corpus(path, versions):
 
 def change_throttle(body, destination):
     rows = body.decode("ascii").splitlines()
-    version, request, response = rows[0].split(" ")
+    index = VERSIONS.index(4)
+    version, request, response = rows[index].split(" ")
     if version != "4" or not response.endswith("00000025"):
         raise ValueError("missing v4 throttle control")
-    rows[0] = f"{version} {request} {response[:-8]}00000026"
+    rows[index] = f"{version} {request} {response[:-8]}00000026"
     destination.write_text("\n".join(rows) + "\n")
 
 
@@ -82,9 +83,10 @@ def compare_peer(output, release, logger, reference):
                 raise ValueError(f"unexpected Produce fixture import: {name}")
             java_text = java_text.replace(before, after)
         source.write_text(java_text)
-    limit = 11 if release == "3.9.1" else 13
-    versions = tuple(version for version in VERSIONS if version <= limit)
-    java = ["java", "-Xmx128m", "--class-path", f"{jar}{os.pathsep}{logger}", str(source), str(jar), str(limit)]
+    lowest, highest = (0, 11) if release == "3.9.1" else (3, 13)
+    versions = tuple(version for version in VERSIONS if lowest <= version <= highest)
+    java = ["java", "-Xmx128m", "--class-path", f"{jar}{os.pathsep}{logger}", str(source),
+            str(jar), str(lowest), str(highest)]
     generated = directory / "apache.txt"
     result = {
         "release": release,
@@ -92,7 +94,8 @@ def compare_peer(output, release, logger, reference):
         "jar_sha256": common.digest(jar),
         "java_source_sha256": common.digest(source),
         "slf4j_sha256": common.digest(logger),
-        "highest_declared_produce_version": limit,
+        "lowest_declared_produce_version": lowest,
+        "highest_declared_produce_version": highest,
         "versions": versions,
     }
     result["generate"] = common.run(java + ["generate", str(generated)], directory / "generate.log",
@@ -100,7 +103,8 @@ def compare_peer(output, release, logger, reference):
     body = corpus(generated, versions)
     result["apache_fixture_sha256"] = common.digest(generated)
     if reference is not None:
-        comparable = b"".join(reference.splitlines(keepends=True)[:len(versions)])
+        comparable = b"".join(row for row in reference.splitlines(keepends=True)
+                              if int(row.partition(b" ")[0]) in versions)
         if comparable != body:
             raise ValueError(f"Apache peers differ for Produce versions {versions}")
     for profile in ("default", "all-features"):
@@ -108,7 +112,7 @@ def compare_peer(output, release, logger, reference):
         env = os.environ | {
             "PRODUCE_WIRE_INPUT": str(generated),
             "PRODUCE_WIRE_OUTPUT": str(reverse),
-            "PRODUCE_WIRE_APACHE_MAX": str(limit),
+            "PRODUCE_WIRE_APACHE_MAX": str(highest),
         }
         command = ["cargo", "test", "--locked"]
         if profile == "all-features":
@@ -124,7 +128,8 @@ def compare_peer(output, release, logger, reference):
         if rebuilt != body:
             raise ValueError(f"Produce body differs for Apache {release}, Rust {profile}")
         print(json.dumps({
-            "peer": release, "profile": profile, "declared_max": limit, "versions": versions,
+            "peer": release, "profile": profile, "declared_min": lowest, "declared_max": highest,
+            "versions": versions,
             "upstream_commit": COMMITS[release], "jar_sha256": result["jar_sha256"],
             "fixture_sha256": common.digest(reverse), "body_pairs": len(versions),
         }), flush=True)
@@ -177,7 +182,7 @@ def main():
         print("END_PRODUCE_CORPUS", flush=True)
         (output / "summary.json").write_text(json.dumps({
             "status": "pass", "results": results, "inputs": inputs, "timeout_control": timeout_control,
-            "scope": "Selected uncompressed Produce message bodies, without broker behavior.",
+            "scope": "Selected uncompressed Produce message bodies across the shared versions.",
         }, indent=2) + "\n")
     except BaseException as error:
         (output / "failure.json").write_text(json.dumps({

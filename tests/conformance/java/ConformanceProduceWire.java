@@ -44,6 +44,15 @@ public final class ConformanceProduceWire {
         return bytes.array();
     }
 
+    // The 3.9.1 message classes compile this source too and have no topic ID field.
+    private static void setTopicId(Message topic, Uuid id) {
+        try {
+            topic.getClass().getMethod("setTopicId", Uuid.class).invoke(topic, id);
+        } catch (ReflectiveOperationException error) {
+            throw new IllegalStateException("Apache Produce v13 topic ID setter unavailable", error);
+        }
+    }
+
     private static boolean transactional(short version) {
         return version == 3 || version == 11;
     }
@@ -74,7 +83,7 @@ public final class ConformanceProduceWire {
     private static ProduceRequestData request(short version) {
         var topic = new ProduceRequestData.TopicProduceData();
         if (version == 13) {
-            topic.setTopicId(TOPIC_ID);
+            setTopicId(topic, TOPIC_ID);
         } else {
             topic.setName(TOPIC);
         }
@@ -89,7 +98,8 @@ public final class ConformanceProduceWire {
         }
         request.topicData().add(topic);
         if (version == 13) {
-            var other = new ProduceRequestData.TopicProduceData().setTopicId(OTHER_TOPIC_ID);
+            var other = new ProduceRequestData.TopicProduceData();
+            setTopicId(other, OTHER_TOPIC_ID);
             other.partitionData().add(requestPartition(SUCCESS_PARTITION, version));
             request.topicData().add(other);
         }
@@ -99,7 +109,7 @@ public final class ConformanceProduceWire {
     private static ProduceResponseData response(short version) {
         var topic = new ProduceResponseData.TopicProduceResponse();
         if (version == 13) {
-            topic.setTopicId(TOPIC_ID);
+            setTopicId(topic, TOPIC_ID);
         } else {
             topic.setName(TOPIC);
         }
@@ -137,7 +147,8 @@ public final class ConformanceProduceWire {
         }
         if (version == 13) {
             // The duplicated partition index belongs to a different topic ID.
-            var other = new ProduceResponseData.TopicProduceResponse().setTopicId(OTHER_TOPIC_ID);
+            var other = new ProduceResponseData.TopicProduceResponse();
+            setTopicId(other, OTHER_TOPIC_ID);
             other.partitionResponses().add(new ProduceResponseData.PartitionProduceResponse()
                 .setIndex(SUCCESS_PARTITION).setErrorCode((short) 100).setBaseOffset(-1));
             response.responses().add(other);
