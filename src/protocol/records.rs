@@ -1967,7 +1967,11 @@ async fn gzip_compress_into_cooperative(src: &[u8], out: &mut Vec<u8>) -> Result
     Ok(())
 }
 
-fn read_bounded<R: Read>(reader: &mut R, max_bytes: usize, reserve: usize) -> Result<Vec<u8>> {
+fn read_bounded<R: Read + ?Sized>(
+    reader: &mut R,
+    max_bytes: usize,
+    reserve: usize,
+) -> Result<Vec<u8>> {
     let mut out = Vec::new();
     let hint = reserve.min(max_bytes);
     if hint > 0 {
@@ -2306,10 +2310,16 @@ fn lz4_decompress_reserve(src: &[u8], max_bytes: usize) -> Result<usize> {
     Ok(reserve)
 }
 
+// Keep the LZ4 reader dispatch separate from the bounded copy loop.
+#[inline(never)]
+fn read_lz4_bounded(reader: &mut dyn Read, max_bytes: usize, reserve: usize) -> Result<Vec<u8>> {
+    read_bounded(reader, max_bytes, reserve)
+}
+
 fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
     let reserve = lz4_decompress_reserve(src, max_bytes)?;
     let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
-    read_bounded(&mut decoder, max_bytes, reserve)
+    read_lz4_bounded(&mut decoder, max_bytes, reserve)
 }
 
 async fn lz4_decompress_cooperative(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
