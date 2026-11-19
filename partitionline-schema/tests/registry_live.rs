@@ -6,7 +6,7 @@ use partitionline_schema::registry::{
     RegistryCacheConfig, RegistryClient, RegistryClientConfig, RegistryError, SchemaReference,
     SchemaVersion,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 const ADDRESS_SUBJECT: &str = "pl-live-address";
 const ORDER_SUBJECT: &str = "pl-live-order";

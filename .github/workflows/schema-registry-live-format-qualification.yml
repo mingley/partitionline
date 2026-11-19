@@ -1,0 +1,26 @@
+name: Schema Registry qualification checks
+on:
+  push:
+    branches: [qualification/schema-registry-live-20261119]
+    paths:
+      - .github/workflows/schema-registry-live-format-qualification.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Exact live test format and lint
+        run: |
+          rustup update stable
+          rustup component add --toolchain stable rustfmt clippy
+          rustc +stable --version
+          cargo +stable fmt --manifest-path partitionline-schema/Cargo.toml -- --check
+          cargo +stable clippy --locked --manifest-path partitionline-schema/Cargo.toml \
+            --all-features --test registry_live -- -D warnings
+      - name: Run the companion test suite
+        run: cargo +stable test --locked --manifest-path partitionline-schema/Cargo.toml --all-features
