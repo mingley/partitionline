@@ -1,0 +1,169 @@
+name: Plaintext Produce pacing qualification
+
+on:
+  push:
+    branches: [qualification/plaintext-produce-pacing-20261119]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: never
+  RUST_TEST_THREADS: '1'
+
+jobs:
+  fmt:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format broker crate
+        run: |
+          cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml
+          git diff --check
+          git diff --exit-code -- partitionline-broker
+
+  broker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: default
+            features: ''
+          - profile: all
+            features: '--all-features'
+    name: Broker (${{ matrix.profile }}, stable)
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Record toolchain and source
+        run: |
+          rustc +stable --version --verbose
+          git rev-parse HEAD HEAD:partitionline-broker
+      - name: Focused quota socket checks
+        run: cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --test produce_quota ${{ matrix.features }}
+      - name: Locked behavioral suite
+        run: cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets ${{ matrix.features }}
+      - name: Strict Clippy
+        if: always()
+        run: cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets ${{ matrix.features }} -- -D warnings
+      - name: Strict Rustdoc and doctests
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: |
+          cargo +stable doc --locked --manifest-path partitionline-broker/Cargo.toml --no-deps ${{ matrix.features }}
+          cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --doc ${{ matrix.features }}
+
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Check exact broker API inventory
+        run: python3 -B scripts/check-broker-api-matrix.py --report target/broker-ci/api-matrix.json
+      - name: Check pinned-source negative controls
+        run: python3 -B -m unittest discover -s tests/ci -p test_broker_api_matrix.py -v
+
+  wire:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build operator on stable
+        run: cargo +stable build --locked --release --manifest-path partitionline-broker/Cargo.toml --bin operator
+      - name: Observe pinned Kafka 4.3.1 wire behavior
+        run: |
+          set -euo pipefail
+          image='apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837'
+          docker run -d --name pl-produce-pacing -p 127.0.0.1:9092:9092 "$image"
+          trap 'docker rm -f pl-produce-pacing' EXIT
+          docker image inspect "$image" --format '{{.Id}} {{json .RepoDigests}}'
+          kafka() {
+            local command="$1"
+            shift
+            docker exec pl-produce-pacing "/opt/kafka/bin/kafka-$command.sh" --bootstrap-server localhost:9092 "$@"
+          }
+          for attempt in $(seq 1 45); do
+            if kafka topics --list >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          kafka topics --list
+          kafka topics --create --topic alpha --partitions 1 --replication-factor 1 --config message.timestamp.type=LogAppendTime
+          for version in 3 6; do
+            for name in alpha bravo; do
+              label="quota-$name-v$version"
+              kafka configs --alter --add-config producer_byte_rate=20 --entity-type clients --entity-name "$label"
+              kafka configs --describe --entity-type clients --entity-name "$label"
+            done
+          done
+          python3 -u docs/evidence/broker/produce-client-quota-isolation-20261110/live-probe.py.txt
+      - name: Observe the same socket sequence on the candidate
+        run: |
+          set -euo pipefail
+          log="$RUNNER_TEMP/operator.log"
+          partitionline-broker/target/release/operator serve \
+            --data "$RUNNER_TEMP/produce-pacing" --listen 127.0.0.1:9092 \
+            --advertise-host 127.0.0.1 --cluster pacing-wire \
+            --produce-quota 20:200:8000 \
+            --produce-quota-clients quota-alpha-v3,quota-bravo-v3,quota-alpha-v6,quota-bravo-v6 >"$log" 2>&1 &
+          broker_pid=$!
+          cleanup() {
+            kill -TERM "$broker_pid" 2>/dev/null || true
+            wait "$broker_pid" || true
+            cat "$log"
+          }
+          trap cleanup EXIT
+          for attempt in $(seq 1 30); do
+            if grep -q '^ready ' "$log"; then
+              break
+            fi
+            sleep 1
+          done
+          grep -q '^ready ' "$log"
+          python3 - <<'PY'
+          import socket
+          import struct
+
+          request = (
+              struct.pack(">hhihih", 19, 4, 17, -1, 1, 5)
+              + b"alpha"
+              + struct.pack(">ihiiiB", 1, 1, 0, 0, 60000, 0)
+          )
+          with socket.create_connection(("127.0.0.1", 9092), timeout=10) as sock:
+              sock.sendall(struct.pack(">i", len(request)) + request)
+              response = sock.makefile("rb")
+              size, = struct.unpack(">i", response.read(4))
+              assert 21 <= size < 1024
+              data = response.read(size)
+              assert len(data) == size
+              assert struct.unpack_from(">iiih", data) == (17, 0, 1, 5), data.hex()
+              assert data[14:19] == b"alpha" and data[19:21] == b"\x00\x00", data.hex()
+          PY
+          python3 -u docs/evidence/broker/produce-client-quota-isolation-20261110/live-probe.py.txt
+          kill -TERM "$broker_pid"
+          wait "$broker_pid"
+          trap - EXIT
+          cat "$log"
+          grep -Eq '^stopped accepted=[0-9]+ joined=[0-9]+ worker_failures=0$' "$log"

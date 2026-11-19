@@ -1,6 +1,6 @@
 //! Standalone ordinary single-node listener. This is not a Kafka cluster.
 
-use partitionline_broker::{fetch, metadata, produce, transport};
+use partitionline_broker::{fetch, metadata, produce, quotas, transport};
 use std::{
     collections::HashMap,
     fs::{self, File, OpenOptions},
@@ -18,6 +18,7 @@ struct Config {
     cluster: String,
     broker_id: i32,
     sync_concurrency: Option<usize>,
+    produce_quota: Option<quotas::ProduceQuota>,
 }
 
 fn parse(args: &[String]) -> Result<Config, String> {
@@ -36,6 +37,8 @@ fn parse(args: &[String]) -> Result<Config, String> {
                 | "--cluster"
                 | "--broker-id"
                 | "--sync-concurrency"
+                | "--produce-quota"
+                | "--produce-quota-clients"
         ) {
             return Err(format!("unknown serve option {name}"));
         }
@@ -89,6 +92,13 @@ fn parse(args: &[String]) -> Result<Config, String> {
     if sync_concurrency.is_some_and(|value| !(1..=produce::MAX_SYNC_CONCURRENCY).contains(&value)) {
         return Err("sync concurrency must be between 1 and 64".into());
     }
+    let produce_quota = options
+        .get("--produce-quota")
+        .map(|value| parse_produce_quota(value, options.get("--produce-quota-clients").copied()))
+        .transpose()?;
+    if produce_quota.is_none() && options.contains_key("--produce-quota-clients") {
+        return Err("--produce-quota-clients requires --produce-quota".into());
+    }
     Ok(Config {
         data,
         listen,
@@ -97,7 +107,24 @@ fn parse(args: &[String]) -> Result<Config, String> {
         cluster,
         broker_id,
         sync_concurrency,
+        produce_quota,
     })
+}
+
+fn parse_produce_quota(value: &str, clients: Option<&str>) -> Result<quotas::ProduceQuota, String> {
+    let (rate, rest) = value
+        .split_once(':')
+        .ok_or("expected --produce-quota RATE:BURST:MAX_DELAY_MS")?;
+    let (burst, delay) = rest
+        .split_once(':')
+        .ok_or("expected --produce-quota RATE:BURST:MAX_DELAY_MS")?;
+    let rate = rate.parse().map_err(|_| "invalid Produce quota rate")?;
+    let burst = burst.parse().map_err(|_| "invalid Produce quota burst")?;
+    let delay = delay.parse().map_err(|_| "invalid Produce quota delay cap")?;
+    // Read at most one more ID than the supported maximum.
+    let client_ids: Vec<_> = clients.into_iter().flat_map(|names| names.split(',')).take(257).collect();
+    quotas::ProduceQuota::new(rate, burst, delay, &client_ids)
+        .map_err(|error| format!("Produce quota: {error}"))
 }
 
 // Keep the lock file open for the entire server lifetime. The identity is
@@ -188,13 +215,20 @@ async fn serve(config: Config) -> Result<(), String> {
     .await
     .map_err(|error| format!("router startup: {error}"))?;
     let router = Arc::new(router);
-    let mut transport = match transport::Transport::bind(
-        config.listen,
-        transport::Config::default(),
-        Arc::clone(&router),
-    )
-    .await
-    {
+    let limits = transport::Config::default();
+    let listener = match config.produce_quota {
+        Some(quota) => {
+            transport::Transport::bind_with_produce_quota(
+                config.listen,
+                limits,
+                Arc::clone(&router),
+                quota,
+            )
+            .await
+        }
+        None => transport::Transport::bind(config.listen, limits, Arc::clone(&router)).await,
+    };
+    let mut transport = match listener {
         Ok(transport) => transport,
         Err(error) => {
             let shutdown = router.shutdown().await;

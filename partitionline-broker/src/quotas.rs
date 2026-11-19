@@ -14,6 +14,11 @@
 
 use std::collections::BTreeMap;
 
+mod produce;
+
+pub use produce::ProduceQuota;
+pub(crate) use produce::Throttle;
+
 /// Kafka `THROTTLING_QUOTA_EXCEEDED`. This code is API-specific and is not a
 /// generic mapping for a local bandwidth or capacity refusal.
 pub const THROTTLING_QUOTA_EXCEEDED: i16 = 89;
@@ -116,6 +121,19 @@ impl Error {
     }
 }
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Throttled => f.write_str("quota refused the operation"),
+            Self::InvalidRequest => f.write_str("invalid quota request"),
+            Self::UnknownWork => f.write_str("unknown quota work"),
+            Self::InvalidLimits => f.write_str("invalid quota limits"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 #[derive(Debug, Clone)]
 struct Client {
     connections: usize,
@@ -133,16 +151,20 @@ struct Bucket {
 }
 
 impl Bucket {
-    fn new(rate: u64, now_ms: u64) -> Self {
+    fn new(capacity: u64, now_ms: u64) -> Self {
         Self {
-            credit: u128::from(rate) * 1_000,
+            credit: u128::from(capacity) * 1_000,
             debt: 0,
             updated_ms: now_ms,
         }
     }
 
     fn refill(&mut self, rate: u64, now_ms: u64) {
-        let cap = u128::from(rate) * 1_000;
+        self.refill_to(rate, rate, now_ms);
+    }
+
+    fn refill_to(&mut self, rate: u64, capacity: u64, now_ms: u64) {
+        let cap = u128::from(capacity) * 1_000;
         self.credit = self.credit.min(cap);
         if now_ms < self.updated_ms {
             return;
@@ -167,16 +189,21 @@ impl Bucket {
             return Err(Error::InvalidLimits);
         }
         self.refill(rate, now_ms);
-        let amount = u128::from(bytes) * 1_000;
-        let deficit = amount.saturating_sub(self.credit);
-        let debt = self.debt.checked_add(deficit).ok_or(Error::Throttled)?;
+        let (credit, debt) = self.charged(bytes)?;
         let throttle = debt.div_ceil(u128::from(rate));
         if throttle > u128::from(max_throttle_ms) {
             return Err(Error::Throttled);
         }
-        self.credit = self.credit.saturating_sub(amount);
+        self.credit = credit;
         self.debt = debt;
         Ok(throttle as u64)
+    }
+
+    fn charged(&self, bytes: u64) -> Result<(u128, u128), Error> {
+        let amount = u128::from(bytes) * 1_000;
+        let deficit = amount.saturating_sub(self.credit);
+        let debt = self.debt.checked_add(deficit).ok_or(Error::Throttled)?;
+        Ok((self.credit.saturating_sub(amount), debt))
     }
 
     fn full(&self, rate: u64) -> bool {

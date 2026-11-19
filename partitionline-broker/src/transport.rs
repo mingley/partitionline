@@ -28,6 +28,7 @@
 //! behavior. Application authorization, application storage, broker readiness and
 //! broader production qualification have separate contracts.
 
+use crate::{metadata::Router, produce, protocol, quotas};
 use bytes::BufMut;
 use std::{
     future::{poll_fn, Future},
@@ -444,7 +445,35 @@ impl Transport {
         config: Config,
         handler: Arc<H>,
     ) -> Result<Self, Error> {
-        Self::bind_with(addr, config, handler, Security::Plaintext).await
+        Self::bind_with(addr, config, handler, Security::Plaintext, ()).await
+    }
+
+    /// Bind a plaintext listener with opt-in pacing for ordinary Produce.
+    ///
+    /// The router must support Produce. The listener writes the response, then
+    /// waits until the quota deadline before dispatching another request on that
+    /// connection. A successful `acks=0` waits without writing a response.
+    /// The pause uses the connection slot, but releases the handler slot.
+    pub async fn bind_with_produce_quota(
+        addr: SocketAddr,
+        config: Config,
+        router: Arc<Router>,
+        quota: quotas::ProduceQuota,
+    ) -> Result<Self, Error> {
+        let limits = router
+            .produce_request_limits()
+            .ok_or(Error::InvalidConfig("Produce quota requires a Produce router"))?;
+        Self::bind_with(
+            addr,
+            config,
+            router,
+            Security::Plaintext,
+            ProduceFlow {
+                quota: Arc::new(quota),
+                limits,
+            },
+        )
+        .await
     }
 
     /// Bind a TLS-only listener with bounded, cancellable handshakes.
@@ -459,7 +488,7 @@ impl Transport {
         handler: Arc<H>,
         acceptor: crate::security::tls::Acceptor,
     ) -> Result<Self, Error> {
-        Self::bind_with(addr, config, handler, Security::Tls(acceptor)).await
+        Self::bind_with(addr, config, handler, Security::Tls(acceptor), ()).await
     }
 
     /// Bind an explicitly selected SCRAM-only plaintext Kafka listener.
@@ -474,7 +503,7 @@ impl Transport {
         if profile.requires_tls() {
             return Err(Error::InvalidConfig("SASL plaintext profile"));
         }
-        Self::bind_with(addr, config, handler, Security::SaslPlaintext(profile)).await
+        Self::bind_with(addr, config, handler, Security::SaslPlaintext(profile), ()).await
     }
     /// Bind a TLS-only Kafka SASL listener. PLAIN is permitted only after TLS
     /// succeeds; the absolute preauth deadline starts at socket admission.
@@ -489,7 +518,7 @@ impl Transport {
         if !profile.requires_tls() {
             return Err(Error::InvalidConfig("SASL TLS profile"));
         }
-        Self::bind_with(addr, config, handler, Security::SaslTls(acceptor, profile)).await
+        Self::bind_with(addr, config, handler, Security::SaslTls(acceptor, profile), ()).await
     }
 
     async fn bind_with<H: Handler + 'static>(
@@ -497,11 +526,12 @@ impl Transport {
         config: Config,
         handler: Arc<H>,
         security: Security,
+        flow: impl FlowControl,
     ) -> Result<Self, Error> {
         let listener = TcpListener::bind(addr).await.map_err(Error::Bind)?;
         let addr = listener.local_addr().map_err(Error::Bind)?;
         let (shutdown, signal) = oneshot::channel();
-        let runner = tokio::spawn(run(listener, config, handler, signal, security));
+        let runner = tokio::spawn(run(listener, config, handler, signal, security, flow));
         Ok(Self {
             addr,
             shutdown: Some(shutdown),
@@ -552,6 +582,7 @@ async fn run<H: Handler + 'static>(
     handler: Arc<H>,
     mut signal: oneshot::Receiver<()>,
     security: Security,
+    flow: impl FlowControl,
 ) -> Result<Report, Error> {
     let handlers = Arc::new(Semaphore::new(config.max_handlers));
     let (stop, _) = watch::channel(false);
@@ -574,7 +605,7 @@ async fn run<H: Handler + 'static>(
                 }
                 report.accepted_connections = report.accepted_connections.saturating_add(1);
                 let peer = Peer { address, #[cfg(feature = "tls")] tls: None, #[cfg(feature = "sasl")] identity: None };
-                workers.spawn(connection(socket, config, handler.clone(), handlers.clone(), stop.subscribe(), peer, security.admit()));
+                workers.spawn(connection(socket, (config, flow.clone()), handler.clone(), handlers.clone(), stop.subscribe(), peer, security.admit()));
                 report.peak_connections = report.peak_connections.max(workers.len());
             }
         }
@@ -608,7 +639,7 @@ async fn cancelled(stop: &mut watch::Receiver<bool>) {
 
 async fn connection<H: Handler>(
     socket: TcpStream,
-    config: Config,
+    (config, flow): (Config, impl FlowControl),
     handler: Arc<H>,
     handlers: Arc<Semaphore>,
     mut stop: watch::Receiver<bool>,
@@ -618,7 +649,7 @@ async fn connection<H: Handler>(
     let exit = tokio::select! {
         biased;
         _ = cancelled(&mut stop) => Exit::Shutdown,
-        result = establish(socket, config, handler, handlers, peer, session) => result,
+        result = establish(socket, config, handler, handlers, peer, session, flow) => result,
     };
     // Shutdown drops the accepted socket by cancelling its read. Yield so the
     // peer observes that close before this connection task finishes.
@@ -637,6 +668,7 @@ async fn establish<H: Handler>(
     handlers: Arc<Semaphore>,
     peer: Peer,
     session: Session,
+    flow: impl FlowControl,
 ) -> Exit {
     match session {
         Session::Plaintext => {
@@ -646,6 +678,7 @@ async fn establish<H: Handler>(
                 handler,
                 handlers,
                 peer,
+                flow,
                 #[cfg(feature = "sasl")]
                 None,
             )
@@ -653,7 +686,7 @@ async fn establish<H: Handler>(
         }
         #[cfg(feature = "sasl")]
         Session::SaslPlaintext(auth) => {
-            exchange(socket, config, handler, handlers, peer, Some(auth)).await
+            exchange(socket, config, handler, handlers, peer, (), Some(auth)).await
         }
         #[cfg(all(feature = "sasl", feature = "tls"))]
         Session::SaslTls {
@@ -679,7 +712,7 @@ async fn establish<H: Handler>(
                 Ok(verified) => Some(verified),
                 Err(_) => return Exit::TlsError,
             };
-            exchange(stream, config, handler, handlers, peer, Some(auth)).await
+            exchange(stream, config, handler, handlers, peer, (), Some(auth)).await
         }
         #[cfg(feature = "tls")]
         Session::Tls { snapshot, deadline } => {
@@ -707,6 +740,7 @@ async fn establish<H: Handler>(
                 handler,
                 handlers,
                 peer,
+                (),
                 #[cfg(feature = "sasl")]
                 None,
             )
@@ -1460,12 +1494,69 @@ async fn watch_disconnect<S: AsyncRead + Unpin>(
     }
 }
 
+// Compile the ordinary listener without Produce parsing, accounting or clocks.
+trait FlowControl: Clone + Send + Sync + 'static {
+    fn charge(&self, request: &[u8]) -> Result<Option<quotas::Throttle>, Exit>;
+}
+
+impl FlowControl for () {
+    #[inline]
+    fn charge(&self, _request: &[u8]) -> Result<Option<quotas::Throttle>, Exit> {
+        Ok(None)
+    }
+}
+
+#[derive(Clone)]
+struct ProduceFlow {
+    quota: Arc<quotas::ProduceQuota>,
+    limits: protocol::Limits,
+}
+
+impl FlowControl for ProduceFlow {
+    fn charge(&self, request: &[u8]) -> Result<Option<quotas::Throttle>, Exit> {
+        self.quota
+            .charge(request, self.limits)
+            .map_err(|_| Exit::HandlerError)
+    }
+}
+
+async fn wait_for_resume<S: AsyncRead + Unpin>(
+    socket: &mut S,
+    ahead: &mut ReadAhead,
+    until: Instant,
+) -> Result<(), Exit> {
+    if Instant::now() >= until {
+        return Ok(());
+    }
+    let mut resume = std::pin::pin!(tokio::time::sleep_until(until));
+    if ahead.is_empty() {
+        // Release an idle connection slot on EOF. Keep at most one byte
+        // of a new frame. EOF behind queued bytes waits for the pause.
+        let mut first = [0];
+        tokio::select! {
+            biased;
+            _ = &mut resume => return Ok(()),
+            result = socket.read(&mut first) => {
+                if result.map_err(read_error)? == 0 {
+                    return Err(Exit::PeerClosed);
+                }
+                ahead.compact();
+                frame_mut(&mut ahead.bytes).try_reserve(1).map_err(|_| Exit::Io)?;
+                frame_mut(&mut ahead.bytes).push(first[0]);
+            }
+        }
+    }
+    resume.await;
+    Ok(())
+}
+
 async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
     mut socket: S,
     config: Config,
     handler: Arc<H>,
     handlers: Arc<Semaphore>,
     #[allow(unused_mut)] mut peer: Peer,
+    flow: impl FlowControl,
     #[cfg(feature = "sasl")] mut auth: Option<Box<crate::security::session::Session>>,
 ) -> Exit {
     // The socket is dropped when this block ends, before the yields below.
@@ -1476,7 +1567,13 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
         let mut ahead = ReadAhead::new();
         let mut request_spare = new_frame();
         let mut response_spare = Vec::new();
+        let mut paused_until = None;
         loop {
+            if let Some(until) = paused_until.take() {
+                if let Err(exit) = wait_for_resume(&mut socket, &mut ahead, until).await {
+                    return exit;
+                }
+            }
             #[allow(unused_mut)]
             let mut frame_config = config;
             #[cfg(feature = "sasl")]
@@ -1545,11 +1642,14 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                                 drop(permit);
                                 let mut request = dispatch_frame(request);
                                 wipe_credential(&mut request);
-                                return Ok(ExchangeOutcome {
-                                    response: Some(bytes),
-                                    request,
-                                    spare: response_buf,
-                                });
+                                return Ok((
+                                    ExchangeOutcome {
+                                        response: Some(bytes),
+                                        request,
+                                        spare: response_buf,
+                                    },
+                                    None,
+                                ));
                             }
                             crate::security::session::Decision::Dispatch => {
                                 peer.identity = auth.identity();
@@ -1560,12 +1660,13 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                             }
                         }
                     }
+                    let throttle = flow.charge(&request)?;
                     let outcome = handler
                         .exchange_request(&peer, dispatch_frame(request), response_buf)
                         .await
                         .map_err(|_| Exit::HandlerError)?;
                     drop(permit);
-                    Ok(outcome)
+                    Ok((outcome, throttle))
                 })
                 .await
                 .map_err(|_| Exit::HandlerDeadline)?
@@ -1584,7 +1685,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                 ) => return closed,
                 result = operation => result,
             };
-            let outcome = match outcome {
+            let (outcome, throttle) = match outcome {
                 Ok(outcome) => {
                     // timeout_at cannot preempt a synchronously Ready handler.
                     // Recheck the original bound before accepting its result.
@@ -1595,8 +1696,9 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
                 }
                 Err(exit) => return exit,
             };
+            paused_until = throttle.map(|value| value.until);
             request_spare = park_request(outcome.request);
-            let Some(response) = outcome.response else {
+            let Some(mut response) = outcome.response else {
                 response_spare = park_response(outcome.spare, Vec::new());
                 continue;
             };
@@ -1605,6 +1707,16 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             }
             if i32::try_from(response.len()).is_err() {
                 return Exit::OversizedResponse;
+            }
+            let mut throttle_ms = 0;
+            if let Some(throttle) = throttle {
+                throttle_ms = throttle.remaining_ms();
+                if throttle_ms > 0
+                    && produce::apply_throttle_ms(throttle.version, &mut response, throttle_ms)
+                        .is_none()
+                {
+                    return Exit::HandlerError;
+                }
             }
             // Handshake may have just begun a bounded renewal; retain the earlier
             // operation's deadline and the freshly installed authentication deadline.
@@ -1623,7 +1735,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             // fails during a write. The connection closes on error, allowing the
             // peer to detect the incomplete frame. Prefetch only when the
             // connection will stay open for another handler.
-            let prefetch = !close;
+            let prefetch = !close && throttle_ms == 0;
             let write = write_and_prefetch(
                 &mut socket,
                 &response,
@@ -1654,6 +1766,47 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
     // Publish the established exit in this poll. Yielding after the socket
     // closes lets shutdown cancel this completed failure and erase its cause.
     exit
+}
+
+#[cfg(test)]
+mod produce_pause_tests {
+    use super::*;
+
+    #[tokio::test(start_paused = true)]
+    async fn idle_eof_releases_the_slot_before_resume() {
+        let (client, mut socket) = tokio::io::duplex(64);
+        drop(client);
+        let mut ahead = ReadAhead::new();
+        let until = Instant::now() + Duration::from_secs(30);
+        assert!(matches!(
+            wait_for_resume(&mut socket, &mut ahead, until).await,
+            Err(Exit::PeerClosed)
+        ));
+        assert!(Instant::now() < until);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_split_prefix_survives_the_pause() -> Result<(), Box<dyn std::error::Error>> {
+        use tokio::io::AsyncWriteExt;
+
+        let (mut client, mut socket) = tokio::io::duplex(64);
+        let mut ahead = ReadAhead::new();
+        client.write_all(&[0, 0, 0, 1, 42]).await?;
+        let until = Instant::now() + Duration::from_secs(30);
+        assert!(wait_for_resume(&mut socket, &mut ahead, until).await.is_ok());
+        assert!(Instant::now() >= until);
+        assert_eq!(ahead.pending(), &[0]);
+        let result = read_frame(
+            &mut socket,
+            Config::default(),
+            until + Duration::from_secs(1),
+            &mut ahead,
+            new_frame(),
+        )
+        .await;
+        assert!(matches!(result, Ok(bytes) if bytes[..] == [42]));
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -1947,6 +2100,7 @@ mod tls_deadline_tests {
                 snapshot,
                 deadline: Instant::now() + Duration::from_millis(200),
             },
+            (),
         )
         .await;
         assert!(matches!(result, Exit::TlsDeadline));
@@ -2439,6 +2593,7 @@ mod read_deadline_tests {
                 #[cfg(feature = "tls")]
                 tls: None,
             },
+            (),
             #[cfg(feature = "sasl")]
             None,
         )
@@ -3256,6 +3411,7 @@ mod handler_deadline_tests {
                 #[cfg(feature = "tls")]
                 tls: None,
             },
+            (),
             #[cfg(feature = "sasl")]
             None,
         )
@@ -3353,6 +3509,7 @@ mod handler_deadline_tests {
                     #[cfg(feature = "tls")]
                     tls: None,
                 },
+                (),
                 #[cfg(feature = "sasl")]
                 None,
             ),
