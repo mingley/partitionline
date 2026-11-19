@@ -52,7 +52,7 @@ The 0.2.0 release was built separately from tag `v0.2.0`. See the
   122,496 records across graceful restarts. RF1 remains the data path.
   Partition replication, native KRaft, transaction marker propagation,
   Kafka wire quotas and a process-wide memory bound remain open.
-  [Sync worker evidence](https://github.com/mingley/partitionline/blob/3a2e48fc6a5a727b5b8a56deea4d32c11ef23d60/docs/evidence/broker/reusable-sync-20261119/README.md)
+  [Sync worker evidence](https://github.com/mingley/partitionline/blob/8977c6b986d5077c5886be75c6cc13fe99cdec5b/docs/evidence/broker/reusable-sync-20261119/README.md)
 - **Schema Registry.** The companion has passed mock and codec checks.
   Live Registry interoperability and resource limits for synchronous JSON
   parsing still need qualification. See the [companion guide](schema-companion.md).
