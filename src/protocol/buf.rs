@@ -628,15 +628,21 @@ pub fn get_varint<B: Buf>(buf: &mut B) -> Result<i32> {
 
 /// Write `width` unsigned varint groups, with direct writes for short values.
 #[inline]
-fn put_unsigned_groups(buf: &mut BytesMut, mut v: u64, width: usize) {
+fn put_unsigned_groups(buf: &mut BytesMut, v: u64, width: usize) {
     if width == 1 {
         buf.put_u8(u7_64(v));
-        return;
-    }
-    if width == 2 {
+    } else if width == 2 {
         buf.extend_from_slice(&[u7_64(v) | 0x80, u7_64(v >> 7)]);
-        return;
+    } else if width == 3 {
+        buf.extend_from_slice(&[u7_64(v) | 0x80, u7_64(v >> 7) | 0x80, u7_64(v >> 14)]);
+    } else {
+        put_wide_unsigned_groups(buf, v, width);
     }
+}
+
+#[cold]
+#[inline(never)]
+fn put_wide_unsigned_groups(buf: &mut BytesMut, mut v: u64, width: usize) {
     let mut tmp = [0u8; 10];
     let mut n = 0usize;
     while n + 1 < width {

@@ -9,7 +9,7 @@ import sys
 
 PAIRS = 12
 CASES = {
-    "none-tiny", "none-100", "none-1024-h2", "none-large", "gzip-100",
+    "none-tiny", "none-100", "none-1024-h2", "none-large", "none-1m", "gzip-100",
     "snappy-100", "lz4-1024-h2", "zstd-1024-h2",
 }
 

@@ -132,6 +132,13 @@ fn main() {
             ..standard
         },
         Case {
+            name: "none-1m",
+            records: 2,
+            value_bytes: 1_100_000,
+            iterations: 180,
+            ..standard
+        },
+        Case {
             name: "gzip-100",
             entropy: "text",
             compression: Compression::Gzip,
