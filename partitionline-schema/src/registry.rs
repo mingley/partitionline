@@ -1834,31 +1834,27 @@ impl<'a> JsonParser<'a> {
     }
 
     fn parse_string(&mut self) -> Result<String, RegistryError> {
-        // Caller peeked the opening quote.
-        self.pos = self.pos.saturating_add(1);
-        let mut out: Vec<u8> = Vec::new();
+        // Copy each run of ordinary bytes together. Only special bytes need
+        // the escape and control-character checks.
+        self.pos += 1;
+        let mut out = Vec::new();
         loop {
-            let byte = self
-                .peek()
+            let remaining = &self.buf[self.pos..];
+            let length = remaining
+                .iter()
+                .position(|&byte| byte < b' ' || matches!(byte, b'"' | b'\\'))
                 .ok_or_else(|| RegistryError::malformed("json unterminated string"))?;
-            match byte {
-                b'"' => {
-                    self.pos = self.pos.saturating_add(1);
-                    return String::from_utf8(out)
-                        .map_err(|_| RegistryError::malformed("json bad string escape"));
-                }
-                b'\\' => {
-                    self.pos = self.pos.saturating_add(1);
-                    self.parse_escape(&mut out)?;
-                }
-                0x00..=0x1f => {
-                    return Err(RegistryError::malformed("json control character in string"));
-                }
-                _ => {
-                    out.push(byte);
-                    self.pos = self.pos.saturating_add(1);
-                }
+            let byte = remaining[length];
+            if byte < b' ' {
+                return Err(RegistryError::malformed("json control character in string"));
             }
+            out.extend_from_slice(&remaining[..length]);
+            self.pos += length + 1;
+            if byte == b'"' {
+                return String::from_utf8(out)
+                    .map_err(|_| RegistryError::malformed("json bad string escape"));
+            }
+            self.parse_escape(&mut out)?;
         }
     }
 
@@ -2092,10 +2088,7 @@ impl<'a> JsonParser<'a> {
     }
 }
 
-fn object_entries<'a>(
-    what: &str,
-    value: &'a JsonValue,
-) -> Result<&'a [(String, JsonValue)], RegistryError> {
+fn object_entries(what: &str, value: JsonValue) -> Result<Vec<(String, JsonValue)>, RegistryError> {
     match value {
         JsonValue::Object(entries) => Ok(entries),
         _ => Err(RegistryError::malformed(
@@ -2108,15 +2101,19 @@ fn object_entries<'a>(
     }
 }
 
-fn required_field<'a>(
-    what: &str,
-    entries: &'a [(String, JsonValue)],
-    key: &str,
-) -> Result<&'a JsonValue, RegistryError> {
+fn take_field(entries: &mut [(String, JsonValue)], key: &str) -> Option<JsonValue> {
     entries
-        .iter()
+        .iter_mut()
         .find(|(known, _)| known == key)
-        .map(|(_, value)| value)
+        .map(|(_, value)| std::mem::replace(value, JsonValue::Null))
+}
+
+fn required_field(
+    what: &str,
+    entries: &mut [(String, JsonValue)],
+    key: &str,
+) -> Result<JsonValue, RegistryError> {
+    take_field(entries, key)
         .ok_or_else(|| RegistryError::malformed(format!("{what}: missing '{key}'").as_str()))
 }
 
@@ -2127,9 +2124,9 @@ fn optional_field<'a>(entries: &'a [(String, JsonValue)], key: &str) -> Option<&
         .map(|(_, value)| value)
 }
 
-fn as_str(what: &str, key: &str, value: &JsonValue) -> Result<String, RegistryError> {
+fn as_str(what: &str, key: &str, value: JsonValue) -> Result<String, RegistryError> {
     match value {
-        JsonValue::Str(text) => Ok(text.clone()),
+        JsonValue::Str(text) => Ok(text),
         _ => Err(RegistryError::malformed(
             format!(
                 "{what}: '{key}' is not a string (found {})",
@@ -2140,10 +2137,10 @@ fn as_str(what: &str, key: &str, value: &JsonValue) -> Result<String, RegistryEr
     }
 }
 
-fn as_opt_str(what: &str, key: &str, value: &JsonValue) -> Result<Option<String>, RegistryError> {
+fn as_opt_str(what: &str, key: &str, value: JsonValue) -> Result<Option<String>, RegistryError> {
     match value {
         JsonValue::Null => Ok(None),
-        JsonValue::Str(text) => Ok(Some(text.clone())),
+        JsonValue::Str(text) => Ok(Some(text)),
         _ => Err(RegistryError::malformed(
             format!(
                 "{what}: '{key}' is not a string or null (found {})",
@@ -2154,9 +2151,9 @@ fn as_opt_str(what: &str, key: &str, value: &JsonValue) -> Result<Option<String>
     }
 }
 
-fn as_u32(what: &str, key: &str, value: &JsonValue) -> Result<u32, RegistryError> {
+fn as_u32(what: &str, key: &str, value: JsonValue) -> Result<u32, RegistryError> {
     match value {
-        JsonValue::Int(n) => u32::try_from(*n).map_err(|_| {
+        JsonValue::Int(n) => u32::try_from(n).map_err(|_| {
             RegistryError::malformed(
                 format!(
                     "{what}: '{key}' is out of range (found {})",
@@ -2180,13 +2177,13 @@ fn parse_registered_schema(id: u32, body: &[u8]) -> Result<RegisteredSchema, Reg
     let text =
         std::str::from_utf8(body).map_err(|_| RegistryError::malformed("response is not utf8"))?;
     let value = JsonParser::new(text).parse()?;
-    let entries = object_entries(what, &value)?;
-    let schema = as_str(what, "schema", required_field(what, entries, "schema")?)?;
-    let schema_type = optional_field(entries, "schemaType")
+    let mut entries = object_entries(what, value)?;
+    let schema = as_str(what, "schema", required_field(what, &mut entries, "schema")?)?;
+    let schema_type = take_field(&mut entries, "schemaType")
         .map(|value| as_opt_str(what, "schemaType", value))
         .transpose()?
         .flatten();
-    let references = parse_references(what, optional_field(entries, "references"))?;
+    let references = parse_references(what, take_field(&mut entries, "references"))?;
     Ok(RegisteredSchema {
         id,
         schema,
@@ -2200,16 +2197,16 @@ fn parse_versioned_schema(body: &[u8]) -> Result<VersionedSchema, RegistryError>
     let text =
         std::str::from_utf8(body).map_err(|_| RegistryError::malformed("response is not utf8"))?;
     let value = JsonParser::new(text).parse()?;
-    let entries = object_entries(what, &value)?;
-    let subject = as_str(what, "subject", required_field(what, entries, "subject")?)?;
-    let version = as_u32(what, "version", required_field(what, entries, "version")?)?;
-    let id = as_u32(what, "id", required_field(what, entries, "id")?)?;
-    let schema = as_str(what, "schema", required_field(what, entries, "schema")?)?;
-    let schema_type = optional_field(entries, "schemaType")
+    let mut entries = object_entries(what, value)?;
+    let subject = as_str(what, "subject", required_field(what, &mut entries, "subject")?)?;
+    let version = as_u32(what, "version", required_field(what, &mut entries, "version")?)?;
+    let id = as_u32(what, "id", required_field(what, &mut entries, "id")?)?;
+    let schema = as_str(what, "schema", required_field(what, &mut entries, "schema")?)?;
+    let schema_type = take_field(&mut entries, "schemaType")
         .map(|value| as_opt_str(what, "schemaType", value))
         .transpose()?
         .flatten();
-    let references = parse_references(what, optional_field(entries, "references"))?;
+    let references = parse_references(what, take_field(&mut entries, "references"))?;
     Ok(VersionedSchema {
         subject,
         version,
@@ -2222,7 +2219,7 @@ fn parse_versioned_schema(body: &[u8]) -> Result<VersionedSchema, RegistryError>
 
 fn parse_references(
     what: &str,
-    value: Option<&JsonValue>,
+    value: Option<JsonValue>,
 ) -> Result<Vec<SchemaReference>, RegistryError> {
     let Some(value) = value else {
         return Ok(Vec::new());
@@ -2241,21 +2238,21 @@ fn parse_references(
     };
     let mut out = Vec::with_capacity(items.len());
     for item in items {
-        let entries = object_entries(format!("{what}: reference").as_str(), item)?;
+        let mut entries = object_entries(format!("{what}: reference").as_str(), item)?;
         let name = as_str(
             what,
             "references[].name",
-            required_field(what, entries, "name")?,
+            required_field(what, &mut entries, "name")?,
         )?;
         let subject = as_str(
             what,
             "references[].subject",
-            required_field(what, entries, "subject")?,
+            required_field(what, &mut entries, "subject")?,
         )?;
         let version = as_u32(
             what,
             "references[].version",
-            required_field(what, entries, "version")?,
+            required_field(what, &mut entries, "version")?,
         )?;
         out.push(SchemaReference {
             name,
