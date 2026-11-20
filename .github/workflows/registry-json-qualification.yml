@@ -35,13 +35,16 @@ jobs:
             if [[ "$arm" == baseline ]]; then
               source="$PWD/source-baseline"
             fi
-            original="$source/partitionline-schema/src/registry.rs"
+            crate="$RUNNER_TEMP/registry-json-source-$arm"
+            cp -a "$source/partitionline-schema" "$crate"
+            original="$crate/src/registry.rs"
             git -C "$source" rev-parse HEAD
-            git -C "$source" hash-object "$original"
-            sha256sum "$original" "$source/partitionline-schema/Cargo.lock" | tee "$report/$arm.source"
+            git -C "$source" hash-object "$source/partitionline-schema/src/registry.rs"
+            cmp "$source/partitionline-schema/src/registry.rs" "$original"
+            sha256sum "$original" "$crate/Cargo.lock" | tee "$report/$arm.source"
             cat "$probe" >> "$original"
             CARGO_TARGET_DIR="$RUNNER_TEMP/registry-json-$arm" \
-              cargo test --locked --release --manifest-path "$source/partitionline-schema/Cargo.toml" \
+              cargo test --locked --release --manifest-path "$crate/Cargo.toml" \
                 --lib --no-run --message-format=json \
                 > "$report/$arm.build.json"
             python3 - "$report/$arm.build.json" "$report/$arm.binary" <<'PY'
