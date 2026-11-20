@@ -1,6 +1,11 @@
 #!/bin/sh
-# Check the crate archive and install its operator for a local admin workflow.
+# Verify the crate archive and its installed operator.
 set -eu
+case "$#:@@1:-}" in
+  0:) serving=false ;;
+  1:--serve) serving=true ;;
+  *) printf '%s\n' 'usage: broker-package.sh [--serve]' >&2; exit 2 ;;
+esac
 root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 cd "$root"
 report="$root/target/broker-package"
@@ -98,4 +103,7 @@ for profile in default all-features; do
     printf 'Packaged operator lifecycle passed (%s)\n' "$profile"
   ) > "$report/$profile-operator.log" 2>&1
   cat "$report/$profile-operator.log"
+  if [ "$serving" = true ]; then
+    python3 -B scripts/broker-package-serving.py "$bin" "$profile" "$work/peer" "$report"
+  fi
 done

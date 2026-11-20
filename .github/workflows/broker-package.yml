@@ -2,10 +2,14 @@ name: Broker archive
 
 on:
   push:
-    branches: [main]
+    branches: [main, qualification/broker-archive-serving-n20]
     paths:
       - 'partitionline-broker/**'
       - 'scripts/broker-package.sh'
+      - 'scripts/broker-package-serving.py'
+      - 'tests/conformance/broker/interop/ArchiveProducePeer.java'
+      - 'tests/conformance/broker/interop/CrossReadPeer.java'
+      - 'tests/conformance/broker/interop/pins.json'
       - 'scripts/check-package-docs.py'
       - 'scripts/check-doc-examples.py'
       - 'LICENSE-APACHE'
@@ -17,6 +21,10 @@ on:
     paths:
       - 'partitionline-broker/**'
       - 'scripts/broker-package.sh'
+      - 'scripts/broker-package-serving.py'
+      - 'tests/conformance/broker/interop/ArchiveProducePeer.java'
+      - 'tests/conformance/broker/interop/CrossReadPeer.java'
+      - 'tests/conformance/broker/interop/pins.json'
       - 'scripts/check-package-docs.py'
       - 'scripts/check-doc-examples.py'
       - 'LICENSE-APACHE'
@@ -44,10 +52,14 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
       - name: Check broker formatting
         run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml --check
-      - name: Package, install, and verify the local operator
-        run: sh scripts/broker-package.sh
+      - name: Verify the installed admin and serving workflows
+        run: sh scripts/broker-package.sh --serve
       - name: Retain the archive, checksums, and logs
         if: always()
         uses: actions/upload-artifact@v7
