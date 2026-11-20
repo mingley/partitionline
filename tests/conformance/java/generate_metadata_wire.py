@@ -14,6 +14,7 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "tests/conformance/java/ConformanceMetadataWire.java"
+VERSION_SOURCE = ROOT / "tests/conformance/java/ConformanceMetadataVersions.java"
 RUST = ROOT / "tests/metadata_wire_conformance.rs"
 PINS = {
     "3.9.1": "7568b998572d256f0b7bc0afdc1b7a2588b8b08415c62ce314c864a6851ae9d9",
@@ -256,7 +257,10 @@ def main():
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, interrupt)
     results = []
-    inputs = {str(p.relative_to(ROOT)): digest(p) for p in (SOURCE, RUST, Path(__file__).resolve())}
+    input_paths = (SOURCE, RUST, Path(__file__).resolve())
+    if args.nested:
+        input_paths += (VERSION_SOURCE,)
+    inputs = {str(path.relative_to(ROOT)): digest(path) for path in input_paths}
     try:
         libc = ctypes.CDLL(None, use_errno=True)
         if libc.prctl(36, 1, 0, 0, 0) != 0:
@@ -272,8 +276,11 @@ def main():
             if args.nested:
                 maximum = 12 if release == "3.9.1" else 13
                 versions = f"metadata_declared=request:0-{maximum},response:0-{maximum}"
-                result["versions"] = run(java + ["versions", str(fixture)], directory / "versions.log",
-                                         marker=versions)
+                version_log = directory / "versions.log"
+                version_command = java[:4] + [str(VERSION_SOURCE), str(jar)]
+                result["versions"] = run(version_command, version_log, marker=versions)
+                if version_log.read_text().strip() != versions:
+                    raise ValueError("Metadata declared version range differs: " + release)
                 result["declared_maximum"] = maximum
                 print(json.dumps({"peer": release, "versions": versions,
                                   "jar_sha256": result["jar_sha256"],
@@ -324,7 +331,7 @@ def main():
                     print(json.dumps({"peer": release, "profile": profile,
                                       "corruption_controls": "both rejected"}), flush=True)
             results.append(result)
-        if inputs != {str(p.relative_to(ROOT)): digest(p) for p in (SOURCE, RUST, Path(__file__).resolve())}:
+        if inputs != {str(path.relative_to(ROOT)): digest(path) for path in input_paths}:
             raise ValueError("source changed during run")
         summary = {"status": "pass", "api": "Metadata", "version": 13, "results": results,
                    "cases": cases, "inputs": inputs, "timeout_control": timeout_control,

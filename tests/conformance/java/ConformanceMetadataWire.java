@@ -161,7 +161,7 @@ public final class ConformanceMetadataWire {
 
     public static void main(String[] args) throws Exception {
         if (args.length != 3) {
-            throw new IllegalArgumentException("<jar> <generate|verify|generate-nested|verify-nested|versions> <path>");
+            throw new IllegalArgumentException("<jar> <generate|verify|generate-nested|verify-nested> <path>");
         }
         Path jar = Path.of(args[0]);
         Path loaded = Path.of(MetadataRequestData.class.getProtectionDomain().getCodeSource().getLocation().toURI());
@@ -175,13 +175,6 @@ public final class ConformanceMetadataWire {
             case "verify" -> verify(Path.of(args[2]), CASES);
             case "generate-nested" -> generate(Path.of(args[2]), NESTED_CASES);
             case "verify-nested" -> verify(Path.of(args[2]), NESTED_CASES);
-            case "versions" -> {
-                var request = new MetadataRequestData();
-                var response = new MetadataResponseData();
-                System.out.println("metadata_declared=request:" + request.lowestSupportedVersion()
-                    + "-" + request.highestSupportedVersion() + ",response:"
-                    + response.lowestSupportedVersion() + "-" + response.highestSupportedVersion());
-            }
             default -> throw new IllegalArgumentException("unknown mode");
         }
     }

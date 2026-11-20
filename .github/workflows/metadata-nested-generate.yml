@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/metadata-nested-generate.yml'
       - 'tests/conformance/java/ConformanceMetadataWire.java'
+      - 'tests/conformance/java/ConformanceMetadataVersions.java'
       - 'tests/conformance/java/generate_metadata_wire.py'
       - 'tests/metadata_wire_conformance.rs'
 permissions:
@@ -29,7 +30,7 @@ jobs:
           uname -sm
           java --version
           git rev-parse HEAD
-          sha256sum tests/conformance/java/ConformanceMetadataWire.java tests/conformance/java/generate_metadata_wire.py tests/metadata_wire_conformance.rs
+          sha256sum tests/conformance/java/ConformanceMetadataVersions.java tests/conformance/java/ConformanceMetadataWire.java tests/conformance/java/generate_metadata_wire.py tests/metadata_wire_conformance.rs
       - name: Compare nested fixtures through the pinned SDKs
         run: timeout 600s python3 tests/conformance/java/generate_metadata_wire.py --nested --output target/metadata-v13-nested
       - name: Log the agreed synthetic corpus
