@@ -52,7 +52,7 @@ jobs:
       - name: Check space after checkout
         timeout-minutes: 2
         run: python3 -B "$RUNNER_TEMP/full-drain-results/space-check.py" after_checkout
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         timeout-minutes: 15
         with:
           python-version: '3.12'
