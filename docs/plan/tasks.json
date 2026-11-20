@@ -10271,6 +10271,20 @@
           "limits": [
             "Synchronous parser only, hosted x86_64. Peak child RSS includes process and input. Resource and concurrency qualification remains open."
           ]
+        },
+        {
+          "source_sha": "85c5e91f1c182049cf64ae8b5311a9a7ac76f673",
+          "baseline_sha": "e7c6e3cca0deb18e406ac4da4e4ae899834993e5",
+          "scope": "Independent owned-field extraction trial with the original string scanner",
+          "results": "All 168 pairs matched the 14 fixture identities, returned values and cache charges. The 64 MiB parse median was 114.60 to 83.71 ms, and peak RSS decreased 32.67%. At 1 and 8 MiB parse time increased 23.33% and 22.13%. Formatting, strict Clippy, live and extracted-package checks passed. The runtime patch stayed isolated.",
+          "artifacts": [
+            "docs/evidence/schema/registry-json-resources-20261120/owned-fields/README.md",
+            "docs/evidence/schema/registry-json-resources-20261120/owned-fields/pairs.jsonl",
+            "https://github.com/mingley/partitionline/actions/runs/44648404945"
+          ],
+          "limits": [
+            "Hosted Linux x86_64 synchronous parse timing. Peak RSS includes the process and input. Network, scheduling and whole-process resource qualification remain open."
+          ]
         }
       ],
       "write_set": [
@@ -55641,6 +55655,19 @@
             "Metadata v0 is a raw wire case; it does not establish public-client negotiation or Java builder support.",
             "Finite selected bodies do not qualify wider error and collection shapes, version negotiation, unsupported peers or live-broker behavior. The card remains open.",
             "Packaging used --no-verify followed by targeted tests; it is not a full package or release gate."
+          ]
+        },
+        {
+          "source_sha": "55236d1e0fa7d21e5acb94fa3f7bba804e9c219b",
+          "scope": "Finite selected nested Metadata v13 bodies",
+          "results": "Four applicable pinned Apache SDKs and two Rust feature profiles matched three request/response pairs per lane, 24 per direction. Both loaded 3.9.1 generated classes declare v0–v12. Original and new corpora passed in the checkout and extracted crate, with formatting and strict test-target Clippy. The failed initial version-probe setup is retained.",
+          "artifacts": [
+            "docs/evidence/conformance/q-conf-metadatawire/nested-20261120.md",
+            "tests/fixtures/metadata_wire/v13-nested-pairs.txt",
+            "https://github.com/mingley/partitionline/actions/runs/44648227549"
+          ],
+          "limits": [
+            "Selected body cases. Exhaustive applicability, live version negotiation, broader responses and broker behavior remain open."
           ]
         }
       ],

@@ -27,6 +27,11 @@ broker and Schema Registry companion are unpublished. The broker is experimental
   the 128-partition LZ4 workload. One-record gzip fell 0.09%.
   [Timing](https://github.com/mingley/partitionline/actions/runs/44639969911) · [Wire and allocation checks](https://github.com/mingley/partitionline/actions/runs/44642069000)
 
+- Four pinned Apache SDKs matched three new Metadata v13 body pairs
+  with broker, topic ID, leader and ISR fields. Both Rust feature
+  profiles passed in the checkout and extracted crate. Kafka 3.9.1
+  declares support through v12. [Metadata checks](https://github.com/mingley/partitionline/actions/runs/44648227549)
+
 ## Broker
 
 - The RF1 broker can pace Produce on an opt-in plaintext listener. Client
@@ -62,7 +67,10 @@ archive run were ignored and ran in the separate live workflow.
 
 The first JSON parser trial cut the 64 MiB parse median from 111 to 71 ms.
 Its Avro 8,192-field median rose 27.14%, and peak RSS rose 28.96% at 8 MiB.
-The trial stayed isolated. [Paired JSON results](https://github.com/mingley/partitionline/actions/runs/44647583240)
+The ownership-only trial cut the 64 MiB median from 115 to 84 ms
+and raised the 1 and 8 MiB parse times by 22–23%. Both trials stayed
+isolated. [Combined trial](https://github.com/mingley/partitionline/actions/runs/44647583240) ·
+[Ownership-only trial](https://github.com/mingley/partitionline/actions/runs/44648404945)
 
 ## Validation
 

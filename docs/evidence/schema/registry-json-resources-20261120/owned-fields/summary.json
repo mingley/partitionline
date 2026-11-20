@@ -1,0 +1,548 @@
+[
+  {
+    "case": "small-id",
+    "median_ns": {
+      "baseline": 724.5,
+      "candidate": 767,
+      "delta_pct": 5.521114739356891,
+      "ci95_pct": [
+        4.65205064143952,
+        6.9774780565912025
+      ],
+      "worst_baseline": 779,
+      "worst_candidate": 809,
+      "higher_pairs": 11
+    },
+    "max_ns": {
+      "baseline": 17496.5,
+      "candidate": 22278,
+      "delta_pct": 25.814262016385683,
+      "ci95_pct": [
+        -6.657997121049636,
+        50.742470418187565
+      ],
+      "worst_baseline": 34944,
+      "worst_candidate": 33490,
+      "higher_pairs": 7
+    },
+    "peak_rss_kib": {
+      "baseline": 4092,
+      "candidate": 4096,
+      "delta_pct": 0.39333800672001207,
+      "ci95_pct": [
+        0.195122694101868,
+        2.336385309984468
+      ],
+      "worst_baseline": 4236,
+      "worst_candidate": 4132,
+      "higher_pairs": 10
+    }
+  },
+  {
+    "case": "small-subject",
+    "median_ns": {
+      "baseline": 1905.5,
+      "candidate": 1858,
+      "delta_pct": -2.3900364640774163,
+      "ci95_pct": [
+        -4.578578783285975,
+        -0.8116502473325904
+      ],
+      "worst_baseline": 2028,
+      "worst_candidate": 1951,
+      "higher_pairs": 2
+    },
+    "max_ns": {
+      "baseline": 25829.5,
+      "candidate": 25518.5,
+      "delta_pct": 12.701564071932813,
+      "ci95_pct": [
+        -11.233428954401075,
+        25.729695628262395
+      ],
+      "worst_baseline": 45503,
+      "worst_candidate": 40857,
+      "higher_pairs": 8
+    },
+    "peak_rss_kib": {
+      "baseline": 4002,
+      "candidate": 4060,
+      "delta_pct": 1.4563978390003118,
+      "ci95_pct": [
+        -0.8788117206685264,
+        3.5930698678369843
+      ],
+      "worst_baseline": 4228,
+      "worst_candidate": 4116,
+      "higher_pairs": 7
+    }
+  },
+  {
+    "case": "escaped-unicode",
+    "median_ns": {
+      "baseline": 1052,
+      "candidate": 1093,
+      "delta_pct": 4.439641209521572,
+      "ci95_pct": [
+        3.8416599153839215,
+        5.472429592130979
+      ],
+      "worst_baseline": 1085,
+      "worst_candidate": 1121,
+      "higher_pairs": 11
+    },
+    "max_ns": {
+      "baseline": 17655.5,
+      "candidate": 16992,
+      "delta_pct": 0.357715738974107,
+      "ci95_pct": [
+        -31.374010569709494,
+        16.569246520704205
+      ],
+      "worst_baseline": 33757,
+      "worst_candidate": 29251,
+      "higher_pairs": 6
+    },
+    "peak_rss_kib": {
+      "baseline": 3918,
+      "candidate": 3934,
+      "delta_pct": 0.5129764630614875,
+      "ci95_pct": [
+        -1.155778894472359,
+        1.5461707797474245
+      ],
+      "worst_baseline": 4036,
+      "worst_candidate": 4004,
+      "higher_pairs": 8
+    }
+  },
+  {
+    "case": "doc-64k",
+    "median_ns": {
+      "baseline": 56346,
+      "candidate": 55204,
+      "delta_pct": -2.0076665943846326,
+      "ci95_pct": [
+        -2.0686927733893414,
+        -1.9571645493682843
+      ],
+      "worst_baseline": 56411,
+      "worst_candidate": 65104,
+      "higher_pairs": 1
+    },
+    "max_ns": {
+      "baseline": 81801.5,
+      "candidate": 92284,
+      "delta_pct": 10.845240190911776,
+      "ci95_pct": [
+        -0.4921341427564232,
+        22.892726523047624
+      ],
+      "worst_baseline": 101308,
+      "worst_candidate": 142553,
+      "higher_pairs": 9
+    },
+    "peak_rss_kib": {
+      "baseline": 4176,
+      "candidate": 4360,
+      "delta_pct": 5.095943720169316,
+      "ci95_pct": [
+        2.6591556612579947,
+        7.11967682777388
+      ],
+      "worst_baseline": 4236,
+      "worst_candidate": 4472,
+      "higher_pairs": 12
+    }
+  },
+  {
+    "case": "doc-1m",
+    "median_ns": {
+      "baseline": 947765.5,
+      "candidate": 1170344.5,
+      "delta_pct": 23.327771818718844,
+      "ci95_pct": [
+        23.143003641785178,
+        23.826394384641624
+      ],
+      "worst_baseline": 953567,
+      "worst_candidate": 1176982,
+      "higher_pairs": 12
+    },
+    "max_ns": {
+      "baseline": 1411752,
+      "candidate": 1286308.5,
+      "delta_pct": -9.34067929568323,
+      "ci95_pct": [
+        -10.253401886267804,
+        -8.376246321769244
+      ],
+      "worst_baseline": 1533332,
+      "worst_candidate": 1301395,
+      "higher_pairs": 0
+    },
+    "peak_rss_kib": {
+      "baseline": 6774,
+      "candidate": 6820,
+      "delta_pct": 0.9447929342766392,
+      "ci95_pct": [
+        0.29512464128712557,
+        1.5707398661944039
+      ],
+      "worst_baseline": 6796,
+      "worst_candidate": 6884,
+      "higher_pairs": 10
+    }
+  },
+  {
+    "case": "doc-8m",
+    "median_ns": {
+      "baseline": 8042165,
+      "candidate": 9812979.5,
+      "delta_pct": 22.132401024948212,
+      "ci95_pct": [
+        20.577598912525875,
+        22.880244581200294
+      ],
+      "worst_baseline": 8134087,
+      "worst_candidate": 10097298,
+      "higher_pairs": 12
+    },
+    "max_ns": {
+      "baseline": 12234714,
+      "candidate": 11036497.5,
+      "delta_pct": -9.612836435445004,
+      "ci95_pct": [
+        -11.889778533195555,
+        -7.301435994698585
+      ],
+      "worst_baseline": 13111229,
+      "worst_candidate": 11153660,
+      "higher_pairs": 0
+    },
+    "peak_rss_kib": {
+      "baseline": 28282,
+      "candidate": 28292,
+      "delta_pct": 0.0282875426964313,
+      "ci95_pct": [
+        -0.08482963381874487,
+        0.13440060171696633
+      ],
+      "worst_baseline": 28424,
+      "worst_candidate": 28420,
+      "higher_pairs": 6
+    }
+  },
+  {
+    "case": "doc-64m",
+    "median_ns": {
+      "baseline": 114599063.5,
+      "candidate": 83709134,
+      "delta_pct": -27.007055905139698,
+      "ci95_pct": [
+        -27.18809495717729,
+        -26.740089867730696
+      ],
+      "worst_baseline": 115893050,
+      "worst_candidate": 84000597,
+      "higher_pairs": 0
+    },
+    "max_ns": {
+      "baseline": 115106616.5,
+      "candidate": 83877863,
+      "delta_pct": -27.02521864216184,
+      "ci95_pct": [
+        -27.416469471338004,
+        -26.86398427950452
+      ],
+      "worst_baseline": 116150529,
+      "worst_candidate": 84101428,
+      "higher_pairs": 0
+    },
+    "peak_rss_kib": {
+      "baseline": 200402,
+      "candidate": 134924,
+      "delta_pct": -32.666872390084805,
+      "ci95_pct": [
+        -32.6873374504017,
+        -32.63660311646618
+      ],
+      "worst_baseline": 200424,
+      "worst_candidate": 135040,
+      "higher_pairs": 0
+    }
+  },
+  {
+    "case": "avro-512",
+    "median_ns": {
+      "baseline": 37046.5,
+      "candidate": 33655.5,
+      "delta_pct": -9.188153163449687,
+      "ci95_pct": [
+        -10.029756967467112,
+        -8.16965933348202
+      ],
+      "worst_baseline": 37418,
+      "worst_candidate": 34120,
+      "higher_pairs": 0
+    },
+    "max_ns": {
+      "baseline": 64829,
+      "candidate": 67621,
+      "delta_pct": 1.1806332697701039,
+      "ci95_pct": [
+        -12.749931832870786,
+        13.5436453276767
+      ],
+      "worst_baseline": 82921,
+      "worst_candidate": 86309,
+      "higher_pairs": 6
+    },
+    "peak_rss_kib": {
+      "baseline": 4038,
+      "candidate": 4194,
+      "delta_pct": 4.79525493438735,
+      "ci95_pct": [
+        1.8165450355290935,
+        5.73784765411215
+      ],
+      "worst_baseline": 4100,
+      "worst_candidate": 4296,
+      "higher_pairs": 10
+    }
+  },
+  {
+    "case": "avro-8192",
+    "median_ns": {
+      "baseline": 605721,
+      "candidate": 699694.5,
+      "delta_pct": 15.778185200893247,
+      "ci95_pct": [
+        14.699563531772164,
+        16.2344843743767
+      ],
+      "worst_baseline": 609870,
+      "worst_candidate": 703528,
+      "higher_pairs": 12
+    },
+    "max_ns": {
+      "baseline": 917431.5,
+      "candidate": 806044.5,
+      "delta_pct": -12.953552513569866,
+      "ci95_pct": [
+        -16.25025954487633,
+        -9.879852115708864
+      ],
+      "worst_baseline": 1207288,
+      "worst_candidate": 897640,
+      "higher_pairs": 0
+    },
+    "peak_rss_kib": {
+      "baseline": 5368,
+      "candidate": 5076,
+      "delta_pct": -5.33579602127201,
+      "ci95_pct": [
+        -5.650680672031999,
+        -5.198272510370256
+      ],
+      "worst_baseline": 5396,
+      "worst_candidate": 5152,
+      "higher_pairs": 0
+    }
+  },
+  {
+    "case": "metadata-63",
+    "median_ns": {
+      "baseline": 11477,
+      "candidate": 13302.5,
+      "delta_pct": 16.306192846836687,
+      "ci95_pct": [
+        13.148729861995024,
+        17.732448660758152
+      ],
+      "worst_baseline": 12970,
+      "worst_candidate": 14050,
+      "higher_pairs": 12
+    },
+    "max_ns": {
+      "baseline": 31534.5,
+      "candidate": 35057.5,
+      "delta_pct": 12.443358144117855,
+      "ci95_pct": [
+        -5.026458350373764,
+        24.738515235291857
+      ],
+      "worst_baseline": 39701,
+      "worst_candidate": 45576,
+      "higher_pairs": 8
+    },
+    "peak_rss_kib": {
+      "baseline": 3964,
+      "candidate": 3940,
+      "delta_pct": -0.0014198134973553156,
+      "ci95_pct": [
+        -1.8633530924045072,
+        1.638971924271737
+      ],
+      "worst_baseline": 3980,
+      "worst_candidate": 4060,
+      "higher_pairs": 6
+    }
+  },
+  {
+    "case": "metadata-256",
+    "median_ns": {
+      "baseline": 76406.5,
+      "candidate": 74700,
+      "delta_pct": -1.998574419906185,
+      "ci95_pct": [
+        -4.403350488566504,
+        -0.24628633965251834
+      ],
+      "worst_baseline": 81176,
+      "worst_candidate": 76244,
+      "higher_pairs": 3
+    },
+    "max_ns": {
+      "baseline": 109044,
+      "candidate": 105153.5,
+      "delta_pct": -6.342041191029879,
+      "ci95_pct": [
+        -14.518399874955552,
+        3.660527514041423
+      ],
+      "worst_baseline": 449060,
+      "worst_candidate": 112526,
+      "higher_pairs": 4
+    },
+    "peak_rss_kib": {
+      "baseline": 3876,
+      "candidate": 4062,
+      "delta_pct": 4.600749313628283,
+      "ci95_pct": [
+        2.7190332326283984,
+        5.891553701772678
+      ],
+      "worst_baseline": 3980,
+      "worst_candidate": 4132,
+      "higher_pairs": 12
+    }
+  },
+  {
+    "case": "metadata-4096",
+    "median_ns": {
+      "baseline": 1541839,
+      "candidate": 1575871.5,
+      "delta_pct": 2.2781388394209956,
+      "ci95_pct": [
+        1.37178092062904,
+        2.5611195667085584
+      ],
+      "worst_baseline": 1585296,
+      "worst_candidate": 1586918,
+      "higher_pairs": 11
+    },
+    "max_ns": {
+      "baseline": 1612715,
+      "candidate": 1602764.5,
+      "delta_pct": -0.48371064669322505,
+      "ci95_pct": [
+        -1.8417788841821714,
+        0.7040774824076057
+      ],
+      "worst_baseline": 1670335,
+      "worst_candidate": 1723959,
+      "higher_pairs": 5
+    },
+    "peak_rss_kib": {
+      "baseline": 4520,
+      "candidate": 4340,
+      "delta_pct": -3.767506562504913,
+      "ci95_pct": [
+        -4.647215315685349,
+        -3.0490310023025993
+      ],
+      "worst_baseline": 4632,
+      "worst_candidate": 4408,
+      "higher_pairs": 0
+    }
+  },
+  {
+    "case": "metadata-16384",
+    "median_ns": {
+      "baseline": 6638506,
+      "candidate": 6890450.5,
+      "delta_pct": 3.8690002489454423,
+      "ci95_pct": [
+        3.479725599723882,
+        4.993451180476416
+      ],
+      "worst_baseline": 6728913,
+      "worst_candidate": 6915136,
+      "higher_pairs": 12
+    },
+    "max_ns": {
+      "baseline": 6886050.5,
+      "candidate": 6977759.5,
+      "delta_pct": 1.4783654313879513,
+      "ci95_pct": [
+        0.15457206631720455,
+        2.5852727428044786
+      ],
+      "worst_baseline": 6994616,
+      "worst_candidate": 7043924,
+      "higher_pairs": 9
+    },
+    "peak_rss_kib": {
+      "baseline": 6274,
+      "candidate": 6272,
+      "delta_pct": 0.3783102143757877,
+      "ci95_pct": [
+        -0.41425646691797824,
+        1.083943602394033
+      ],
+      "worst_baseline": 6344,
+      "worst_candidate": 6396,
+      "higher_pairs": 6
+    }
+  },
+  {
+    "case": "references-256",
+    "median_ns": {
+      "baseline": 149097.5,
+      "candidate": 121270,
+      "delta_pct": -18.794960461577254,
+      "ci95_pct": [
+        -20.729249685507167,
+        -16.47131837024966
+      ],
+      "worst_baseline": 151623,
+      "worst_candidate": 128844,
+      "higher_pairs": 0
+    },
+    "max_ns": {
+      "baseline": 182740.5,
+      "candidate": 164188,
+      "delta_pct": -10.242761530514567,
+      "ci95_pct": [
+        -13.351048874118398,
+        -5.28982210805562
+      ],
+      "worst_baseline": 225923,
+      "worst_candidate": 496660,
+      "higher_pairs": 2
+    },
+    "peak_rss_kib": {
+      "baseline": 4468,
+      "candidate": 4342,
+      "delta_pct": -1.9828815512739573,
+      "ci95_pct": [
+        -3.3124440465532645,
+        -1.2258067179707344
+      ],
+      "worst_baseline": 4492,
+      "worst_candidate": 4448,
+      "higher_pairs": 1
+    }
+  }
+]

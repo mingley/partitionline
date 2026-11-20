@@ -20,7 +20,7 @@ The [status page](../STATUS.md) records the source tested by each run.
   all five codecs. The speed results cover local encoding.
   [Sizing measurements](../evidence/client/producer-fused-sizing-20261119/README.md)
 - Expand the registered wire and live case matrix beyond the selected Produce
-  and ListOffsets bodies. Check negotiated versions,
+  and ListOffsets bodies and the new Metadata v13 cases. Check negotiated versions,
   authentication renewal, group churn, transaction recovery and the independent
   consumer histories. The support matrix describes what is exercised today.
   [Support matrix](../support.md) · [Client capabilities](../gaps.md)
@@ -54,7 +54,9 @@ The [status page](../STATUS.md) records the source tested by each run.
 - Qualify bearer tokens, credential rotation, Kafka TLS and the remaining
   formats. The first JSON trial kept every measurement, including slower
   small and escaped Avro bodies and higher RSS at 8 MiB.
-  [JSON measurements](../evidence/schema/registry-json-resources-20261120/combined/README.md)
+  The ownership-only trial also had slower 1 and 8 MiB parses.
+  [Combined trial](../evidence/schema/registry-json-resources-20261120/combined/README.md) ·
+  [Ownership-only trial](../evidence/schema/registry-json-resources-20261120/owned-fields/README.md)
   [Companion guide](../schema-companion.md)
 
 ## Performance and release
