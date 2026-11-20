@@ -7418,7 +7418,7 @@ impl AckIndex {
                         break;
                     }
                     walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
+                    if walked == 2 * 1024 {
                         walked = 0;
                         tokio::task::yield_now().await;
                     }
@@ -7432,20 +7432,24 @@ impl AckIndex {
                 if !self.topics.contains_key(topic.as_ref()) {
                     let _ = self.topics.insert(Arc::clone(&topic), HashMap::new());
                 }
-                let mut walked = 0usize;
-                for (slot, (_, part, _)) in groups.iter().enumerate() {
-                    if let Some(parts) = self.topics.get_mut(topic.as_ref()) {
-                        match parts.get_mut(part) {
-                            Some(entry) if entry.1 == generation => {}
-                            Some(entry) => *entry = (slot, generation),
-                            None => {
-                                let _ = parts.insert(*part, (slot, generation));
+                for chunk_start in (0..groups.len()).step_by(2 * 1024) {
+                    let chunk_end = chunk_start.saturating_add(2 * 1024).min(groups.len());
+                    if let (Some(chunk), Some(parts)) = (
+                        groups.get(chunk_start..chunk_end),
+                        self.topics.get_mut(topic.as_ref()),
+                    ) {
+                        for (offset, (_, part, _)) in chunk.iter().enumerate() {
+                            let slot = chunk_start.saturating_add(offset);
+                            match parts.get_mut(part) {
+                                Some(entry) if entry.1 == generation => {}
+                                Some(entry) => *entry = (slot, generation),
+                                None => {
+                                    let _ = parts.insert(*part, (slot, generation));
+                                }
                             }
                         }
                     }
-                    walked = walked.saturating_add(1);
-                    if walked == 8 * 1024 {
-                        walked = 0;
+                    if chunk_end < groups.len() {
                         tokio::task::yield_now().await;
                     }
                 }
@@ -7467,7 +7471,7 @@ impl AckIndex {
                     let _ = self.topics.insert(Arc::clone(topic), parts);
                 }
                 walked = walked.saturating_add(1);
-                if walked == 8 * 1024 {
+                if walked == 2 * 1024 {
                     walked = 0;
                     tokio::task::yield_now().await;
                 }
@@ -10844,7 +10848,7 @@ async fn accept_solicited_acks(
             ));
         }
         walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
+        if walked == 2 * 1024 {
             walked = 0;
             tokio::task::yield_now().await;
         }
