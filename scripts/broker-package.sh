@@ -10,6 +10,15 @@ trap 'rm -rf -- "$work"' EXIT
 CARGO_TARGET_DIR="$work/target"
 export CARGO_TARGET_DIR
 
+run_logged() {
+  log=$1
+  shift
+  "$@" > "$log" 2>&1 || {
+    cat "$log" >&2
+    return 1
+  }
+}
+
 revision=$(git rev-parse HEAD)
 {
   printf '%s\n' "$revision"
@@ -20,8 +29,8 @@ revision=$(git rev-parse HEAD)
 cat "$report/source.txt"
 
 printf 'Check the crate archive. Logs are in %s\n' "$report"
-cargo +stable package --locked --manifest-path partitionline-broker/Cargo.toml \
-  > "$report/package.log" 2>&1
+run_logged "$report/package.log" cargo +stable package --locked \
+  --manifest-path partitionline-broker/Cargo.toml
 cat "$report/package.log"
 set -- "$CARGO_TARGET_DIR"/package/partitionline-broker-*.crate
 if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then
@@ -57,11 +66,11 @@ for profile in default all-features; do
     set -- --all-features
   fi
   printf 'Verify %s from the extracted archive\n' "$profile"
-  cargo +stable clippy --locked --manifest-path "$package/Cargo.toml" \
-    --lib --bins --examples "$@" -- -D warnings > "$report/$profile-clippy.log" 2>&1
+  run_logged "$report/$profile-clippy.log" cargo +stable clippy --locked \
+    --manifest-path "$package/Cargo.toml" --lib --bins --examples "$@" -- -D warnings
   install="$work/install/$profile"
-  cargo +stable install --locked --path "$package" --root "$install" --bin operator "$@" \
-    > "$report/$profile-install.log" 2>&1
+  run_logged "$report/$profile-install.log" cargo +stable install --locked \
+    --path "$package" --root "$install" --bin operator "$@"
   (cd "$install/bin" && sha256sum operator > "$report/$profile-operator.sha256")
 
   bin="$install/bin/operator"

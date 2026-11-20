@@ -3,7 +3,7 @@
 The local setup workflow initializes, configures, backs up, and restores an
 admin journal. It uses a temporary directory and starts no listener. For
 single-node Kafka serving, see the
-[broker README](../partitionline-broker/README.md).
+[broker README](https://github.com/mingley/partitionline/blob/e7c6e3cca0deb18e406ac4da4e4ae899834993e5/partitionline-broker/README.md).
 
 ## Build
 

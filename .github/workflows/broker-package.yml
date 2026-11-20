@@ -46,6 +46,18 @@ jobs:
         run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml --check
       - name: Package, install, and verify the local operator
         run: sh scripts/broker-package.sh
+      - name: Verify navigation in the client archive
+        run: |
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/broker-package-client-docs"
+          cargo +stable package --locked --no-verify
+          mkdir "$CARGO_TARGET_DIR/extracted"
+          set -- "$CARGO_TARGET_DIR"/package/partitionline-*.crate
+          test "$#" -eq 1
+          archive=$1
+          name=${archive##*/}
+          tar -xzf "$archive" -C "$CARGO_TARGET_DIR/extracted"
+          python3 -B scripts/check-package-docs.py "$CARGO_TARGET_DIR/extracted/${name%.crate}" \
+            --report target/broker-package/client-package-docs.json
       - name: Retain the archive, checksums, and logs
         if: always()
         uses: actions/upload-artifact@v7
