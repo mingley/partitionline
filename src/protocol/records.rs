@@ -2306,8 +2306,252 @@ fn lz4_decompress_reserve(src: &[u8], max_bytes: usize) -> Result<usize> {
     Ok(reserve)
 }
 
+fn lz4_header_checksum(descriptor: &[u8]) -> Option<u8> {
+    const PRIME32_1: u32 = 0x9E37_79B1;
+    const PRIME32_2: u32 = 0x85EB_CA77;
+    const PRIME32_3: u32 = 0xC2B2_AE3D;
+    const PRIME32_4: u32 = 0x27D4_EB2F;
+    const PRIME32_5: u32 = 0x1656_67B1;
+
+    if descriptor.len() >= 16 {
+        return None;
+    }
+    let len = u32::try_from(descriptor.len()).ok()?;
+    let mut acc = PRIME32_5.wrapping_add(len);
+    let mut remaining = descriptor;
+    while let Some((chunk, rest)) = remaining.split_first_chunk::<4>() {
+        let lane = u32::from_le_bytes(*chunk);
+        acc = acc.wrapping_add(lane.wrapping_mul(PRIME32_3));
+        acc = acc.rotate_left(17).wrapping_mul(PRIME32_4);
+        remaining = rest;
+    }
+    for &byte in remaining {
+        acc = acc.wrapping_add(u32::from(byte).wrapping_mul(PRIME32_5));
+        acc = acc.rotate_left(11).wrapping_mul(PRIME32_1);
+    }
+    acc ^= acc >> 15;
+    acc = acc.wrapping_mul(PRIME32_2);
+    acc ^= acc >> 13;
+    acc = acc.wrapping_mul(PRIME32_3);
+    acc ^= acc >> 16;
+    let [_, hc, _, _] = acc.to_le_bytes();
+    Some(hc)
+}
+
+/// Fast path for independent-block LZ4 frames without checksums or dict IDs.
+///
+/// Returns `Ok(None)` when the frame uses features handled by `FrameDecoder` or
+/// encounters frame/block errors so the fallback produces identical errors.
+fn lz4_decompress_fast(src: &[u8], max_bytes: usize, reserve: usize) -> Result<Option<Vec<u8>>> {
+    const LZ4F_MAGIC: [u8; 4] = [0x04, 0x22, 0x4D, 0x18];
+    const BLOCK_UNCOMPRESSED_BIT: u32 = 0x8000_0000;
+
+    if src.len() < 7 || !src.starts_with(&LZ4F_MAGIC) {
+        return Ok(None);
+    }
+    let Some(&flg) = src.get(4) else {
+        return Ok(None);
+    };
+    let Some(&bd) = src.get(5) else {
+        return Ok(None);
+    };
+    // FLG: version=01 (0x40), B.Indep=1 (0x20), B.Checksum=0, C.Checksum=0,
+    // Reserved=0, DictID=0. Only C.Size (0x08) may vary.
+    if (flg & 0xF7) != 0x60 || (bd & 0x8F) != 0 {
+        return Ok(None);
+    }
+    let block_max_size = match bd >> 4 {
+        4 => 64 * 1024,
+        5 => 256 * 1024,
+        6 => 1024 * 1024,
+        7 => 4 * 1024 * 1024,
+        _ => return Ok(None),
+    };
+
+    let has_content_size = (flg & 0x08) != 0;
+    let (header_len, declared_usize) = if has_content_size {
+        let Some(size_bytes) = src
+            .get(6..14)
+            .and_then(|slice| <[u8; 8]>::try_from(slice).ok())
+        else {
+            return Ok(None);
+        };
+        let declared = u64::from_le_bytes(size_bytes);
+        let Ok(declared_usize) = usize::try_from(declared) else {
+            return Err(Error::protocol(
+                "Decompressed batch exceeds maximum allowable size",
+            ));
+        };
+        if declared_usize > max_bytes {
+            return Err(Error::protocol(
+                "Decompressed batch exceeds maximum allowable size",
+            ));
+        }
+        (15usize, Some(declared_usize))
+    } else {
+        (7usize, None)
+    };
+
+    let Some(&hc_byte) = src.get(header_len - 1) else {
+        return Ok(None);
+    };
+    let Some(descriptor) = src.get(4..header_len - 1) else {
+        return Ok(None);
+    };
+    if lz4_header_checksum(descriptor) != Some(hc_byte) {
+        return Ok(None);
+    }
+
+    let mut out = Vec::new();
+    let hint = reserve.min(max_bytes);
+    if hint > 0 {
+        out.try_reserve(hint)
+            .map_err(|_| Error::protocol("decompressed batch reserve"))?;
+    }
+    // Keep `out.len()` monotonically growing up to `max_bytes` across blocks
+    // rather than truncating after each block, so many small compressed blocks
+    // never repeatedly re-zero up to `block_max_size`.
+    let mut written_total = 0usize;
+
+    let mut pos = header_len;
+    loop {
+        let Some(len_end) = pos.checked_add(4) else {
+            return Ok(None);
+        };
+        let Some(len_bytes) = src
+            .get(pos..len_end)
+            .and_then(|slice| <[u8; 4]>::try_from(slice).ok())
+        else {
+            return Ok(None);
+        };
+        pos = len_end;
+        let block_len_raw = u32::from_le_bytes(len_bytes);
+        if block_len_raw == 0 {
+            if let Some(expected) = declared_usize {
+                if written_total != expected {
+                    return Ok(None);
+                }
+            }
+            out.truncate(written_total);
+            return Ok(Some(out));
+        }
+
+        if (block_len_raw & BLOCK_UNCOMPRESSED_BIT) != 0 {
+            let Ok(raw_len) = usize::try_from(block_len_raw & !BLOCK_UNCOMPRESSED_BIT) else {
+                return Ok(None);
+            };
+            if raw_len == 0 || raw_len > block_max_size {
+                return Ok(None);
+            }
+            let Some(end) = pos.checked_add(raw_len) else {
+                return Ok(None);
+            };
+            let Some(block) = src.get(pos..end) else {
+                return Ok(None);
+            };
+            let Some(new_len) = written_total.checked_add(raw_len) else {
+                return Err(Error::protocol(
+                    "Decompressed batch exceeds maximum allowable size",
+                ));
+            };
+            if new_len > max_bytes {
+                return Err(Error::protocol(
+                    "Decompressed batch exceeds maximum allowable size",
+                ));
+            }
+            if let Some(expected) = declared_usize {
+                if new_len > expected {
+                    return Ok(None);
+                }
+            }
+            if new_len > out.len() {
+                let extra = new_len - out.len();
+                out.try_reserve(extra)
+                    .map_err(|_| Error::protocol("decompressed batch reserve"))?;
+                if written_total == out.len() {
+                    out.extend_from_slice(block);
+                } else {
+                    out.resize(new_len, 0);
+                    let dst = out
+                        .get_mut(written_total..new_len)
+                        .ok_or_else(|| Error::protocol("lz4 output slice"))?;
+                    dst.copy_from_slice(block);
+                }
+            } else {
+                let dst = out
+                    .get_mut(written_total..new_len)
+                    .ok_or_else(|| Error::protocol("lz4 output slice"))?;
+                dst.copy_from_slice(block);
+            }
+            written_total = new_len;
+            pos = end;
+        } else {
+            let Ok(comp_len) = usize::try_from(block_len_raw) else {
+                return Ok(None);
+            };
+            if comp_len == 0 || comp_len > block_max_size {
+                return Ok(None);
+            }
+            let Some(end) = pos.checked_add(comp_len) else {
+                return Ok(None);
+            };
+            let Some(block) = src.get(pos..end) else {
+                return Ok(None);
+            };
+            let start = written_total;
+            let remaining_max = max_bytes.saturating_sub(start);
+            let frame_budget = match declared_usize {
+                Some(expected) => expected.saturating_sub(start).min(remaining_max),
+                None => remaining_max,
+            };
+            let block_budget = block_max_size.min(frame_budget);
+            // When `content_size` is absent, start with a tight estimate so small
+            // frames do not allocate/zero 4 MiB, retrying once up to `block_budget`.
+            let initial_budget = if declared_usize.is_some() {
+                block_budget
+            } else {
+                comp_len.saturating_mul(4).max(4096).min(block_budget)
+            };
+            let mut attempt_budget = initial_budget;
+            let written = loop {
+                let Some(target_len) = start.checked_add(attempt_budget) else {
+                    return Err(Error::protocol("decompressed batch reserve"));
+                };
+                if target_len > out.len() {
+                    out.try_reserve(target_len - out.len())
+                        .map_err(|_| Error::protocol("decompressed batch reserve"))?;
+                    out.resize(target_len, 0);
+                }
+                let dst = out
+                    .get_mut(start..target_len)
+                    .ok_or_else(|| Error::protocol("lz4 output slice"))?;
+                match lz4_flex::block::decompress_into(block, dst) {
+                    Ok(n) => break n,
+                    Err(lz4_flex::block::DecompressError::OutputTooSmall { .. })
+                        if attempt_budget < block_budget =>
+                    {
+                        attempt_budget = block_budget;
+                    }
+                    Err(_) => return Ok(None),
+                }
+            };
+            if written == 0 {
+                return Ok(None);
+            }
+            let Some(final_len) = start.checked_add(written) else {
+                return Ok(None);
+            };
+            written_total = final_len;
+            pos = end;
+        }
+    }
+}
+
 fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
     let reserve = lz4_decompress_reserve(src, max_bytes)?;
+    if let Some(out) = lz4_decompress_fast(src, max_bytes, reserve)? {
+        return Ok(out);
+    }
     let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
     read_bounded(&mut decoder, max_bytes, reserve)
 }
@@ -8432,6 +8676,256 @@ mod tests {
             !trunc_err.contains("Decompressed batch exceeds maximum allowable size"),
             "{trunc_err}"
         );
+    }
+
+    fn build_raw_lz4_frame(
+        flg: u8,
+        bd: u8,
+        content_size: Option<u64>,
+        blocks: &[(bool, &[u8])],
+    ) -> Vec<u8> {
+        let mut frame = vec![0x04, 0x22, 0x4D, 0x18, flg, bd];
+        if let Some(size) = content_size {
+            frame.extend_from_slice(&size.to_le_bytes());
+        }
+        let hc = lz4_header_checksum(&frame[4..]).unwrap();
+        frame.push(hc);
+        for &(is_uncompressed, data) in blocks {
+            let len_u32 = u32::try_from(data.len()).unwrap();
+            let raw = if is_uncompressed {
+                len_u32 | 0x8000_0000
+            } else {
+                len_u32
+            };
+            frame.extend_from_slice(&raw.to_le_bytes());
+            frame.extend_from_slice(data);
+        }
+        frame.extend_from_slice(&0u32.to_le_bytes());
+        frame
+    }
+
+    fn assert_lz4_matches_frame_decoder(src: &[u8], max_bytes: usize) {
+        let fast = lz4_decompress(src, max_bytes);
+        let fallback = {
+            let reserve = lz4_decompress_reserve(src, max_bytes);
+            match reserve {
+                Ok(reserve) => {
+                    let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
+                    read_bounded(&mut decoder, max_bytes, reserve)
+                }
+                Err(err) => Err(err),
+            }
+        };
+        match (fast, fallback) {
+            (Ok(a), Ok(b)) => assert_eq!(a, b),
+            (Err(a), Err(b)) => assert_eq!(a.to_string(), b.to_string()),
+            (a, b) => panic!("fast vs FrameDecoder mismatch: fast={a:?}, fallback={b:?}"),
+        }
+    }
+
+    #[test]
+    fn lz4_fast_path_single_and_multi_block_independent_frames() {
+        use lz4_flex::frame::{BlockMode, BlockSize, FrameEncoder, FrameInfo};
+
+        // Single-block and multi-block frames across all supported BD sizes (64K..4M).
+        for (bd_code, block_size, payload_len) in [
+            (4u8, BlockSize::Max64KB, 16 * 1024),
+            (4u8, BlockSize::Max64KB, 200 * 1024),
+            (5u8, BlockSize::Max256KB, 300 * 1024),
+            (6u8, BlockSize::Max1MB, 64 * 1024),
+            (7u8, BlockSize::Max4MB, 64 * 1024),
+        ] {
+            let payload: Vec<u8> = (0..payload_len)
+                .map(|i| u8::try_from((i * 31 + i / 257) % 251).unwrap())
+                .collect();
+            for with_size in [Some(payload.len() as u64), None] {
+                let info = FrameInfo::new()
+                    .block_mode(BlockMode::Independent)
+                    .block_size(block_size)
+                    .content_size(with_size);
+                let mut enc = FrameEncoder::with_frame_info(info, Vec::new());
+                enc.write_all(&payload).unwrap();
+                let framed = enc.finish().unwrap();
+                assert_eq!(framed[5] >> 4, bd_code);
+                let decoded = lz4_decompress(&framed, payload.len()).unwrap();
+                assert_eq!(decoded, payload);
+                assert_lz4_matches_frame_decoder(&framed, payload.len());
+            }
+        }
+
+        // Mixed compressed + uncompressed blocks in one independent frame.
+        let part1 = vec![b'a'; 500];
+        let part2 = b"incompressible-raw-block-bytes".to_vec();
+        let part3 = vec![b'z'; 700];
+        let comp1 = lz4_flex::block::compress(&part1);
+        let comp3 = lz4_flex::block::compress(&part3);
+        let total_len = (part1.len() + part2.len() + part3.len()) as u64;
+        for (flg, content_size) in [(0x68, Some(total_len)), (0x60, None)] {
+            let frame = build_raw_lz4_frame(
+                flg,
+                4 << 4,
+                content_size,
+                &[(false, &comp1), (true, &part2), (false, &comp3)],
+            );
+            let mut expected = part1.clone();
+            expected.extend_from_slice(&part2);
+            expected.extend_from_slice(&part3);
+            let decoded = lz4_decompress(&frame, expected.len()).unwrap();
+            assert_eq!(decoded, expected);
+            assert_lz4_matches_frame_decoder(&frame, expected.len());
+        }
+    }
+
+    #[test]
+    fn lz4_fast_path_size_bounds_and_mismatched_content_size() {
+        use lz4_flex::frame::{BlockMode, BlockSize, FrameEncoder, FrameInfo};
+
+        // Empty frames (with and without content_size) at max_bytes = 0.
+        for content_size in [Some(0u64), None] {
+            let flg = if content_size.is_some() { 0x68 } else { 0x60 };
+            let empty_frame = build_raw_lz4_frame(flg, 4 << 4, content_size, &[]);
+            assert_eq!(lz4_decompress(&empty_frame, 0).unwrap(), Vec::<u8>::new());
+            assert_lz4_matches_frame_decoder(&empty_frame, 0);
+        }
+
+        // Frame without content_size at exact max_bytes vs max_bytes - 1.
+        let payload = vec![0x33u8; 4096];
+        let info = FrameInfo::new()
+            .block_mode(BlockMode::Independent)
+            .block_size(BlockSize::Max64KB)
+            .content_size(None);
+        let mut enc = FrameEncoder::with_frame_info(info, Vec::new());
+        enc.write_all(&payload).unwrap();
+        let no_size_frame = enc.finish().unwrap();
+        assert_eq!(lz4_decompress(&no_size_frame, 4096).unwrap(), payload);
+        let err = lz4_decompress(&no_size_frame, 4095)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{err}"
+        );
+
+        // Uncompressed block exceeding max_bytes (both with omitted and matching content_size).
+        let raw_block = vec![0x55u8; 1024];
+        let raw_no_size = build_raw_lz4_frame(0x60, 4 << 4, None, &[(true, &raw_block)]);
+        assert_eq!(lz4_decompress(&raw_no_size, 1024).unwrap(), raw_block);
+        let raw_err = lz4_decompress(&raw_no_size, 1023).unwrap_err().to_string();
+        assert!(
+            raw_err.contains("Decompressed batch exceeds maximum allowable size"),
+            "{raw_err}"
+        );
+
+        // Mismatched content_size with valid HC (both too small and too large) must fall back
+        // to FrameDecoder and produce the exact same error.
+        let comp = lz4_flex::block::compress(&payload);
+        for wrong_size in [100u64, 8192u64] {
+            let mismatched = build_raw_lz4_frame(0x68, 4 << 4, Some(wrong_size), &[(false, &comp)]);
+            assert_lz4_matches_frame_decoder(&mismatched, 16 * 1024);
+            assert!(lz4_decompress(&mismatched, 16 * 1024).is_err());
+        }
+        // Uncompressed block exceeding declared content_size within max_bytes.
+        let raw_mismatch = build_raw_lz4_frame(0x68, 4 << 4, Some(512), &[(true, &raw_block)]);
+        assert_lz4_matches_frame_decoder(&raw_mismatch, 4096);
+        assert!(lz4_decompress(&raw_mismatch, 4096).is_err());
+    }
+
+    #[test]
+    fn lz4_fast_path_fallbacks_and_trailing_bytes_match_frame_decoder() {
+        use lz4_flex::frame::{BlockMode, BlockSize, FrameEncoder, FrameInfo};
+
+        let payload: Vec<u8> = (0..150 * 1024)
+            .map(|i| u8::try_from((i * 17) % 251).unwrap())
+            .collect();
+
+        // Linked blocks, block checksums, and content checksums must all fall back cleanly.
+        for (block_mode, block_checksums, content_checksum) in [
+            (BlockMode::Linked, false, false),
+            (BlockMode::Independent, true, false),
+            (BlockMode::Independent, false, true),
+            (BlockMode::Linked, true, true),
+        ] {
+            let info = FrameInfo::new()
+                .block_mode(block_mode)
+                .block_size(BlockSize::Max64KB)
+                .block_checksums(block_checksums)
+                .content_checksum(content_checksum)
+                .content_size(Some(payload.len() as u64));
+            let mut enc = FrameEncoder::with_frame_info(info, Vec::new());
+            enc.write_all(&payload).unwrap();
+            let framed = enc.finish().unwrap();
+            assert_lz4_matches_frame_decoder(&framed, payload.len());
+            assert_eq!(lz4_decompress(&framed, payload.len()).unwrap(), payload);
+        }
+
+        // Corrupted header checksum, reserved FLG/BD bits, DictID, wrong version, bad BD size.
+        let base = Compression::Lz4.codec_compress(b"hello lz4 world").unwrap();
+        let mut bad_hc = base.clone();
+        bad_hc[14] ^= 0x01;
+        assert_lz4_matches_frame_decoder(&bad_hc, 1024);
+        assert!(lz4_decompress(&bad_hc, 1024).is_err());
+
+        for mut frame in [
+            build_raw_lz4_frame(0x62, 4 << 4, None, &[]), // FLG reserved bit
+            build_raw_lz4_frame(0x20, 4 << 4, None, &[]), // FLG wrong version
+            build_raw_lz4_frame(0x60, (4 << 4) | 0x01, None, &[]), // BD reserved bit
+            build_raw_lz4_frame(0x60, 3 << 4, None, &[]), // BD unsupported block size
+            build_raw_lz4_frame(0x61, 4 << 4, Some(0), &[]), // DictID bit
+        ] {
+            // Ensure empty input / truncated frames also match FrameDecoder.
+            assert_lz4_matches_frame_decoder(&frame, 1024);
+            frame.truncate(frame.len().saturating_sub(2));
+            assert_lz4_matches_frame_decoder(&frame, 1024);
+        }
+
+        // Empty input and truncated frames at various cut points.
+        assert_lz4_matches_frame_decoder(&[], 1024);
+        for cut in 1..base.len() {
+            assert_lz4_matches_frame_decoder(&base[..cut], 1024);
+        }
+
+        // Trailing bytes after EndMark (garbage and concatenated second frame) must match FrameDecoder.
+        let mut with_garbage = base.clone();
+        with_garbage.extend_from_slice(&[0xDE, 0xAD, 0xBE, 0xEF]);
+        assert_lz4_matches_frame_decoder(&with_garbage, 1024);
+
+        let mut two_frames = base.clone();
+        two_frames.extend_from_slice(&base);
+        assert_lz4_matches_frame_decoder(&two_frames, 1024);
+    }
+
+    #[test]
+    fn lz4_fast_path_many_small_blocks_and_high_compression_without_content_size() {
+        // 500 small compressed blocks with BD=7 (4 MiB) and no content_size must
+        // stay fast without zeroing 4 MiB per block, and high-ratio blocks
+        // (>4x expansion) must retry cleanly with the block budget.
+        let small_plain = b"hello-lz4-block-";
+        let small_comp = lz4_flex::block::compress(small_plain);
+        let many_blocks = vec![(false, small_comp.as_slice()); 500];
+        let many_frame = build_raw_lz4_frame(0x60, 7 << 4, None, &many_blocks);
+        let decoded = lz4_decompress(&many_frame, 500 * small_plain.len()).unwrap();
+        assert_eq!(decoded.len(), 500 * small_plain.len());
+        assert!(decoded
+            .chunks_exact(small_plain.len())
+            .all(|c| c == small_plain));
+
+        // High-compression block (>4 KiB and >4x compressed size) without content_size.
+        let zeros = vec![0u8; 32 * 1024];
+        let zeros_comp = lz4_flex::block::compress(&zeros);
+        assert!(zeros_comp.len() * 4 < zeros.len());
+        let tail = b"raw-tail";
+        let high_ratio_frame = build_raw_lz4_frame(
+            0x60,
+            7 << 4,
+            None,
+            &[(false, zeros_comp.as_slice()), (true, tail.as_slice())],
+        );
+        let decoded_high = lz4_decompress(&high_ratio_frame, 64 * 1024).unwrap();
+        assert_eq!(decoded_high.len(), zeros.len() + tail.len());
+        assert_eq!(&decoded_high[..zeros.len()], &zeros[..]);
+        assert_eq!(&decoded_high[zeros.len()..], tail);
+        // Reject when total exceeds max_bytes.
+        assert!(lz4_decompress(&high_ratio_frame, zeros.len()).is_err());
     }
 
     #[test]

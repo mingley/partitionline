@@ -2,9 +2,12 @@
 """Generate/check pinned Apache InitProducerId fields and actual Rust output."""
 import argparse
 import hashlib
+import http.client
 import json
 from pathlib import Path
 import subprocess
+import time
+import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,13 +25,38 @@ COMMITS = {'4.1.2': 'c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c',
 def sha(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
+def download_bytes(url, max_bytes, attempts=4, base_delay=1.0):
+    request = urllib.request.Request(url, headers={'User-Agent': 'partitionline-ci/1'})
+    last_error = None
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                data = response.read(max_bytes + 1)
+            if len(data) > max_bytes:
+                raise ValueError(f'peer artifact exceeds {max_bytes}-byte download limit: {url}')
+            return data
+        except urllib.error.HTTPError as error:
+            last_error = error
+            retryable = error.code in (404, 408, 429) or 500 <= error.code < 600
+            if not retryable or attempt == attempts:
+                raise RuntimeError(
+                    f'failed to download {url} (attempt {attempt}/{attempts}, HTTP {error.code}): {error}'
+                ) from error
+        except (urllib.error.URLError, TimeoutError, http.client.HTTPException, OSError) as error:
+            last_error = error
+            if attempt == attempts:
+                raise RuntimeError(
+                    f'failed to download {url} (attempt {attempt}/{attempts}): {error}'
+                ) from error
+        time.sleep(base_delay * (2 ** (attempt - 1)))
+    raise RuntimeError(f'failed to download {url}: {last_error}')
+
 def peer(cache, release):
     cache.mkdir(parents=True, exist_ok=True)
     p = cache / f'kafka-clients-{release}.jar'
     if not p.exists():
         url = f'https://repo.maven.apache.org/maven2/org/apache/kafka/kafka-clients/{release}/{p.name}'
-        with urllib.request.urlopen(url, timeout=30) as response:
-            data = response.read(16*1024*1024+1)
+        data = download_bytes(url, 16*1024*1024)
         assert len(data) <= 16*1024*1024 and hashlib.sha256(data).hexdigest() == PINS[release]
         p.write_bytes(data)
     assert p.stat().st_size <= 16*1024*1024 and sha(p) == PINS[release]

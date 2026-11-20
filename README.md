@@ -14,8 +14,8 @@ and Admin APIs. This repository also contains an experimental
 partitionline = "0.2"
 ```
 
-Version 0.2.0 is available on [crates.io](https://crates.io/crates/partitionline/0.2.0).
-See the [API docs](https://docs.rs/partitionline/0.2.0/partitionline/) and
+Version 0.2.1 is available on [crates.io](https://crates.io/crates/partitionline/0.2.1).
+See the [API docs](https://docs.rs/partitionline/0.2.1/partitionline/) and
 [changelog](CHANGELOG.md). To try changes after the release, point your
 application at a local checkout.
 

@@ -748,20 +748,30 @@ fn root_store(tls: &TlsConfig) -> Result<RootCertStore> {
     Ok(root)
 }
 
-pub(crate) async fn wrap_tls(
-    tcp: TcpStream,
-    addr: &str,
-    tls: &TlsConfig,
-) -> Result<TlsStream<TcpStream>> {
-    ensure_crypto();
+fn build_client_tls_config(tls: &TlsConfig) -> Result<ClientConfig> {
     let root = root_store(tls)?;
-    let builder = ClientConfig::builder().with_root_certificates(root);
+    let provider = rustls::crypto::CryptoProvider::get_default()
+        .cloned()
+        .unwrap_or_else(|| Arc::new(rustls::crypto::ring::default_provider()));
+    let builder = ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()
+        .map_err(|e| Error::protocol(format!("tls protocol versions: {e}")))?
+        .with_root_certificates(root);
     let config = match (&tls.client_cert_pem, &tls.client_key_pem) {
         (Some(cert), Some(key)) => builder
             .with_client_auth_cert(certs_from_pem(cert)?, key_from_pem(key)?)
             .map_err(|e| Error::protocol(format!("tls client cert: {e}")))?,
         _ => builder.with_no_client_auth(),
     };
+    Ok(config)
+}
+
+pub(crate) async fn wrap_tls(
+    tcp: TcpStream,
+    addr: &str,
+    tls: &TlsConfig,
+) -> Result<TlsStream<TcpStream>> {
+    let config = build_client_tls_config(tls)?;
     let connector = TlsConnector::from(Arc::new(config));
     let name = tls
         .server_name
@@ -4283,6 +4293,20 @@ mod tests {
             "tls handshake left the accepted socket blocked in a read"
         );
         peer.abort();
+    }
+
+    #[test]
+    fn client_tls_config_does_not_install_global_crypto_provider() {
+        let before = rustls::crypto::CryptoProvider::get_default().is_some();
+        let config = build_client_tls_config(&TlsConfig::default()).unwrap();
+        let after = rustls::crypto::CryptoProvider::get_default().is_some();
+        assert!(!config.alpn_protocols.iter().any(|p| p.is_empty()));
+        if !before {
+            assert!(
+                !after,
+                "building a client TLS config must not install a process-global CryptoProvider"
+            );
+        }
     }
 
     #[test]

@@ -2,7 +2,7 @@
 
 This describes CI coverage for work on `main`. See the
 [current results](STATUS.md#validation) and the
-[published 0.2.0 API docs](https://docs.rs/partitionline/0.2.0/partitionline/).
+[published 0.2.1 API docs](https://docs.rs/partitionline/0.2.1/partitionline/).
 
 API changes follow the [0.x policy](api-stability.md). Cuts are described in
 [RELEASE.md](RELEASE.md). Adopter steps are in [ADOPTION.md](ADOPTION.md).
@@ -18,7 +18,7 @@ older 3.9.1 and 4.1.0 smoke runs are historical coverage.
 
 | Dimension | Configured scope | Evidence |
 |---|---|---|
-| Client release | `0.2.0` | [Release record](RELEASE.md) |
+| Client release | `0.2.1` | [Release record](RELEASE.md) |
 | Rust | Latest stable; `rust-version` minimum is **1.99** | Stable-only CI for the client, broker and schema companion. Older compilers are not supported. |
 | Host OS (CI) | Linux (`ubuntu-latest`); native macOS (`macos-15`) and Windows (`windows-2025`) for mock/runtime and packed consumers | `.github/workflows/ci.yml`; KL08-05 / KL08-14 native default/tracing cells |
 | Host arch (CI) | Linux `x86_64`; macOS `arm64`; Windows `x86_64` MSVC | Native compiler/runtime guards and retained platform reports |
@@ -142,8 +142,10 @@ procedure.
 
 ### Published crate
 
-Version 0.2.0 adds the buffer limits, compact record types, and `zlib-rs`
-default gzip backend described in the [changelog](../CHANGELOG.md#020---2026-11-13).
+Version `0.2.1` builds on [`0.2.0`](../CHANGELOG.md#020---2026-11-13)
+(which added the buffer limits, compact record types, and `zlib-rs` default
+gzip backend) with the producer cancellation, bounded-reservation, and
+single-pass sizing fixes in the [0.2.1 changelog](../CHANGELOG.md#021---2026-11-20).
 It requires Rust 1.99 or newer. See the [migration guide](migrate-from-rdkafka.md)
 for API changes and examples.
 

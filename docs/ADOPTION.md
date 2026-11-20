@@ -7,8 +7,8 @@ and qualification limits.
 
 ## Install
 
-Version 0.2.0 is available on [crates.io](https://crates.io/crates/partitionline/0.2.0).
-Use the latest stable Rust. The [0.2.0 API docs](https://docs.rs/partitionline/0.2.0/partitionline/)
+Version 0.2.1 is available on [crates.io](https://crates.io/crates/partitionline/0.2.1).
+Use the latest stable Rust. The [0.2.1 API docs](https://docs.rs/partitionline/0.2.1/partitionline/)
 cover the published crate.
 
 ```toml

@@ -21,9 +21,10 @@ The tables name the Rust symbol and the file. They do not cite line numbers.
 An older revision pinned those lines to `ca50ca1`, and the lines no longer
 matched current source.
 
-The default-value comparison below covers `partitionline` `0.2.0` (`ConsumerConfig`
+The default-value comparison below covers `partitionline` `0.2.1` (`ConsumerConfig`
 includes `buffer_memory` at 32 MiB and `fetch_metadata_max_bytes` at 128 MiB;
-see the [0.2.0 changelog](../CHANGELOG.md#020---2026-11-13) for changes since
+see the [0.2.1](../CHANGELOG.md#021---2026-11-20) and
+[0.2.0](../CHANGELOG.md#020---2026-11-13) changelogs for changes since
 `0.1.0`).
 
 ## Dependency
@@ -32,12 +33,12 @@ see the [0.2.0 changelog](../CHANGELOG.md#020---2026-11-13) for changes since
 # before
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 
-# after (crates.io 0.2.0)
+# after (crates.io 0.2.1)
 partitionline = "0.2"
 ```
 
 The client uses Tokio for async I/O and rustls with Ring for TLS. Ring requires
-a C compiler during the build. Version `0.2.0` requires Rust `1.99`+, enables
+a C compiler during the build. Version `0.2.1` requires Rust `1.99`+, enables
 the `zlib-rs` gzip backend by default, and provides optional `tracing` and
 `zstd` features.
 

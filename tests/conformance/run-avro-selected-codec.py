@@ -2,10 +2,12 @@
 """Run the hash-pinned Java Avro peer against actual selected-codec Rust output."""
 import argparse
 import hashlib
+import http.client
 import json
 import pathlib
 import subprocess
 import time
+import urllib.error
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -23,6 +25,33 @@ JARS = (
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def download_bytes(url, max_bytes, attempts=4, base_delay=1.0):
+    request = urllib.request.Request(url, headers={'User-Agent': 'partitionline-ci/1'})
+    last_error = None
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                data = response.read(max_bytes + 1)
+            if len(data) > max_bytes:
+                raise ValueError(f'peer artifact exceeds {max_bytes}-byte download limit: {url}')
+            return data
+        except urllib.error.HTTPError as error:
+            last_error = error
+            retryable = error.code in (404, 408, 429) or 500 <= error.code < 600
+            if not retryable or attempt == attempts:
+                raise RuntimeError(
+                    f'failed to download {url} (attempt {attempt}/{attempts}, HTTP {error.code}): {error}'
+                ) from error
+        except (urllib.error.URLError, TimeoutError, http.client.HTTPException, OSError) as error:
+            last_error = error
+            if attempt == attempts:
+                raise RuntimeError(
+                    f'failed to download {url} (attempt {attempt}/{attempts}): {error}'
+                ) from error
+        time.sleep(base_delay * (2 ** (attempt - 1)))
+    raise RuntimeError(f'failed to download {url}: {last_error}')
 
 
 def main():
@@ -51,10 +80,7 @@ def main():
             path = args.peer_cache / filename
             url = f'https://repo.maven.apache.org/maven2/{group}/{name}/{version}/{filename}'
             if not path.exists():
-                with urllib.request.urlopen(url, timeout=30) as response:
-                    data = response.read(8 * 1024 * 1024 + 1)
-                if len(data) > 8 * 1024 * 1024:
-                    raise ValueError('peer artifact exceeds download limit')
+                data = download_bytes(url, 8 * 1024 * 1024)
                 if hashlib.sha256(data).hexdigest() != expected:
                     raise ValueError(f'download hash mismatch: {filename}')
                 path.write_bytes(data)

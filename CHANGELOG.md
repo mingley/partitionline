@@ -7,21 +7,41 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
-Unpublished repository work (`partitionline-broker` and `partitionline-schema`
-remain `publish = false`; see [`docs/STATUS.md`](docs/STATUS.md) and
-[`docs/RELEASE.md`](docs/RELEASE.md)).
+## [0.2.1] - 2026-11-20
 
 ### Fixed
 
-- If batch selection is canceled during the producer's queue scan, the worker
-  keeps the queued records, their order and their accounting.
-- Release jobs check out the existing final tag and link GitHub release notes
-  to the registry, API docs and changelog.
+- Producer batch selection preserves queued records, their order, and their
+  accounting when canceled during the queue scan, and retains staged partition
+  groups across cooperative yields.
+- Producer partition reservation yields after at most 8,192 partition visits in
+  mixed-topic batches so sibling tasks stay responsive.
+- TLS connections use any already-installed process `CryptoProvider` or fall
+  back to a per-config `ring` provider instead of installing a process-global
+  default provider (`install_crypto_provider()` remains unchanged for callers
+  that explicitly opt in).
+- Release workflow checks out the existing final tag and links GitHub release
+  notes to the registry, API docs, and changelog.
+
+### Performance
+
+- Producer batch admission computes batch size and maximum timestamp in a
+  single pass.
+- Independent-block LZ4 batch decompression decodes directly into the bounded
+  output buffer (falling back to `FrameDecoder` for linked blocks, checksums,
+  dictionaries, or malformed frames), avoiding per-frame scratch buffers.
+
+### Changed
+
+- Updated lockfile dependencies (`crc32c` 0.6.9 and `sha2` 0.11.1).
 
 ### Tests
 
-- Add offline Produce v4, v6, v7 and v12 body fixtures checked against pinned
-  Apache Kafka SDKs.
+- Checked Produce wire bodies across v3–v13, ListOffsets v1–v11, and Metadata
+  v13 against pinned Apache Kafka SDKs.
+- Fixed a `/proc/<pid>/fd` teardown `PermissionError` race in the resource-soak
+  driver and added bounded retries with peer caching for Maven Central
+  conformance downloads.
 
 ## [0.2.0] - 2026-11-13
 

@@ -1,4 +1,5 @@
 """Execute resource driver profiles, interrupt/resume, and corrupt real receipts."""
+import argparse
 import copy
 import importlib.util
 import json
@@ -10,6 +11,7 @@ import subprocess
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location("resource_soak", ROOT / "scripts/resource-soak.py")
@@ -265,6 +267,139 @@ class ResourceSoak(unittest.TestCase):
         self.assertEqual(first["status"],"failed")
         self.assertIn("retained failed attempt",self.call("--output",output,"--resume",expected=1).stderr)
         self.assertEqual(json.loads((output/"manifest.json").read_text())["attempts"][0],first)
+
+
+class ProcSampleRaceTests(unittest.TestCase):
+    @staticmethod
+    def _valid_samples_text():
+        rows = [
+            {"kind": "sample", "final": False, "offered": 1, "accepted": 1, "completed": 1,
+             "failed": 0, "ambiguous": 0, "pending": 0, "producer_queue_bytes": 0,
+             "consumer_buffered_bytes": 0, "application_decoded_bytes": 0, "delivered": 1,
+             "delivered_bytes": 256, "fetch_errors": 0, "runtime_tasks": 1,
+             "peer_connections": 0, "utc_ms": 1, "elapsed_ms": 50},
+            {"kind": "sample", "final": True, "offered": 2, "accepted": 2, "completed": 2,
+             "failed": 0, "ambiguous": 0, "pending": 0, "producer_queue_bytes": 0,
+             "consumer_buffered_bytes": 0, "application_decoded_bytes": 0, "delivered": 2,
+             "delivered_bytes": 512, "fetch_errors": 0, "runtime_tasks": 0,
+             "peer_connections": 0, "utc_ms": 2, "elapsed_ms": 120},
+            {"kind": "closure", "consumer_joined": True, "load_elapsed_ms": 100, "interrupted": False},
+            {"kind": "peer_closed", "joined": True, "runtime_tasks": 0, "owned": True,
+             "port_reusable": True, "connections": 0},
+        ]
+        return "".join(json.dumps(row) + "\n" for row in rows)
+
+    def _run_with_fake_child(self, output, sample_side_effect, poll_sequence, persist_running=False):
+        binary = output.parent / "fake-bin"
+        binary.write_text("#!/bin/sh\nexit 0\n")
+        binary.chmod(0o700)
+        args = argparse.Namespace(
+            output=output, binary=binary, mode="short", duration_ms=100, rate=800,
+            slow_ms=25, peer_delay_ms=40, bootstrap=None, topic="pl-soak-race",
+            baseline=None, resume=False, check=False,
+        )
+        polls = iter(poll_sequence)
+        killed = []
+
+        class FakeChild:
+            pid = 424242
+
+            def __init__(self, _cmd, env=None, stdout=None, stderr=None):
+                stdout.write(ProcSampleRaceTests._valid_samples_text())
+                stdout.flush()
+
+            def poll(self):
+                if persist_running:
+                    return None if not killed else -9
+                try:
+                    return next(polls)
+                except StopIteration:
+                    return 0
+
+            def kill(self):
+                killed.append(True)
+
+            def wait(self):
+                return -9 if killed else 0
+
+        with mock.patch.object(soak.sys, "platform", "linux"), \
+             mock.patch.object(soak.platform, "platform", return_value="Linux-test"), \
+             mock.patch.object(soak.subprocess, "Popen", side_effect=FakeChild), \
+             mock.patch.object(soak, "proc_sample", side_effect=sample_side_effect), \
+             mock.patch.object(soak.time, "sleep"):
+            return soak.execute(args), killed
+
+    def test_proc_sample_ignores_disappearing_fds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proc_dir = Path(tmp) / "proc" / "123"
+            fd_dir = proc_dir / "fd"
+            fd_dir.mkdir(parents=True)
+            (proc_dir / "status").write_text("VmRSS:\t   1024 kB\nThreads:\t2\n")
+            for name in ("0", "1", "2"):
+                (fd_dir / name).write_text("")
+
+            def fake_readlink(path):
+                name = Path(path).name
+                if name == "0":
+                    return "socket:[999]"
+                if name == "1":
+                    raise FileNotFoundError("vanished fd")
+                raise ProcessLookupError("exited task")
+
+            with mock.patch.object(soak, "Path", return_value=proc_dir), \
+                 mock.patch.object(soak.os, "readlink", side_effect=fake_readlink):
+                sample = soak.proc_sample(123)
+            self.assertEqual(sample["socket_fds"], 1)
+            self.assertEqual(sample["rss_bytes"], 1024 * 1024)
+            self.assertEqual(sample["threads"], 2)
+
+    def test_transient_permission_error_during_child_exit_allows_clean_run(self):
+        host_row = {"utc": "2026-11-20T00:00:00+00:00", "monotonic_ns": 1, "pid": 424242,
+                    "rss_bytes": 4096, "threads": 1, "socket_fds": 0}
+        with tempfile.TemporaryDirectory() as tmp:
+            # 1) Immediate exit during proc_sample PermissionError (poll() becomes 0 in except)
+            out1 = Path(tmp) / "exit-immediate"
+            result, killed = self._run_with_fake_child(
+                out1,
+                sample_side_effect=[host_row, host_row, PermissionError(13, "Permission denied", "/proc/424242/fd")],
+                poll_sequence=[None, None, None, 0],
+            )
+            self.assertTrue(result["completed"])
+            self.assertEqual(killed, [])
+            manifest = json.loads((out1 / "manifest.json").read_text())
+            self.assertEqual(manifest["attempts"][0]["status"], "passed")
+
+            # 2) Brief retries while poll() is still None before exit completes
+            out2 = Path(tmp) / "exit-after-retries"
+            result, killed = self._run_with_fake_child(
+                out2,
+                sample_side_effect=[
+                    host_row,
+                    host_row,
+                    PermissionError(13, "Permission denied", "/proc/424242/fd"),
+                    PermissionError(13, "Permission denied", "/proc/424242/fd"),
+                    PermissionError(13, "Permission denied", "/proc/424242/fd"),
+                ],
+                poll_sequence=[None, None, None, None, None, 0],
+            )
+            self.assertTrue(result["completed"])
+            self.assertEqual(killed, [])
+            manifest = json.loads((out2 / "manifest.json").read_text())
+            self.assertEqual(manifest["attempts"][0]["status"], "passed")
+
+    def test_persistent_permission_error_on_running_child_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "persistent-eacces"
+            with self.assertRaises(PermissionError):
+                self._run_with_fake_child(
+                    out,
+                    sample_side_effect=PermissionError(13, "Permission denied", "/proc/424242/fd"),
+                    poll_sequence=[],
+                    persist_running=True,
+                )
+            manifest = json.loads((out / "manifest.json").read_text())
+            self.assertEqual(manifest["attempts"][0]["status"], "failed")
+            self.assertIn("Permission denied", manifest["attempts"][0]["error"])
 
 
 if __name__ == "__main__":

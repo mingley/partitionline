@@ -109,6 +109,13 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+      - name: Cache Avro Java peer JARs
+        uses: actions/cache@v6
+        with:
+          path: target/avro-peer-cache
+          key: ${{ runner.os }}-avro-peer-${{ hashFiles('tests/conformance/run-avro-selected-codec.py') }}
+          restore-keys: |
+            ${{ runner.os }}-avro-peer-
       - name: Independent JSON Schema peer
         run: python3 -m pip install 'jsonschema==4.26.0' 'referencing==0.37.0' 'rpds-py==2026.6.3' 'attrs==26.1.0' 'jsonschema-specifications==2025.9.1'
       - name: Benchmark result and process orchestration tests

@@ -150,7 +150,7 @@ def proc_sample(pid):
     for fd in (proc / "fd").iterdir():
         try:
             sockets += os.readlink(fd).startswith("socket:[")
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
             pass
     return {"utc": utc(), "monotonic_ns": time.monotonic_ns(), "pid": pid,
             "rss_bytes": int(status["VmRSS"].split()[0]) * 1024,
@@ -301,6 +301,7 @@ def execute(args):
                 atomic(directory / "manifest.json", manifest)
                 deadline = time.monotonic() + remaining / 1000 + 20
                 interrupt_deadline = None
+                permission_errors = 0
                 while child.poll() is None:
                     if interrupted and interrupt_deadline is None:
                         interrupt_deadline = time.monotonic() + 10
@@ -310,10 +311,22 @@ def execute(args):
                         samples.write(json.dumps(proc_sample(child.pid)) + "\n")
                         samples.flush()
                         os.fsync(samples.fileno())
+                        permission_errors = 0
                     except (FileNotFoundError, KeyError, ProcessLookupError):
                         if child.poll() is None:
                             time.sleep(.01)
                             continue
+                        break
+                    except PermissionError:
+                        # Linux kernel do_exit() runs exit_files before waitpid
+                        # sees exit, making /proc/<pid>/fd briefly unreadable.
+                        if child.poll() is not None:
+                            break
+                        permission_errors += 1
+                        if permission_errors >= 10:
+                            raise
+                        time.sleep(.01)
+                        continue
                     time.sleep(.05)
                 attempt["exit_code"] = child.wait()
                 attempt["waited"] = True

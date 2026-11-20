@@ -1,8 +1,10 @@
 # Status
 
-Updated 20 November 2026. The client is available as
-[partitionline 0.2.0](https://crates.io/crates/partitionline/0.2.0). The
-broker and Schema Registry companion are unpublished. The broker is experimental.
+Updated 20 November 2026. The client is prepared as
+[partitionline 0.2.1](https://crates.io/crates/partitionline/0.2.1)
+(`0.2.0` is published on [crates.io](https://crates.io/crates/partitionline/0.2.0);
+see [`CHANGELOG.md`](../CHANGELOG.md#021---2026-11-20)). The broker and Schema
+Registry companion are unpublished. The broker is experimental.
 
 ## Client
 
@@ -74,16 +76,20 @@ isolated. [Combined trial](https://github.com/mingley/partitionline/actions/runs
 
 ## Validation
 
-Linux client checks, native macOS and Windows checks, docs, packaging,
-the release rehearsal, and the finite resource soak passed on `e7c6e3c`.
-The broker suite failed a Raft integration test.
-[Client CI](https://github.com/mingley/partitionline/actions/runs/44642981045) · [Broker CI](https://github.com/mingley/partitionline/actions/runs/44642981053)
+On `2774dbff9`, the broker workflow (including the Raft and fuzz checks) and
+Linux client checks, native macOS and Windows checks, docs, packaging, audit,
+deny, release rehearsal, `init-producer-id`, `zstd-decode`, conformance
+fixtures, `broker-smoke`, `broker-current`, `auth-smoke`, `integrity-smoke`,
+and `latency-gate` passed. Three CI jobs failed on `2774dbff9`: `resource-soak`
+(`/proc/<pid>/fd` `PermissionError` during child exit), `schema` (unretried
+Maven Central peer download), and `perf-gate`.
+[Client CI](https://github.com/mingley/partitionline/actions/runs/44649838144) · [Broker CI](https://github.com/mingley/partitionline/actions/runs/44649837984)
 
 LZ4 decode measured 920,136 instructions against 903,610 on x86_64,
 a 1.83% increase against a 1% limit. Seven trials missed the instruction
 or paired timing checks. The two latest covered header-free record parsing
 and the frame input reader. Both passed record and allocation checks.
-[Instruction gate](https://github.com/mingley/partitionline/actions/runs/44642981045/job/135978609101) · [Record parser](https://github.com/mingley/partitionline/actions/runs/44646514535) ·
+[Instruction gate](https://github.com/mingley/partitionline/actions/runs/44649838144) · [Record parser](https://github.com/mingley/partitionline/actions/runs/44646514535) ·
 [Frame reader](https://github.com/mingley/partitionline/actions/runs/44647341685)
 
 ## Release gates

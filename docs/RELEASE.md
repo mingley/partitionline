@@ -1,5 +1,9 @@
 # Releases
 
+Version `0.2.1` is prepared in `Cargo.toml`, `Cargo.lock`, and
+[`CHANGELOG.md`](../CHANGELOG.md#021---2026-11-20) for cutting `v0.2.1` once
+exact-SHA `main` CI passes.
+
 Version 0.2.0 is published. The signed `v0.2.0` tag points to
 `87eb1b824c97943207d3de36c6683402fe52d316`. CI passed on that commit and
 the release workflow confirmed publication on 13 November 2026.
@@ -14,7 +18,7 @@ on Rust 1.100.0.
 
 | Crate | Current publication state |
 | --- | --- |
-| `partitionline` | [0.2.0 on crates.io](https://crates.io/crates/partitionline/0.2.0) |
+| `partitionline` | [0.2.0 on crates.io](https://crates.io/crates/partitionline/0.2.0); `0.2.1` prepared in manifest and changelog |
 | `partitionline-broker` | Experimental, `publish = false` |
 | `partitionline-schema` | Companion under development, `publish = false` |
 
@@ -29,8 +33,8 @@ Tested broker and platform combinations are listed in [support](support.md).
 While the API is 0.x, breaking changes to stable public items and increases to
 `rust-version` require a minor release. Additions and fixes can use a patch
 release. Changes to [protocol helpers](api-stability.md) may use a patch if
-the changelog describes them. Upgrade notes for 0.2.0 are in the
-[changelog](../CHANGELOG.md#020---2026-11-13).
+the changelog describes them. Release notes for `0.2.1` and upgrade notes for
+`0.2.0` are in the [changelog](../CHANGELOG.md#021---2026-11-20).
 
 ## Prepare the candidate
 
