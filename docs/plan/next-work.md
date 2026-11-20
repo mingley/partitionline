@@ -1,6 +1,6 @@
 # Next work
 
-Updated 19 November 2026. Use the latest stable Rust. The
+Updated 20 November 2026. Use the latest stable Rust. The
 [task registry](tasks.json) tracks status, dependencies and acceptance checks.
 The [status page](../STATUS.md) records the source tested by each run.
 
@@ -15,6 +15,10 @@ The [status page](../STATUS.md) records the source tested by each run.
   reservation now counts partition visits toward the per-poll budget.
   Check the scheduling and throughput of wide batches against Kafka.
   [Reservation trials](../evidence/client/producer-group-reservation-20261119/slot-replacement.md)
+- Producer sizing now counts bytes and finds the maximum timestamp in one
+  pass. The paired request workloads verify exact wire bytes and include
+  all five codecs. The speed results cover local encoding.
+  [Sizing measurements](../evidence/client/producer-fused-sizing-20261119/README.md)
 - Expand the registered wire and live case matrix beyond the selected Produce
   and ListOffsets bodies. Check negotiated versions,
   authentication renewal, group churn, transaction recovery and the independent

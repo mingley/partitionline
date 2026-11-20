@@ -13302,6 +13302,22 @@
             "Capture01 raw recording completed, but the first report left a resolver child; the owner terminated/reaped it. Replay04 uses the same raw capture and is not a third fresh sample.",
             "Capture02 failed its clean-source guard after a control created bytecode. Capture03 failed on an existing validator filename. Both failures and the bytecode repair are retained."
           ]
+        },
+        {
+          "source_sha": "0811acb3331ab5e5debc08fe396ca565206c4b78",
+          "baseline_sha": "7ad99cc16b94be7ac67b478ef8006d2f7e86e254",
+          "scope": "One producer sizing hypothesis and local paired encoding diagnostics",
+          "results": "The fused size and timestamp scan improved one-record uncompressed throughput 3.33–5.10% and 128-partition LZ4 throughput 4.50% across verified wire-identical shapes. One-record gzip throughput fell 0.09%. Both mock feature profiles, the pinned Produce codec and allocation census passed. All ten instruction counts matched the baseline, including the previous +1.83% LZ4 decode failure.",
+          "artifacts": [
+            "docs/evidence/client/producer-fused-sizing-20261119/README.md",
+            "docs/evidence/client/producer-fused-sizing-20261119/raw-pairs.jsonl",
+            "https://github.com/mingley/partitionline/actions/runs/44639969911",
+            "https://github.com/mingley/partitionline/actions/runs/44642069000"
+          ],
+          "limits": [
+            "Shared x86_64 runner, one logical CPU, eight pairs per 14 shapes. These are encoder results.",
+            "The broader hotspot ranking and the required matched broker/peer comparisons remain open."
+          ]
         }
       ],
       "write_set": [

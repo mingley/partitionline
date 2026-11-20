@@ -1,6 +1,6 @@
 # Status
 
-Updated 19 November 2026. The client is available as
+Updated 20 November 2026. The client is available as
 [partitionline 0.2.0](https://crates.io/crates/partitionline/0.2.0). The
 broker and Schema Registry companion are unpublished. The broker is experimental.
 
@@ -20,6 +20,12 @@ broker and Schema Registry companion are unpublished. The broker is experimental
   reservation yields after at most 8,192 partition visits. Its paired wide
   grouping median improved 3.51% and its one-record sample median rose 0.94 ns.
   [Reservation checks](https://github.com/mingley/partitionline/blob/72ffaeb7b484abe272ba512ef4b396c9c315a986/docs/evidence/client/producer-group-reservation-20261119/slot-replacement.md)
+
+- The producer sizes each batch and computes its maximum timestamp in
+  one pass. In 14 paired encoding workloads, request bytes matched.
+  Throughput rose 3.33–5.10% for one uncompressed record and 4.50% for
+  the 128-partition LZ4 workload. One-record gzip fell 0.09%.
+  [Timing](https://github.com/mingley/partitionline/actions/runs/44639969911) · [Wire and allocation checks](https://github.com/mingley/partitionline/actions/runs/44642069000)
 
 ## Broker
 
@@ -52,15 +58,20 @@ archive run were ignored and ran in the separate live workflow.
 ## Validation
 
 Client docs, packaging, release rehearsal and the finite resource soak
-passed on `7ad99cc`. The broker all-feature suite failed a Raft integration
-test on that commit.
-[Client CI](https://github.com/mingley/partitionline/actions/runs/44637814037) · [Broker CI](https://github.com/mingley/partitionline/actions/runs/44637814143)
+passed on `7e8b459`. Both Registry live lanes and the companion archive
+check passed. The broker all-feature suite failed two Raft integration
+tests on that commit.
+[Client CI](https://github.com/mingley/partitionline/actions/runs/44641285184) · [Registry CI](https://github.com/mingley/partitionline/actions/runs/44641285318) ·
+[Broker CI](https://github.com/mingley/partitionline/actions/runs/44641285132)
 
 The x86_64 gate measured 920,136 LZ4 decode instructions against 903,610
 recorded, a 1.83% increase against a 1% limit. Five decoder trials missed
 the instruction or paired timing checks. The latest block-copy trial
 helped large random batches and slowed both text fixtures.
-[Instruction gate](https://github.com/mingley/partitionline/actions/runs/44637814037/job/135960955415) ·
+The producer sizing trial reproduced all ten counts on the same stable
+compiler.
+[Instruction gate](https://github.com/mingley/partitionline/actions/runs/44641285184/job/135972862469) ·
+[Producer trial gate](https://github.com/mingley/partitionline/actions/runs/44642069000/job/135975358710) ·
 [Block-copy trial](https://github.com/mingley/partitionline/tree/97218bb737307b6a4752ab5a46c3afbe585d3091/docs/evidence/client/lz4-sync-block-copy-20261119)
 
 

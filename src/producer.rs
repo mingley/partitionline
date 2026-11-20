@@ -11179,33 +11179,7 @@ async fn encode_flexible_partition_async(
     transactional: bool,
     scratch: &mut CompressScratch,
 ) -> Result<()> {
-    if compression == Compression::None {
-        let header = pending_batch_header(
-            pendings,
-            compression,
-            now,
-            producer_id,
-            producer_epoch,
-            base_sequence,
-            transactional,
-        )?;
-        let batch_len = uncompressed_pending_len(&header, pendings, now).await?;
-        let compact = crate::protocol::buf::u32_from_usize(batch_len)?
-            .checked_add(1)
-            .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
-        reserve_produce_tail(
-            buf,
-            crate::protocol::buf::unsigned_varint_size(compact).saturating_add(batch_len),
-        );
-        crate::protocol::buf::put_unsigned_varint(buf, compact);
-        let start = buf.len();
-        encode_pendings(buf, pendings, &header, now, scratch).await?;
-        if buf.len().saturating_sub(start) != batch_len {
-            return Err(Error::protocol("uncompressed batch length mismatch"));
-        }
-        return Ok(());
-    }
-    let header = pending_batch_header(
+    let (header, size) = measure_pending_batch(
         pendings,
         compression,
         now,
@@ -11213,8 +11187,25 @@ async fn encode_flexible_partition_async(
         producer_epoch,
         base_sequence,
         transactional,
-    )?;
-    reserve_compressed_section(&header, pendings, now, scratch).await?;
+    )
+    .await?;
+    if compression == Compression::None {
+        let compact = crate::protocol::buf::u32_from_usize(size)?
+            .checked_add(1)
+            .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+        reserve_produce_tail(
+            buf,
+            crate::protocol::buf::unsigned_varint_size(compact).saturating_add(size),
+        );
+        crate::protocol::buf::put_unsigned_varint(buf, compact);
+        let start = buf.len();
+        write_uncompressed_pendings(buf, &header, pendings, now, scratch).await?;
+        if buf.len().saturating_sub(start) != size {
+            return Err(Error::protocol("uncompressed batch length mismatch"));
+        }
+        return Ok(());
+    }
+    scratch.reserve_section(size);
     let batch_len = pack_compressed_pendings(&header, pendings, now, scratch).await?;
     let compact = crate::protocol::buf::u32_from_usize(batch_len)?
         .checked_add(1)
@@ -11248,7 +11239,7 @@ async fn encode_classic_partition_async(
     transactional: bool,
     scratch: &mut CompressScratch,
 ) -> Result<()> {
-    let header = pending_batch_header(
+    let (header, size) = measure_pending_batch(
         pendings,
         compression,
         now,
@@ -11256,11 +11247,12 @@ async fn encode_classic_partition_async(
         producer_epoch,
         base_sequence,
         transactional,
-    )?;
+    )
+    .await?;
     let batch_len = if compression == Compression::None {
-        uncompressed_pending_len(&header, pendings, now).await?
+        size
     } else {
-        reserve_compressed_section(&header, pendings, now, scratch).await?;
+        scratch.reserve_section(size);
         pack_compressed_pendings(&header, pendings, now, scratch).await?
     };
     let wire_len = crate::protocol::buf::i32_from_usize(batch_len)?;
@@ -11268,7 +11260,7 @@ async fn encode_classic_partition_async(
     buf.put_i32(wire_len);
     let start = buf.len();
     if compression == Compression::None {
-        encode_pendings(buf, pendings, &header, now, scratch).await?;
+        write_uncompressed_pendings(buf, &header, pendings, now, scratch).await?;
     } else {
         crate::protocol::records::write_packed_batch(buf, &header, scratch)?;
         scratch.shrink_to_caps();
@@ -11279,7 +11271,8 @@ async fn encode_classic_partition_async(
     Ok(())
 }
 
-fn pending_batch_header(
+// Measure the wire batch for no compression, or the unpacked section for a codec.
+async fn measure_pending_batch(
     pendings: &[Pending],
     compression: Compression,
     now: i64,
@@ -11287,31 +11280,54 @@ fn pending_batch_header(
     producer_epoch: i16,
     base_sequence: i32,
     transactional: bool,
-) -> Result<BatchHeader> {
-    let base_ts = pendings
+) -> Result<(BatchHeader, usize)> {
+    let base_timestamp = pendings
         .first()
         .and_then(|pending| pending.rec.timestamp)
         .unwrap_or(now);
-    let max_ts = pendings
-        .iter()
-        .map(|pending| pending.rec.timestamp.unwrap_or(now))
-        .max()
-        .unwrap_or(base_ts);
-    Ok(BatchHeader {
+    let mut header = BatchHeader {
         attributes: (compression as i16)
             | if transactional {
                 crate::protocol::records::ATTR_TRANSACTIONAL
             } else {
                 0
             },
-        base_timestamp: base_ts,
-        max_timestamp: max_ts,
+        base_timestamp,
+        max_timestamp: base_timestamp,
         count: crate::protocol::buf::i32_from_usize(pendings.len())?,
         producer_id,
         producer_epoch,
         base_sequence,
         ..BatchHeader::default()
-    })
+    };
+    let mut size = if compression == Compression::None {
+        crate::protocol::buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?
+    } else {
+        0
+    };
+    let mut max_timestamp = base_timestamp;
+    let mut walked = 0usize;
+    for (index, pending) in pendings.iter().enumerate() {
+        let record = EncodeRecord {
+            timestamp: pending.rec.timestamp.unwrap_or(now),
+            key: pending.rec.key.as_deref(),
+            value: pending.rec.value.as_deref(),
+            headers: &pending.rec.headers,
+        };
+        size = size
+            .checked_add(crate::protocol::records::encoded_record_wire(
+                &header, index, &record,
+            )?)
+            .ok_or_else(|| Error::protocol("batch size overflow"))?;
+        max_timestamp = max_timestamp.max(record.timestamp);
+        walked = walked.saturating_add(1);
+        if walked == 8 * 1024 {
+            walked = 0;
+            tokio::task::yield_now().await;
+        }
+    }
+    header.max_timestamp = max_timestamp;
+    Ok((header, size))
 }
 
 fn sequence_in(parts: &mut HashMap<i32, i32>, partition: i32, count: usize) -> i32 {
@@ -11341,91 +11357,6 @@ fn reserve_produce_tail(buf: &mut BytesMut, extra: usize) {
     if buf.capacity() < needed {
         buf.reserve(needed - buf.len());
     }
-}
-
-async fn reserve_compressed_section(
-    header: &BatchHeader,
-    pendings: &[Pending],
-    now: i64,
-    scratch: &mut CompressScratch,
-) -> Result<()> {
-    if Compression::from_attributes(header.attributes)? == Compression::None {
-        return Ok(());
-    }
-    let mut section = 0usize;
-    let mut index = 0usize;
-    let mut walked = 0usize;
-    while index < pendings.len() {
-        let Some(pending) = pendings.get(index) else {
-            break;
-        };
-        let record = EncodeRecord {
-            timestamp: pending.rec.timestamp.unwrap_or(now),
-            key: pending.rec.key.as_deref(),
-            value: pending.rec.value.as_deref(),
-            headers: &pending.rec.headers,
-        };
-        section = section
-            .checked_add(crate::protocol::records::encoded_record_wire(
-                header, index, &record,
-            )?)
-            .ok_or_else(|| Error::protocol("batch size overflow"))?;
-        index = index.saturating_add(1);
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
-        }
-    }
-    scratch.reserve_section(section);
-    Ok(())
-}
-
-async fn uncompressed_pending_len(
-    header: &BatchHeader,
-    pendings: &[Pending],
-    now: i64,
-) -> Result<usize> {
-    let mut size = crate::protocol::buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?;
-    let mut walked = 0usize;
-    for (index, pending) in pendings.iter().enumerate() {
-        let rec = EncodeRecord {
-            timestamp: pending.rec.timestamp.unwrap_or(now),
-            key: pending.rec.key.as_deref(),
-            value: pending.rec.value.as_deref(),
-            headers: &pending.rec.headers,
-        };
-        size = size
-            .checked_add(crate::protocol::records::encoded_record_wire(
-                header, index, &rec,
-            )?)
-            .ok_or_else(|| Error::protocol("batch size overflow"))?;
-        walked = walked.saturating_add(1);
-        if walked == 8 * 1024 {
-            walked = 0;
-            tokio::task::yield_now().await;
-        }
-    }
-    Ok(size)
-}
-
-async fn encode_pendings(
-    buf: &mut BytesMut,
-    pendings: &mut [Pending],
-    header: &BatchHeader,
-    now: i64,
-    scratch: &mut CompressScratch,
-) -> Result<()> {
-    if crate::protocol::records::Compression::from_attributes(header.attributes)?
-        == crate::protocol::records::Compression::None
-    {
-        return write_uncompressed_pendings(buf, header, pendings, now, scratch).await;
-    }
-    reserve_compressed_section(header, pendings, now, scratch).await?;
-    let _batch_len = pack_compressed_pendings(header, pendings, now, scratch).await?;
-    crate::protocol::records::write_packed_batch(buf, header, scratch)?;
-    scratch.shrink_to_caps();
-    Ok(())
 }
 
 async fn pack_compressed_pendings(
@@ -16202,6 +16133,86 @@ mod tests {
             println!(
                 "TIMESTAMP_CANCEL compression={compression:?} preencode=unset partial=8192 resumed_tail={tail:?}"
             );
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn ordinary_produce_keeps_timestamp_bounds_on_reencode() {
+        use crate::protocol::api::{decode_produce_request, decode_produce_request_with_topic_ids};
+
+        let codecs = [
+            Compression::None,
+            Compression::Gzip,
+            Compression::Snappy,
+            Compression::Lz4,
+            #[cfg(feature = "zstd")]
+            Compression::Zstd,
+        ];
+        let topic = Arc::<str>::from("orders");
+        let topic_ids = [(Arc::clone(&topic), 1u128.to_be_bytes())];
+        for version in [3, 9, 13] {
+            for compression in codecs {
+                if version < 7 && compression.id() == 4 {
+                    continue;
+                }
+                let pendings = [Some(8_000), None, Some(20_000), Some(-50)]
+                    .into_iter()
+                    .map(|timestamp| {
+                        let mut pending = queued("orders", Some(0));
+                        pending.rec.timestamp = timestamp;
+                        pending
+                    })
+                    .collect();
+                let mut groups = [(Arc::clone(&topic), 0, pendings)];
+                let mut buf = BytesMut::new();
+                let mut scratch = CompressScratch::default();
+                let mut grouped = ProduceGroupScratch::default();
+                let mut prior = None;
+                for now in [12_000, 90_000] {
+                    buf.clear();
+                    encode_produce_body_async(
+                        &mut buf,
+                        version,
+                        -1,
+                        1_000,
+                        &mut groups,
+                        &topic_ids,
+                        compression,
+                        now,
+                        57,
+                        3,
+                        Some("writer"),
+                        &mut scratch,
+                        &mut grouped,
+                    )
+                    .await
+                    .unwrap();
+                    let mut wire = buf.as_ref();
+                    let topics = if version == 13 {
+                        let (.., topics, decoded_ids) =
+                            decode_produce_request_with_topic_ids(&mut wire).unwrap();
+                        assert_eq!(decoded_ids, [topic_ids[0].1]);
+                        topics
+                    } else {
+                        decode_produce_request(&mut wire, version).unwrap().3
+                    };
+                    assert!(wire.is_empty());
+                    let records = &topics[0].partitions[0].records;
+                    assert_eq!(records.base_timestamp, 8_000);
+                    assert_eq!(records.max_timestamp, 20_000);
+                    assert_eq!(
+                        records
+                            .records
+                            .iter()
+                            .map(|record| record.timestamp)
+                            .collect::<Vec<_>>(),
+                        [8_000, 12_000, 20_000, -50],
+                    );
+                    if let Some(previous) = prior.replace(buf.to_vec()) {
+                        assert_eq!(previous, &buf[..]);
+                    }
+                }
+            }
         }
     }
 

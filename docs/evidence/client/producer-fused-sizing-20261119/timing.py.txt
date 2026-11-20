@@ -1,0 +1,88 @@
+"""Measure alternating source pairs and compare every full request body."""
+
+import hashlib
+import os
+import platform
+import re
+import statistics
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+
+SAMPLE = re.compile(r"SIZING_TIMING case=([a-z0-9-]+) iterations=(\d+) ns=(\d+)$", re.M)
+CASE_COUNT = 14
+
+
+def binary(path_file):
+    return Path(Path(path_file).read_text().strip()).resolve(strict=True)
+
+
+def digest(path):
+    with path.open("rb") as source:
+        return hashlib.file_digest(source, "sha256").hexdigest()
+
+
+def measure(executable, expected):
+    with tempfile.TemporaryDirectory(prefix="partitionline-sizing-") as name:
+        output = Path(name)
+        run = subprocess.run(
+            [executable, "--exact", "--ignored", "--nocapture", "--test-threads=1",
+             "producer::tests::fused_sizing_timing_diagnostic"],
+            env=dict(os.environ, SIZING_OUTPUT=name),
+            capture_output=True, text=True, timeout=150,
+        )
+        if run.returncode or "test result: ok. 1 passed; 0 failed; 0 ignored" not in run.stdout:
+            raise ValueError(run.stdout + run.stderr)
+        result = {}
+        for shape, count, nanos in SAMPLE.findall(run.stdout):
+            if shape in result or int(count) <= 0 or int(nanos) <= 0:
+                raise ValueError(f"invalid sample for {shape}")
+            fixture = output / (shape + ".bin")
+            result[shape] = (int(count), int(nanos), fixture.stat().st_size, digest(fixture))
+        if len(result) != CASE_COUNT or len(list(output.glob("*.bin"))) != CASE_COUNT:
+            raise ValueError(f"incomplete sample output: {run.stdout}")
+        signature = {shape: (entry[0], entry[2], entry[3]) for shape, entry in result.items()}
+        if any(entry[1] <= 0 for entry in signature.values()):
+            raise ValueError("empty request body")
+        if expected is not None and signature != expected:
+            different = sorted(shape for shape in signature.keys() | expected.keys()
+                               if signature.get(shape) != expected.get(shape))
+            raise ValueError(f"wire or count mismatch: {different}")
+        return result, signature
+
+
+def main():
+    executables = [binary(path) for path in sys.argv[1:]]
+    if len(executables) != 2 or executables[0] == executables[1]:
+        raise ValueError("expected two distinct builds")
+    hashes = list(map(digest, executables))
+    if hashes[0] == hashes[1] or platform.machine() != "x86_64":
+        raise ValueError("expected two different x86_64 binaries")
+    choices = os.sched_getaffinity(0)
+    cpu = min(choices)
+    os.sched_setaffinity(0, {cpu})
+    print(f"SIZING_HOST arch=x86_64 cpu={cpu} available={len(choices)}", flush=True)
+    print(f"SIZING_BINARY baseline={hashes[0]} candidate={hashes[1]}", flush=True)
+    expected = None
+    durations = {}
+    for pair in range(1, 9):
+        order = (0, 1) if pair % 2 else (1, 0)
+        rows = {}
+        for arm in order:
+            runs, expected = measure(executables[arm], expected)
+            for shape, (count, nanos, size, sha) in runs.items():
+                rows[arm, shape] = nanos
+                print(f"SIZING_SAMPLE pair={pair} arm={['baseline', 'candidate'][arm]} "
+                      f"case={shape} iterations={count} ns={nanos} bytes={size} sha256={sha}",
+                      flush=True)
+        for shape in expected:
+            durations.setdefault(shape, []).append(rows[1, shape] / rows[0, shape])
+    for shape, ratios in durations.items():
+        print(f"SIZING_RATIO case={shape} median={statistics.median(ratios):.4f} "
+              f"min={min(ratios):.4f} max={max(ratios):.4f}", flush=True)
+
+
+if __name__ == "__main__":
+    main()
