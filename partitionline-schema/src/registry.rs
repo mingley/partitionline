@@ -2179,7 +2179,11 @@ fn parse_registered_schema(id: u32, body: &[u8]) -> Result<RegisteredSchema, Reg
         std::str::from_utf8(body).map_err(|_| RegistryError::malformed("response is not utf8"))?;
     let value = JsonParser::new(text).parse()?;
     let mut entries = object_entries(what, value)?;
-    let schema = as_str(what, "schema", required_field(what, &mut entries, "schema")?)?;
+    let schema = as_str(
+        what,
+        "schema",
+        required_field(what, &mut entries, "schema")?,
+    )?;
     let schema_type = take_field(&mut entries, "schemaType")
         .map(|value| as_opt_str(what, "schemaType", value))
         .transpose()?
@@ -2199,10 +2203,22 @@ fn parse_versioned_schema(body: &[u8]) -> Result<VersionedSchema, RegistryError>
         std::str::from_utf8(body).map_err(|_| RegistryError::malformed("response is not utf8"))?;
     let value = JsonParser::new(text).parse()?;
     let mut entries = object_entries(what, value)?;
-    let subject = as_str(what, "subject", required_field(what, &mut entries, "subject")?)?;
-    let version = as_u32(what, "version", required_field(what, &mut entries, "version")?)?;
+    let subject = as_str(
+        what,
+        "subject",
+        required_field(what, &mut entries, "subject")?,
+    )?;
+    let version = as_u32(
+        what,
+        "version",
+        required_field(what, &mut entries, "version")?,
+    )?;
     let id = as_u32(what, "id", required_field(what, &mut entries, "id")?)?;
-    let schema = as_str(what, "schema", required_field(what, &mut entries, "schema")?)?;
+    let schema = as_str(
+        what,
+        "schema",
+        required_field(what, &mut entries, "schema")?,
+    )?;
     let schema_type = take_field(&mut entries, "schemaType")
         .map(|value| as_opt_str(what, "schemaType", value))
         .transpose()?
