@@ -1,63 +1,52 @@
 # Broker operator setup
 
-This page describes the local operator binary built from `partitionline-broker`.
-The binary updates an admin journal on disk. It does not open a listen socket,
-does not join a cluster, and does not deploy itself.
-
-The workflow below was run on Linux x86_64 with the repository's locked Rust
-toolchain. Other platforms are not claimed.
+The local setup workflow initializes, configures, backs up, and restores an
+admin journal. It uses a temporary directory and starts no listener. For
+single-node Kafka serving, see the
+[broker README](../partitionline-broker/README.md).
 
 ## Build
 
-From the repository root:
+Run these commands from the broker crate directory, either in the repository
+or in an extracted archive.
 
 ```sh
-cargo build --locked --offline --manifest-path partitionline-broker/Cargo.toml --bin operator
+cargo build --locked --bin operator
+./target/debug/operator status --data ./broker-admin
 ```
 
-The binary is `partitionline-broker/target/debug/operator`.
+Add `--all-features` to the build to include the optional broker components.
 
 ## Configure
 
-The example uses these tested values:
-
-| Setting | Value | Limit |
+| Setting | Example | Limit |
 | --- | --- | --- |
-| Cluster id | `cluster-1` | Fixed for this example |
-| Initial voter | `1` | Broker id must be positive |
+| Cluster ID | `cluster-1` | Fixed for this workflow |
+| Initial voter | `1` | Fixed for this workflow |
 | Log directory name | `data-a` | At most 8 registered names |
 | Feature | `metadata.version` | At most 8 features |
-| Spoken feature versions | 0 and 1 | Version 2 is rejected |
-| Replicas | 16 | Assignment cap in this binary |
-
-A lower feature level than the stored level is rejected. The journal is left
-unchanged. There is no automatic rollback process; the previous level remains
-because the write did not commit.
+| Feature request version | 0 or 1 | Version 2 is rejected |
+| Replicas | 1 | At most 16 per assignment |
 
 ## Workflow
 
-`scripts/broker-package.sh` runs these steps in a temporary directory:
+From the repository root, run `sh scripts/broker-package.sh`. It creates and
+checks the crate archive, then installs the operator from the extracted
+archive with default and all features. Each installed binary initializes an
+admin journal, registers `data-a`, assigns `orders-0`, and updates
+`metadata.version` from 2 to 3. The downgrade check confirms that a rejected
+write leaves the journal bytes unchanged. Backup and restore preserve those
+bytes and the reported feature and assignment.
 
-1. `init` creates `admin.journal` for cluster `cluster-1`.
-2. `register-dir` records log directory `data-a`.
-3. `assign` places partition `orders-0` on broker 1 in that directory.
-4. `feature` sets `metadata.version` to 2 with version 0, then to 3 with version 1.
-5. A downgrade to level 1 exits non-zero and leaves level 3.
-6. `backup` copies `admin.journal`.
-7. `restore` copies that file into a new data directory.
-8. `status` on the restored directory prints level 3 and log directory `data-a`.
+The archive, file inventory, checksums, toolchain versions, and command logs
+are written to `target/broker-package`. The CI check uses Linux x86_64 on the
+latest stable Rust.
 
-Observe with:
-
-```sh
-operator status --data DIR
-```
-
-Backup and restore copy only `admin.journal`. They do not copy a Kafka log
-directory tree, because this binary does not store partition bytes.
+Backup and restore here cover the admin journal. For Kafka serving, the
+catalog and partition journals need a separate backup workflow.
 
 ## Capacity
 
-The operator binary uses journal entries up to 8192 bytes, 16 replicas, 8 log
-directory names, and 8 feature names. Those are the caps exercised by the
-package script. They are not a production capacity plan.
+The operator's admin journal uses entries of up to 8,192 bytes. The table
+above describes the configured assignment, directory, and feature limits.
+Serving capacity depends on separate listener and storage settings.

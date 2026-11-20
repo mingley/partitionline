@@ -1,0 +1,56 @@
+name: Broker archive
+
+on:
+  push:
+    branches: [main, qualification/broker-archive-n20]
+    paths:
+      - 'partitionline-broker/**'
+      - 'scripts/broker-package.sh'
+      - 'scripts/check-package-docs.py'
+      - 'scripts/check-doc-examples.py'
+      - 'LICENSE-APACHE'
+      - 'LICENSE-MIT'
+      - 'NOTICE'
+      - '.github/workflows/broker-package.yml'
+  pull_request:
+    paths:
+      - 'partitionline-broker/**'
+      - 'scripts/broker-package.sh'
+      - 'scripts/check-package-docs.py'
+      - 'scripts/check-doc-examples.py'
+      - 'LICENSE-APACHE'
+      - 'LICENSE-MIT'
+      - 'NOTICE'
+      - '.github/workflows/broker-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  broker-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Check broker formatting
+        run: cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml --check
+      - name: Package, install, and verify the local operator
+        run: sh scripts/broker-package.sh
+      - name: Retain the archive, checksums, and logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-archive-${{ github.sha }}
+          path: target/broker-package/
+          if-no-files-found: warn
+          retention-days: 30

@@ -11,18 +11,22 @@ The crate includes:
 - Metadata quorum state and Raft replication components.
 - Optional TLS, SASL, OIDC, and compression support. SASL session
   renewal stays off until a listener calls `with_reauthentication`.
-  The rules are in [SASL reauthentication](../docs/sasl-reauthentication.md).
+  The rules are in [SASL reauthentication](https://github.com/mingley/partitionline/blob/e7c6e3cca0deb18e406ac4da4e4ae899834993e5/docs/sasl-reauthentication.md).
 
 Available handlers and API versions depend on the configured router and
 features. OIDC token validation, connection reauthentication, Kerberos,
 KRaft directory identity, pre-vote, and sustained qualification remain open.
-The [broker plan](../docs/plan/broker-implementation.md) tracks the work.
+The [broker plan](https://github.com/mingley/partitionline/blob/e7c6e3cca0deb18e406ac4da4e4ae899834993e5/docs/plan/broker-implementation.md) tracks the work.
 This crate is not a production cluster.
 
-The operator can run an ordinary single-node listener:
+Run the examples from the broker crate directory. In the repository, that
+is `partitionline-broker/`. When using an archive, extract it and enter its
+root directory.
+
+Start a single-node listener:
 
 ```sh
-cargo run --manifest-path partitionline-broker/Cargo.toml --bin operator -- \
+cargo run --locked --bin operator -- \
   serve --data ./broker-data --listen 127.0.0.1:9092 \
   --advertise-host 127.0.0.1 --cluster local-cluster --broker-id 0
 ```
@@ -44,7 +48,7 @@ requests a 256 KiB stack, with up to three helpers at the default setting.
 The other operator commands configure a separate on-disk admin journal. Their
 backup and restore commands cover that admin journal only; they do not back up
 the listener's catalog or partition journals. See
-[broker operations](../docs/broker-operations.md).
+[broker operations](https://github.com/mingley/partitionline/blob/e7c6e3cca0deb18e406ac4da4e4ae899834993e5/docs/broker-operations.md).
 
 The embedded Raft runtime's `Handle::propose` rejects an empty or oversized
 record and also rejects a `Vec` whose allocation capacity exceeds the largest
@@ -107,18 +111,17 @@ The transaction marker log returns `Result` from its end-offset, stable-offset
 and `read_committed` methods; reopen it after a persistence failure. The marker
 log retains finite history and does not itself fence producers.
 
-```sh
-sh scripts/broker-package.sh
-```
-
-Build and test from the repository root:
+Build and test from the crate directory:
 
 ```sh
-cargo check --locked --manifest-path partitionline-broker/Cargo.toml
-cargo test --locked --manifest-path partitionline-broker/Cargo.toml
+cargo check --locked
+cargo test --locked
 ```
 
-The [null broker](../benchmarks/nullbroker/README.md) is a benchmark tool with synthetic
+From the repository root, `sh scripts/broker-package.sh` checks the actual
+archive and runs the installed operator with default and all features.
+
+The [null broker](https://github.com/mingley/partitionline/blob/e7c6e3cca0deb18e406ac4da4e4ae899834993e5/benchmarks/nullbroker/README.md) is a benchmark tool with synthetic
 responses. Use the storage and replication components in this crate when working
 on broker behavior. Production and comparative performance qualification are
 still pending.
@@ -132,7 +135,7 @@ characters. For example, run one command per member using this shared list:
 
 ```sh
 members='0@00000000000000000000000000000001@127.0.0.1:19100@127.0.0.1:19200,1@00000000000000000000000000000002@127.0.0.1:19101@127.0.0.1:19201,2@00000000000000000000000000000003@127.0.0.1:19102@127.0.0.1:19202'
-cargo run --manifest-path partitionline-broker/Cargo.toml --bin operator -- \
+cargo run --locked --bin operator -- \
   serve-quorum --data ./quorum-0 --cluster local-quorum --id 0 --members "$members"
 ```
 
