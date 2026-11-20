@@ -18,6 +18,7 @@ from urllib.request import urlopen
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 PEER = REPOSITORY / "tests/conformance/broker/interop"
+WIRE_PEERS = REPOSITORY / "tests/conformance/java"
 MAVEN = "https://repo.maven.apache.org/maven2"
 RELEASE = "4.3.1"
 TOPIC = "archive-orders"
@@ -53,11 +54,15 @@ def jar(directory, maven_path, digest):
 
 
 def prepare(directory, report):
+    sys.path.insert(0, str(WIRE_PEERS))
+    from generate_metadata_wire import COMMITS, PINS, peer as maven_kafka_client
+
     directory.mkdir(exist_ok=True)
     pins = json.loads((PEER / "pins.json").read_text())
-    peer = next(item for item in pins["official_apache_releases"] if item["release"] == RELEASE)
-    kafka = jar(directory, f"org/apache/kafka/kafka-clients/{RELEASE}/kafka-clients-{RELEASE}.jar",
-                peer["kafka_clients_jar_sha256"])
+    release_pin = next(item for item in pins["official_apache_releases"] if item["release"] == RELEASE)
+    if release_pin["source_sha"] != COMMITS[RELEASE]:
+        raise RuntimeError("the broker and Maven peer pins name different source commits")
+    kafka = maven_kafka_client(directory, RELEASE)
     slf4j = jar(directory, "org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar",
                 pins["slf4j_api_1_7_36_sha256"])
     libraries = os.pathsep.join(map(str, (kafka, slf4j)))
@@ -68,7 +73,13 @@ def prepare(directory, report):
              PEER / "ArchiveProducePeer.java", PEER / "CrossReadPeer.java"],
             report / "peer-compile.log", 20)
         run(["java", "-version"], report / "peer-java-version.log", 10)
-        save(report / "peer-pins.json", {"kafka": peer, "slf4j_api_1_7_36_sha256": pins["slf4j_api_1_7_36_sha256"]})
+        save(report / "peer-pins.json", {
+            "release": RELEASE,
+            "source_sha": COMMITS[RELEASE],
+            "maven_kafka_clients_jar_sha256": PINS[RELEASE],
+            "interop_kafka_clients_jar_sha256": release_pin["kafka_clients_jar_sha256"],
+            "slf4j_api_1_7_36_sha256": pins["slf4j_api_1_7_36_sha256"],
+        })
     return os.pathsep.join((str(classes), libraries))
 
 
