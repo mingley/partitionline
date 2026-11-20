@@ -2124,9 +2124,10 @@ fn optional_field<'a>(entries: &'a [(String, JsonValue)], key: &str) -> Option<&
         .map(|(_, value)| value)
 }
 
+// Match the old copies' retained capacities because the cache charges capacity.
 fn as_str(what: &str, key: &str, value: JsonValue) -> Result<String, RegistryError> {
     match value {
-        JsonValue::Str(text) => Ok(text),
+        JsonValue::Str(text) => Ok(String::from(text.into_boxed_str())),
         _ => Err(RegistryError::malformed(
             format!(
                 "{what}: '{key}' is not a string (found {})",
@@ -2140,7 +2141,7 @@ fn as_str(what: &str, key: &str, value: JsonValue) -> Result<String, RegistryErr
 fn as_opt_str(what: &str, key: &str, value: JsonValue) -> Result<Option<String>, RegistryError> {
     match value {
         JsonValue::Null => Ok(None),
-        JsonValue::Str(text) => Ok(Some(text)),
+        JsonValue::Str(text) => Ok(Some(String::from(text.into_boxed_str()))),
         _ => Err(RegistryError::malformed(
             format!(
                 "{what}: '{key}' is not a string or null (found {})",

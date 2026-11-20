@@ -25,31 +25,38 @@ mod parse_resource_measurement {
     }
 
     fn verify(actual: &Response, expected: &serde_json::Value, schema_file: &Path) -> usize {
-        let (id, schema, schema_type, refs): (u32, &str, Option<&str>, &[SchemaReference]) =
+        let (id, schema, schema_type, refs): (u32, &String, Option<&String>, &[SchemaReference]) =
             match actual {
                 Response::Id(value) => (
                     value.id,
                     &value.schema,
-                    value.schema_type.as_deref(),
+                    value.schema_type.as_ref(),
                     &value.references,
                 ),
                 Response::Version(value) => {
                     assert_eq!(Some(value.subject.as_str()), expected["subject"].as_str());
+                    assert_eq!(value.subject.capacity(), value.subject.len());
                     assert_eq!(Some(u64::from(value.version)), expected["version"].as_u64());
                     (
                         value.id,
                         &value.schema,
-                        value.schema_type.as_deref(),
+                        value.schema_type.as_ref(),
                         &value.references,
                     )
                 }
             };
         assert_eq!(Some(u64::from(id)), expected["id"].as_u64());
-        assert_eq!(schema_type, expected["schemaType"].as_str());
+        assert_eq!(schema.capacity(), schema.len());
+        assert_eq!(schema_type.map(String::as_str), expected["schemaType"].as_str());
+        if let Some(schema_type) = schema_type {
+            assert_eq!(schema_type.capacity(), schema_type.len());
+        }
         let expected_refs = expected["references"].as_array().unwrap();
         assert_eq!(refs.len(), expected_refs.len());
         for (actual_ref, expected_ref) in refs.iter().zip(expected_refs) {
             assert_eq!(Some(actual_ref.name.as_str()), expected_ref["name"].as_str());
+            assert_eq!(actual_ref.name.capacity(), actual_ref.name.len());
+            assert_eq!(actual_ref.subject.capacity(), actual_ref.subject.len());
             assert_eq!(Some(actual_ref.subject.as_str()), expected_ref["subject"].as_str());
             assert_eq!(
                 Some(u64::from(actual_ref.version)),
