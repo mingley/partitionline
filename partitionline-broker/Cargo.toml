@@ -15,9 +15,9 @@ include = [
     "/LICENSE-APACHE",
     "/LICENSE-MIT",
     "/NOTICE",
+    "/clippy.toml",
     "/src/**",
     "/examples/**",
-    "/tests/**",
 ]
 
 [features]

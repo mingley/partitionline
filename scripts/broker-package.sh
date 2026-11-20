@@ -42,10 +42,11 @@ name=${archive##*/}
 package="$work/${name%.crate}"
 cp -- "$archive" "$report/$name"
 (cd "$report" && sha256sum "$name" > archive.sha256)
+cat "$report/archive.sha256"
 tar -tzf "$archive" > "$report/archive-files.txt"
 tar -xzf "$archive" -C "$work"
 
-for file in LICENSE-APACHE LICENSE-MIT NOTICE; do
+for file in LICENSE-APACHE LICENSE-MIT NOTICE clippy.toml; do
   cmp "$file" "$package/$file"
 done
 python3 -B scripts/check-package-docs.py "$package" --report "$report/package-docs.json"

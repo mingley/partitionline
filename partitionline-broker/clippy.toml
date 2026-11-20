@@ -1,0 +1,31 @@
+# Clippy config for restriction lints enabled in Cargo.toml.
+
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+
+too-many-lines-threshold = 200
+
+doc-valid-idents = [".."]
+
+# Blocking calls on an async executor.
+disallowed-methods = [
+  { path = "std::thread::sleep", reason = "Blocks the executor thread. Use tokio::time::sleep." },
+  { path = "std::fs::read", reason = "Blocking IO on an async runtime. Use tokio::fs." },
+  { path = "std::fs::read_to_string", reason = "Blocking IO on an async runtime. Use tokio::fs." },
+  { path = "std::fs::write", reason = "Blocking IO on an async runtime. Use tokio::fs." },
+  { path = "std::net::TcpStream::connect", reason = "Blocking connect. Use tokio::net::TcpStream." },
+]
+
+disallowed-types = [
+  { path = "std::sync::Mutex", reason = "Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections." },
+  { path = "std::sync::RwLock", reason = "Easy to hold across await. Use tokio::sync::RwLock, or parking_lot for short non-async sections." },
+]
+
+# Enter guards are thread-local. Holding one across await runs later work
+# in the wrong trace context.
+await-holding-invalid-types = [
+  { path = "tracing::span::Entered", reason = "Do not hold a tracing span guard across await. Use Future::instrument or #[instrument]." },
+  { path = "tracing::span::EnteredSpan", reason = "Do not hold a tracing span guard across await. Use Future::instrument or #[instrument]." },
+]

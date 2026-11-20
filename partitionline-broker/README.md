@@ -111,15 +111,19 @@ The transaction marker log returns `Result` from its end-offset, stable-offset
 and `read_committed` methods; reopen it after a persistence failure. The marker
 log retains finite history and does not itself fence producers.
 
-Build and test from the crate directory:
+Check the extracted crate with `cargo check --locked`. The archive contains the
+library, operator, examples, and license files.
+
+The full broker test suite uses checkout fixtures. Run these commands from the
+repository root:
 
 ```sh
-cargo check --locked
-cargo test --locked
+cargo test --locked --manifest-path partitionline-broker/Cargo.toml
+sh scripts/broker-package.sh
 ```
 
-From the repository root, `sh scripts/broker-package.sh` checks the actual
-archive and runs the installed operator with default and all features.
+The package script checks the archive and runs the installed operator with
+default and all features.
 
 The [null broker](https://github.com/mingley/partitionline/blob/e7c6e3cca0deb18e406ac4da4e4ae899834993e5/benchmarks/nullbroker/README.md) is a benchmark tool with synthetic
 responses. Use the storage and replication components in this crate when working
