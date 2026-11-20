@@ -1,0 +1,150 @@
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore = "paired producer sizing diagnostic"]
+    async fn fused_sizing_timing_diagnostic() {
+        use crate::protocol::api::{
+            decode_produce_request, decode_produce_request_with_topic_ids,
+        };
+        use std::hint::black_box;
+        use std::path::PathBuf;
+
+        let output = PathBuf::from(std::env::var_os("SIZING_OUTPUT").unwrap());
+        let shapes: [(&str, i16, Compression, usize, usize, usize); 14] = [
+            ("v3-none-p1-n1", 3, Compression::None, 1, 1, 50_000),
+            ("v9-none-p1-n1", 9, Compression::None, 1, 1, 50_000),
+            ("v13-none-p1-n1", 13, Compression::None, 1, 1, 50_000),
+            ("v3-none-p6-n64", 3, Compression::None, 6, 64, 1_500),
+            ("v9-none-p6-n64", 9, Compression::None, 6, 64, 1_500),
+            ("v13-none-p128-n16", 13, Compression::None, 128, 16, 250),
+            ("v13-none-p1-n8193", 13, Compression::None, 1, 8_193, 64),
+            ("v3-gzip-p1-n1", 3, Compression::Gzip, 1, 1, 5_000),
+            ("v3-snappy-p6-n64", 3, Compression::Snappy, 6, 64, 250),
+            ("v9-lz4-p6-n128", 9, Compression::Lz4, 6, 128, 250),
+            ("v13-snappy-p128-n4", 13, Compression::Snappy, 128, 4, 200),
+            ("v13-lz4-p128-n64", 13, Compression::Lz4, 128, 64, 64),
+            ("v7-zstd-p6-n128", 7, Compression::Zstd, 6, 128, 64),
+            ("v13-zstd-p128-n8", 13, Compression::Zstd, 128, 8, 64),
+        ];
+        for (shape, version, codec, part_count, count, samples) in shapes {
+            let topic_count = part_count.min(4);
+            let topic_ids: Vec<_> = (0..topic_count)
+                .map(|index| {
+                    (
+                        Arc::<str>::from(format!("orders-{index}")),
+                        (u128::try_from(index).unwrap() + 1).to_be_bytes(),
+                    )
+                })
+                .collect();
+            let mut groups: Vec<_> = (0..part_count)
+                .map(|part| {
+                    let topic = Arc::clone(&topic_ids[part * topic_count / part_count].0);
+                    let partition = i32::try_from(part).unwrap();
+                    let pending = (0..count)
+                        .map(|index| {
+                            let mut record = queued(&topic, Some(partition));
+                            record.rec.topic = Arc::clone(&topic);
+                            if index % 3 != 0 {
+                                record.rec.timestamp = Some(
+                                    1_000 + i64::try_from(index % 113).unwrap() * 87,
+                                );
+                            }
+                            let key = (u128::try_from(index).unwrap() + 1).to_be_bytes();
+                            if index % 9 != 2 {
+                                record.rec.key = Some(Bytes::copy_from_slice(&key));
+                            }
+                            if index % 29 != 2 {
+                                let mut value = [b'v'; 100];
+                                value[..16].copy_from_slice(&key);
+                                value[54..58].copy_from_slice(&partition.to_be_bytes());
+                                record.rec.value = Some(Bytes::copy_from_slice(&value));
+                            }
+                            if index % 11 == 5 {
+                                record.rec.headers.push(RecordHeader {
+                                    key: "event".into(),
+                                    value: Some(Bytes::from_static(b"test")),
+                                });
+                            }
+                            if index == 0 {
+                                record.seq = Some(partition + 17);
+                            }
+                            record
+                        })
+                        .collect::<Vec<_>>();
+                    (topic, partition, pending)
+                })
+                .collect();
+            let mut scratch = CompressScratch::default();
+            let mut group_scratch = ProduceGroupScratch::default();
+            let mut buf = BytesMut::new();
+            let mut ns = 0;
+            let warmup = 12;
+            for iteration in 0..samples + warmup {
+                for (_, _, partition) in &mut groups {
+                    for record in partition.iter_mut().step_by(3) {
+                        record.rec.timestamp = None;
+                    }
+                }
+                buf.clear();
+                let started = Instant::now();
+                encode_produce_body_async(
+                    &mut buf, version, -1, 1_000, black_box(&mut groups), &topic_ids,
+                    codec, 6_000, 57, 3, Some("writer"), &mut scratch, &mut group_scratch,
+                )
+                .await
+                .unwrap();
+                let _observed = black_box(&buf);
+                let elapsed = started.elapsed().as_nanos();
+                if iteration >= warmup {
+                    ns += elapsed;
+                }
+            }
+            let mut wire = buf.as_ref();
+            let decoded = if version == 13 {
+                let (writer, acks, timeout, topics, ids) =
+                    decode_produce_request_with_topic_ids(&mut wire).unwrap();
+                assert_eq!((writer.as_deref(), acks, timeout), (Some("writer"), -1, 1_000));
+                assert_eq!(ids, topic_ids.iter().map(|(_, id)| *id).collect::<Vec<_>>());
+                topics
+            } else {
+                let (writer, acks, timeout, topics) = decode_produce_request(&mut wire, version).unwrap();
+                assert_eq!((writer.as_deref(), acks, timeout), (Some("writer"), -1, 1_000));
+                assert_eq!(
+                    topics.iter().map(|topic| topic.topic.as_str()).collect::<Vec<_>>(),
+                    topic_ids.iter().map(|(topic, _)| topic.as_ref()).collect::<Vec<_>>(),
+                );
+                topics
+            };
+            assert!(wire.is_empty());
+            let parts = decoded.into_iter().flat_map(|topic| topic.partitions).collect::<Vec<_>>();
+            assert_eq!(parts.len(), groups.len());
+            for (part, (_, index, pending)) in parts.iter().zip(&groups) {
+                assert_eq!(part.index, *index);
+                let batch = &part.records;
+                assert_eq!(batch.base_timestamp, pending[0].rec.timestamp.unwrap());
+                assert_eq!(batch.max_timestamp, pending.iter().filter_map(|p| p.rec.timestamp).max().unwrap());
+                assert_eq!(batch.producer_id, 57);
+                assert_eq!(batch.producer_epoch, 3);
+                assert_eq!(batch.base_sequence, *index + 17);
+                assert_eq!(Compression::from_attributes(batch.attributes).unwrap(), codec);
+                assert_ne!(batch.attributes & crate::protocol::records::ATTR_TRANSACTIONAL, 0);
+                assert_eq!(batch.records.len(), pending.len());
+                for (record, pending) in batch.records.iter().zip(pending) {
+                    assert_eq!(Some(record.timestamp), pending.rec.timestamp);
+                    assert_eq!(record.key, pending.rec.key);
+                    assert_eq!(record.value, pending.rec.value);
+                    assert_eq!(record.headers, pending.rec.headers);
+                }
+            }
+            let original = buf.to_vec();
+            buf.clear();
+            encode_produce_body_async(
+                &mut buf, version, -1, 1_000, &mut groups, &topic_ids,
+                codec, 8_900, 57, 3, Some("writer"), &mut scratch, &mut group_scratch,
+            )
+            .await
+            .unwrap();
+            assert_eq!(original, &buf[..]);
+            std::fs::write(output.join(format!("{shape}.bin")), &buf).unwrap();
+            println!("SIZING_TIMING case={shape} iterations={samples} ns={ns}");
+        }
+    }
+
