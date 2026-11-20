@@ -1,0 +1,43 @@
+{
+  "baseline": {
+    "source": "e7c6e3cca0deb18e406ac4da4e4ae899834993e5",
+    "parser_blob": "74d8721405e32cc6939ad22378893b11a82ce625",
+    "source_sha256": "10866c56a5162a6f9051e31142478568fb0b4f173b09099b13b08085610c3c3d",
+    "binary_sha256": "9ecdfe43638ad3b2fd119545a7ba9a567d8a9c1bb10d67bb2ab10f6f2aeb6d72"
+  },
+  "candidate": {
+    "source": "0eb4e64be03c0f3905e8d07e360909172e7323c4",
+    "parser_blob": "5be6345bf9f1bf994a31b002c4bd74be47248936",
+    "source_sha256": "876cc933e0f7f4b4f4984ba333e74ca8c1b7cf6246db710323a5c319f638342e",
+    "binary_sha256": "491b7ec890ab8d73d7425a2e72da5d94ab6ae3e818dd625a2e24620518346ee3"
+  },
+  "rustc": "1.100.0 (0ef1bc386 2026-11-09)",
+  "llvm": "23.1.5",
+  "scope": "Hosted Linux x86_64, one logical CPU, direct parser, valid generated data",
+  "cargo_lock_sha256": "770345d59d16bae62484087d4fa605e8ef754e528c1887a7460cc5e1175343b8",
+  "probe_sha256": "76ab873a5934bcb397ad6775b3266ec84f7bea87e6af4ce42acef0dfe9f45b0b",
+  "repetitions": 12,
+  "verified_cases": 14,
+  "pairs": 168,
+  "artifacts": [
+    {
+      "id": 14589228575,
+      "name": "registry-json-pairs",
+      "digest": "sha256:9eb654693540a3feb37d193dfa89523b087b075b6468de5a731f72031b2d23e6",
+      "size_in_bytes": 36402
+    },
+    {
+      "id": 14589014306,
+      "name": "registry-json-package",
+      "digest": "sha256:184ee2e018418e46ee3ab45e43ea10532e8dea9f6933c2f580de6c38f11b5abf",
+      "size_in_bytes": 157094
+    }
+  ],
+  "runs": {
+    "paired": 44647583240,
+    "live": 44647583272,
+    "format_and_workspace_failure": 44646908113,
+    "initial_live_format_failure": 44646908106
+  },
+  "disposition": "held for time and peak RSS regressions"
+}
