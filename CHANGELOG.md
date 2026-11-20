@@ -7,6 +7,46 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/mingley/partitionline/compare/v0.2.0...v0.2.1) - 2026-11-20
+
+### Other
+
+- Verify nested Metadata replies and retain Registry resource trials
+- Qualify the broker archive and keep decode measurements
+- Measure producer batch size and timestamps in one pass
+- Verify the Schema Registry package and HTTPS Basic auth
+- Restore the status validation anchor used in the crate
+- Summarize current production and performance qualification
+- Check every supported Produce body version against Apache SDKs
+- Verify Avro framing through a live Registry and Kafka
+- Record live Registry TLS verification
+- Verify Schema Registry lookup over trusted HTTPS
+- Update live qualification status
+- Check producer acknowledgments and close on Kafka 4.3.1
+- Record the producer work budget and remaining release gates
+- Bound partition reservation work in mixed Produce batches
+- Update release checks and benchmark blockers
+- Summarize production and performance qualification
+- Keep staged producer groups owned across yielding work
+- Verify schema lookup against a pinned live Redpanda Registry
+- Record broker inventory and artifact checks
+- Verify retained benchmark artifact bytes on request
+- Verify both Produce source files in the broker inventory
+- Record paired broker throughput and restart checks
+- Record ListOffsets wire coverage
+- Verify ListOffsets bodies against five Apache SDKs
+- Update the November qualification status
+- Record Produce wire coverage and paired drain results
+- Update release regression tests for the expanded rehearsal
+- Add Apache Produce wire fixtures and record drain timings
+- Record drain cancellation coverage and release rehearsal
+- Keep queued producer records across drain cancellation and bind releases to tags
+- Document the published 0.2.0 release and current validation
+- Merge pull request #122 from mingley/dependabot/cargo/crc32c-0.6.9
+- Merge current main into dependency update for fresh CI
+- Bump sha2 from 0.11.0 to 0.11.1
+- Bump crc32c from 0.6.8 to 0.6.9
+
 Unpublished repository work (`partitionline-broker` and `partitionline-schema`
 remain `publish = false`; see [`docs/STATUS.md`](docs/STATUS.md) and
 [`docs/RELEASE.md`](docs/RELEASE.md)).
