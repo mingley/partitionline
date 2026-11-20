@@ -4726,77 +4726,53 @@ fn read_short_zigzag_i64(chunk: &[u8], index: usize) -> Option<(i64, usize)> {
     Some((buf::unzigzag_varlong(raw), index.saturating_add(2)))
 }
 
-/// Uncompressed record with no headers and one- or two-byte lengths.
+fn take_short_zigzag(input: &mut &[u8]) -> Option<i32> {
+    let (raw, rest) = match *input {
+        [first @ 0..=127, rest @ ..] => (u32::from(*first), rest),
+        [first, second @ 0..=127, rest @ ..] => {
+            (u32::from(*first & 0x7f) | (u32::from(*second) << 7), rest)
+        }
+        _ => return None,
+    };
+    *input = rest;
+    Some(buf::unzigzag_varint(raw))
+}
+
+fn take_plain_record_field<'a>(input: &mut &'a [u8]) -> Option<Option<&'a [u8]>> {
+    let len = take_short_zigzag(input)?;
+    if len == -1 {
+        return Some(None);
+    }
+    let (value, rest) = input.split_at_checked(usize::try_from(len).ok()?)?;
+    *input = rest;
+    Some(Some(value))
+}
+
+/// Record without headers and with one- or two-byte lengths.
 ///
 /// Leaves `buf` unchanged when the shape does not match, so the generic
 /// decoder still reports the Java error text.
 fn try_plain_record(buf: &mut Bytes, base_offset: i64, base_timestamp: i64) -> Option<Record> {
-    let chunk = buf.chunk();
-    let (body_len, mut index) = read_short_zigzag_i32(chunk, 0)?;
-    if body_len < 0 {
+    let mut input = buf.as_ref();
+    let body_len = usize::try_from(take_short_zigzag(&mut input)?).ok()?;
+    let (body, rest) = input.split_at_checked(body_len)?;
+    let [0, fields @ ..] = body else {
         return None;
-    }
-    let body_len = usize::try_from(body_len).ok()?;
-    let body_end = index.checked_add(body_len)?;
-    if chunk.len() < body_end {
-        return None;
-    }
-    let attributes = *chunk.get(index)?;
-    if attributes != 0 {
-        return None;
-    }
-    index = index.saturating_add(1);
-    let (timestamp_delta, next) = read_short_zigzag_i64(chunk, index)?;
-    index = next;
-    let (offset_delta, next) = read_short_zigzag_i32(chunk, index)?;
-    index = next;
-    let (key_len, next) = read_short_zigzag_i32(chunk, index)?;
-    index = next;
-    let key_range = if key_len < 0 {
-        if key_len != -1 {
-            return None;
-        }
-        None
-    } else {
-        let len = usize::try_from(key_len).ok()?;
-        let end = index.checked_add(len)?;
-        if end > body_end {
-            return None;
-        }
-        let range = (index, end);
-        index = end;
-        Some(range)
     };
-    let (value_len, next) = read_short_zigzag_i32(chunk, index)?;
-    index = next;
-    let value_range = if value_len < 0 {
-        if value_len != -1 {
-            return None;
-        }
-        None
-    } else {
-        let len = usize::try_from(value_len).ok()?;
-        let end = index.checked_add(len)?;
-        if end > body_end {
-            return None;
-        }
-        let range = (index, end);
-        index = end;
-        Some(range)
-    };
-    let (header_count, next) = read_short_zigzag_i32(chunk, index)?;
-    if header_count != 0 {
-        return None;
-    }
-    index = next;
-    if index != body_end {
+    let mut fields = fields;
+    let timestamp_delta = i64::from(take_short_zigzag(&mut fields)?);
+    let offset_delta = take_short_zigzag(&mut fields)?;
+    let key = take_plain_record_field(&mut fields)?;
+    let value = take_plain_record_field(&mut fields)?;
+    if !matches!(fields, [0] | [0x80, 0]) {
         return None;
     }
     let offset = record_offset(base_offset, offset_delta)?;
     let timestamp = record_timestamp(base_timestamp, timestamp_delta)?;
-    let key = key_range.map(|(start, end)| buf.slice(start..end));
-    let value = value_range.map(|(start, end)| buf.slice(start..end));
-    buf.advance(body_end);
+    let consumed = buf.len() - rest.len();
+    let key = key.map(|bytes| buf.slice_ref(bytes));
+    let value = value.map(|bytes| buf.slice_ref(bytes));
+    buf.advance(consumed);
     Some(Record {
         offset,
         timestamp,
