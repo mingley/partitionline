@@ -274,10 +274,10 @@ async fn saturation_retains_rejected_offers_and_failed_disposition() {
 async fn delivery_timeouts_are_retained_separately_from_rejections() {
     let mock = common::Mock::start().await;
     let mut cfg = config(8);
-    cfg.delivery_timeout = Duration::from_millis(25);
-    cfg.request_timeout = Duration::from_millis(25);
+    cfg.delivery_timeout = Duration::from_millis(100);
+    cfg.request_timeout = Duration::from_millis(100);
     let producer = warmed_producer(&mock, &cfg).await;
-    mock.set_produce_delay(Duration::from_millis(100));
+    mock.set_produce_delay(Duration::from_millis(300));
     let report = latency::open_loop::run(&producer, "t", &Bytes::from_static(b"value"), &cfg)
         .await
         .unwrap();
