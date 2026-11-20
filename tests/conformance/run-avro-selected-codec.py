@@ -5,6 +5,7 @@ import hashlib
 import json
 import pathlib
 import subprocess
+import sys
 import time
 import urllib.request
 
@@ -92,6 +93,8 @@ def main():
         report['elapsed_seconds'] = round(time.monotonic() - started, 6)
         args.report.write_text(json.dumps(report, indent=2) + '\n')
     print(f"selected Avro Java peer: {report['status']}; report: {args.report}")
+    if 'error' in report:
+        print(report['error'], file=sys.stderr)
     return 0 if report['status'] == 'pass' else 1
 
 
