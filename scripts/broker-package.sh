@@ -1,7 +1,7 @@
 #!/bin/sh
 # Verify the crate archive and its installed operator.
 set -eu
-case "$#:@@1:-}" in
+case "$#:${1:-}" in
   0:) serving=false ;;
   1:--serve) serving=true ;;
   *) printf '%s\n' 'usage: broker-package.sh [--serve]' >&2; exit 2 ;;

@@ -131,39 +131,44 @@ def qualify(operator, profile, scratch, report):
         "partitions": PARTITIONS, "records_per_partition": RECORDS_PER_PARTITION,
         "passed": False,
     }
-    with tempfile.TemporaryDirectory(prefix="pl-broker-archive-", dir=scratch) as directory:
-        data = Path(directory)
-        client = data / "records"
-        witness = client / f"{RELEASE}-cross-read-initial-{TOPIC}.json"
-        command = [operator, "serve", "--data", data / "broker", "--listen", endpoint,
-                   "--advertise-host", "127.0.0.1", "--cluster", "archive-serving", "--broker-id", "0"]
-        print(shlex.join(map(str, command)), flush=True)
-        with server_log.open("w") as output:
-            process = subprocess.Popen(command, stdout=output, stderr=subprocess.STDOUT)
-        try:
-            await_ready(process, server_log, endpoint)
-            java = ["java", "-Xmx128m", "-cp", classpath]
-            run([*java, "ArchiveProducePeer", str(port)], produce_log, 35)
-            acknowledged = [json.loads(line) for line in produce_log.read_text().splitlines()
-                            if line.startswith("{")]
-            expected = [{"topic": TOPIC, "partition": partition, "offset": offset}
-                        for partition in range(PARTITIONS) for offset in range(RECORDS_PER_PARTITION)]
-            if acknowledged != expected:
-                raise RuntimeError("the Produce receipt history differs from the expected offsets")
-            receipt["acknowledged_records"] = len(acknowledged)
-            run([*java, "CrossReadPeer", RELEASE, str(port), "initial", client, TOPIC,
-                 str(RECORDS_PER_PARTITION)], report / f"{profile}-fetch.log", 50)
-            fetched = json.loads(witness.read_text())
-            count = sum(entry.get("label") == "foreign-written-java-read" for entry in fetched["history"])
-            if not fetched["passed"] or count != len(expected):
-                raise RuntimeError("the independent Java Fetch witness is incomplete")
-            receipt.update(fetched_records=count, peer_assertions=fetched["assertions"], passed=True)
-        finally:
-            receipt["cleanup"] = stop(process, server_log, port)
-            receipt["passed"] &= receipt["cleanup"]["passed"]
-            if witness.is_file():
-                shutil.copyfile(witness, report / f"{profile}-fetched-records.json")
-            save(report / f"{profile}-serving.json", receipt)
+    data = None
+    try:
+        with tempfile.TemporaryDirectory(prefix="pl-broker-archive-", dir=scratch) as directory:
+            data = Path(directory)
+            client = data / "records"
+            witness = client / f"{RELEASE}-cross-read-initial-{TOPIC}.json"
+            command = [operator, "serve", "--data", data / "broker", "--listen", endpoint,
+                       "--advertise-host", "127.0.0.1", "--cluster", "archive-serving", "--broker-id", "0"]
+            print(shlex.join(map(str, command)), flush=True)
+            with server_log.open("w") as output:
+                process = subprocess.Popen(command, stdout=output, stderr=subprocess.STDOUT)
+            try:
+                await_ready(process, server_log, endpoint)
+                java = ["java", "-Xmx128m", "-cp", classpath]
+                run([*java, "ArchiveProducePeer", str(port)], produce_log, 35)
+                acknowledged = [json.loads(line) for line in produce_log.read_text().splitlines()
+                                if line.startswith("{")]
+                expected = [{"topic": TOPIC, "partition": partition, "offset": offset}
+                            for partition in range(PARTITIONS) for offset in range(RECORDS_PER_PARTITION)]
+                if acknowledged != expected:
+                    raise RuntimeError("the Produce receipt history differs from the expected offsets")
+                receipt["acknowledged_records"] = len(acknowledged)
+                run([*java, "CrossReadPeer", RELEASE, str(port), "initial", client, TOPIC,
+                     str(RECORDS_PER_PARTITION)], report / f"{profile}-fetch.log", 50)
+                fetched = json.loads(witness.read_text())
+                count = sum(entry.get("label") == "foreign-written-java-read" for entry in fetched["history"])
+                if not fetched["passed"] or count != len(expected):
+                    raise RuntimeError("the independent Java Fetch witness is incomplete")
+                receipt.update(fetched_records=count, peer_assertions=fetched["assertions"], passed=True)
+            finally:
+                receipt["cleanup"] = stop(process, server_log, port)
+                receipt["passed"] &= receipt["cleanup"]["passed"]
+                if witness.is_file():
+                    shutil.copyfile(witness, report / f"{profile}-fetched-records.json")
+    finally:
+        receipt["temporary_directory_removed"] = data is not None and not data.exists()
+        receipt["passed"] &= receipt["temporary_directory_removed"]
+        save(report / f"{profile}-serving.json", receipt)
     if not receipt["passed"]:
         raise RuntimeError(f"installed operator cleanup failed\n{server_log.read_text()}")
     print(json.dumps(receipt), flush=True)
