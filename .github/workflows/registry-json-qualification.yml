@@ -1,0 +1,110 @@
+name: Registry JSON parse qualification
+
+on:
+  push:
+    branches: [qualification/registry-json-spans-20261120]
+
+permissions:
+  contents: read
+
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: e7c6e3cca0deb18e406ac4da4e4ae899834993e5
+          path: source-baseline
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build both exact parser sources with the same measurement module
+        run: |
+          set -euo pipefail
+          mkdir -p target/registry-json-pairs
+          report="$PWD/target/registry-json-pairs"
+          probe="$PWD/benchmarks/registry-json/measure.rs"
+          rustc -Vv | tee "$report/rustc.txt"
+          uname -sm | tee "$report/platform.txt"
+          sha256sum "$probe" benchmarks/registry-json/compare.py | tee "$report/probe-digests.txt"
+          for arm in baseline candidate; do
+            source="$PWD"
+            if [[ "$arm" == baseline ]]; then
+              source="$PWD/source-baseline"
+            fi
+            original="$source/partitionline-schema/src/registry.rs"
+            git -C "$source" rev-parse HEAD
+            git -C "$source" hash-object "$original"
+            sha256sum "$original" "$source/partitionline-schema/Cargo.lock" | tee "$report/$arm.source"
+            cat "$probe" >> "$original"
+            CARGO_TARGET_DIR="$RUNNER_TEMP/registry-json-$arm" \
+              cargo test --locked --release --manifest-path "$source/partitionline-schema/Cargo.toml" \
+                --lib --no-run --message-format=json \
+                > "$report/$arm.build.json"
+            python3 - "$report/$arm.build.json" "$report/$arm.binary" <<'PY'
+          import json
+          from pathlib import Path
+          import sys
+          entries = [json.loads(line) for line in Path(sys.argv[1]).read_text().splitlines()]
+          executables = [entry["executable"] for entry in entries
+                         if entry.get("reason") == "compiler-artifact"
+                         and entry["target"]["name"] == "partitionline_schema"
+                         and entry.get("executable")]
+          assert len(executables) == 1, executables
+          Path(sys.argv[2]).write_text(executables[0])
+          PY
+            sha256sum "$(cat "$report/$arm.binary")" | tee "$report/$arm.binary.sha256"
+          done
+      - name: Run matched owned fixtures
+        run: |
+          set -euo pipefail
+          report=target/registry-json-pairs
+          python3 benchmarks/registry-json/compare.py \
+            "$(cat "$report/baseline.binary")" "$(cat "$report/candidate.binary")" "$report"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: registry-json-pairs
+          path: target/registry-json-pairs
+          if-no-files-found: error
+          retention-days: 30
+
+  correctness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format and lint the companion
+        run: |
+          cargo fmt --manifest-path partitionline-schema/Cargo.toml -- --check
+          cargo clippy --locked --manifest-path partitionline-schema/Cargo.toml \
+            --all-targets --all-features -- -D warnings
+      - name: Test default and optional codec profiles
+        run: |
+          set -euo pipefail
+          for profile in default all no-default; do
+            features=()
+            case "$profile" in
+              all) features=(--all-features) ;;
+              no-default) features=(--no-default-features) ;;
+            esac
+            echo "REGISTRY_PROFILE $profile"
+            cargo test --locked --manifest-path partitionline-schema/Cargo.toml "${features[@]}"
+          done
+      - name: Qualify the companion archive
+        run: bash scripts/ci-schema-package.sh
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: registry-json-package
+          path: target/schema-package
+          if-no-files-found: ignore
+          retention-days: 30
