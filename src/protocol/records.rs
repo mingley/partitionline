@@ -2306,9 +2306,33 @@ fn lz4_decompress_reserve(src: &[u8], max_bytes: usize) -> Result<usize> {
     Ok(reserve)
 }
 
+// The frame reader takes headers and whole blocks from an in-memory slice.
+struct Lz4Input<'a>(&'a [u8]);
+
+impl Read for Lz4Input<'_> {
+    #[inline]
+    fn read(&mut self, out: &mut [u8]) -> std::io::Result<usize> {
+        let len = out.len().min(self.0.len());
+        let (input, rest) = self.0.split_at(len);
+        out.split_at_mut(len).0.copy_from_slice(input);
+        self.0 = rest;
+        Ok(len)
+    }
+
+    #[inline]
+    fn read_exact(&mut self, out: &mut [u8]) -> std::io::Result<()> {
+        let Some((input, rest)) = self.0.split_at_checked(out.len()) else {
+            return self.0.read_exact(out);
+        };
+        out.copy_from_slice(input);
+        self.0 = rest;
+        Ok(())
+    }
+}
+
 fn lz4_decompress(src: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
     let reserve = lz4_decompress_reserve(src, max_bytes)?;
-    let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
+    let mut decoder = lz4_flex::frame::FrameDecoder::new(Lz4Input(src));
     read_bounded(&mut decoder, max_bytes, reserve)
 }
 
