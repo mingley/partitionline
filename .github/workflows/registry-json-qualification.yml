@@ -1,8 +1,8 @@
-name: Registry JSON parse qualification
+name: Registry owned-field qualification
 
 on:
   push:
-    branches: [qualification/registry-json-spans-20261120]
+    branches: [qualification/registry-json-owned-20261120]
 
 permissions:
   contents: read

@@ -1834,27 +1834,31 @@ impl<'a> JsonParser<'a> {
     }
 
     fn parse_string(&mut self) -> Result<String, RegistryError> {
-        // Copy each run of ordinary bytes together. Only special bytes need
-        // the escape and control-character checks.
-        self.pos += 1;
-        let mut out = Vec::new();
+        // Caller peeked the opening quote.
+        self.pos = self.pos.saturating_add(1);
+        let mut out: Vec<u8> = Vec::new();
         loop {
-            let remaining = &self.buf[self.pos..];
-            let length = remaining
-                .iter()
-                .position(|&byte| byte < b' ' || matches!(byte, b'"' | b'\\'))
+            let byte = self
+                .peek()
                 .ok_or_else(|| RegistryError::malformed("json unterminated string"))?;
-            let byte = remaining[length];
-            if byte < b' ' {
-                return Err(RegistryError::malformed("json control character in string"));
+            match byte {
+                b'"' => {
+                    self.pos = self.pos.saturating_add(1);
+                    return String::from_utf8(out)
+                        .map_err(|_| RegistryError::malformed("json bad string escape"));
+                }
+                b'\\' => {
+                    self.pos = self.pos.saturating_add(1);
+                    self.parse_escape(&mut out)?;
+                }
+                0x00..=0x1f => {
+                    return Err(RegistryError::malformed("json control character in string"));
+                }
+                _ => {
+                    out.push(byte);
+                    self.pos = self.pos.saturating_add(1);
+                }
             }
-            out.extend_from_slice(&remaining[..length]);
-            self.pos += length + 1;
-            if byte == b'"' {
-                return String::from_utf8(out)
-                    .map_err(|_| RegistryError::malformed("json bad string escape"));
-            }
-            self.parse_escape(&mut out)?;
         }
     }
 

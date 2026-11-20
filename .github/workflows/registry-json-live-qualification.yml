@@ -1,8 +1,8 @@
-name: Registry parser live check
+name: Registry owned-field live check
 
 on:
   push:
-    branches: [qualification/registry-json-spans-20261120]
+    branches: [qualification/registry-json-owned-20261120]
 
 permissions:
   contents: read
