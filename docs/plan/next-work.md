@@ -34,6 +34,10 @@ The [status page](../STATUS.md) records the source tested by each run.
 - Extend plaintext Produce pacing to authenticated quotas, Kafka quota
   administration, Fetch and replication. Verify sustained overload.
   [Produce pacing](../evidence/broker/plaintext-produce-pacing-20261119/README.md)
+- The archive and installed operator passed a local admin journal round trip.
+  Check installed Kafka serving and record readback, secure deployment,
+  partition-data restore and upgrade workflows.
+  [Broker archive](../evidence/broker/archive-20261120/README.md)
 - Verify process-wide bounds with real contention, overload, graceful shutdown,
   mixed-version upgrades, backup and restore. The benchmark plan depends on the
   same durability and security behavior for each peer.
@@ -48,15 +52,20 @@ The [status page](../STATUS.md) records the source tested by each run.
   [Basic auth](../evidence/schema/registry-basic-auth-20261119/README.md) ·
   [Package](../evidence/schema/companion-package-20261119/README.md)
 - Qualify bearer tokens, credential rotation, Kafka TLS and the remaining
-  formats. Measure memory and time for large JSON parses before publication.
+  formats. The first JSON trial kept every measurement, including slower
+  small and escaped Avro bodies and higher RSS at 8 MiB.
+  [JSON measurements](../evidence/schema/registry-json-resources-20261120/combined/README.md)
   [Companion guide](../schema-companion.md)
 
 ## Performance and release
 
 The [x86_64 codec gate](../evidence/perf/codec-instructions-20261119/README.md)
 checks ten instruction counts. Resolve the LZ4 decode instruction miss
-recorded on `51a4d86`, then repeat the codec checks on the release candidate.
-[LZ4 trace](../evidence/client/lz4-main-decode-20261119/linked-code.md)
+recorded on `e7c6e3c`. The latest record parser and frame reader trials
+missed the limit. Repeat the codec checks on the release candidate.
+[LZ4 trace](../evidence/client/lz4-main-decode-20261119/linked-code.md) ·
+[Record parser](../evidence/client/record-slice-20261120/README.md) ·
+[Frame reader](../evidence/client/lz4-input-slice-20261120/README.md)
 
 Run matched client and broker cases on a
 controlled x86_64 host, with equal durability and security settings, raw

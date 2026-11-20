@@ -41,6 +41,11 @@ broker and Schema Registry companion are unpublished. The broker is experimental
   [Sync measurements](https://github.com/mingley/partitionline/blob/8977c6b986d5077c5886be75c6cc13fe99cdec5b/docs/evidence/broker/reusable-sync-20261119/README.md) ·
   [Pacing controls](https://github.com/mingley/partitionline/blob/007ed3e50161a4c790205be5297941f473436e7a/docs/evidence/broker/plaintext-produce-pacing-20261119/README.md)
 
+- The broker crate archive passed locked release installation in both
+  feature profiles. The installed operator verified byte-identical admin
+  journal backup and restore and preserved the journal on a downgrade.
+  [Archive checks](https://github.com/mingley/partitionline/actions/runs/44647817744)
+
 ## Schema Registry
 
 Both Redpanda 26.2.2 lanes passed HTTP cache and verified HTTPS lookup
@@ -55,25 +60,23 @@ all-feature checks, including doctests. The two live tests in that
 archive run were ignored and ran in the separate live workflow.
 [Basic auth](https://github.com/mingley/partitionline/actions/runs/44640038645) · [Companion package](https://github.com/mingley/partitionline/actions/runs/44640185362)
 
+The first JSON parser trial cut the 64 MiB parse median from 111 to 71 ms.
+Its Avro 8,192-field median rose 27.14%, and peak RSS rose 28.96% at 8 MiB.
+The trial stayed isolated. [Paired JSON results](https://github.com/mingley/partitionline/actions/runs/44647583240)
+
 ## Validation
 
-Client docs, packaging, release rehearsal and the finite resource soak
-passed on `7e8b459`. Both Registry live lanes and the companion archive
-check passed. The broker all-feature suite failed two Raft integration
-tests on that commit.
-[Client CI](https://github.com/mingley/partitionline/actions/runs/44641285184) · [Registry CI](https://github.com/mingley/partitionline/actions/runs/44641285318) ·
-[Broker CI](https://github.com/mingley/partitionline/actions/runs/44641285132)
+Linux client checks, native macOS and Windows checks, docs, packaging,
+the release rehearsal, and the finite resource soak passed on `e7c6e3c`.
+The broker suite failed a Raft integration test.
+[Client CI](https://github.com/mingley/partitionline/actions/runs/44642981045) · [Broker CI](https://github.com/mingley/partitionline/actions/runs/44642981053)
 
-The x86_64 gate measured 920,136 LZ4 decode instructions against 903,610
-recorded, a 1.83% increase against a 1% limit. Five decoder trials missed
-the instruction or paired timing checks. The latest block-copy trial
-helped large random batches and slowed both text fixtures.
-The producer sizing trial reproduced all ten counts on the same stable
-compiler.
-[Instruction gate](https://github.com/mingley/partitionline/actions/runs/44641285184/job/135972862469) ·
-[Producer trial gate](https://github.com/mingley/partitionline/actions/runs/44642069000/job/135975358710) ·
-[Block-copy trial](https://github.com/mingley/partitionline/tree/97218bb737307b6a4752ab5a46c3afbe585d3091/docs/evidence/client/lz4-sync-block-copy-20261119)
-
+LZ4 decode measured 920,136 instructions against 903,610 on x86_64,
+a 1.83% increase against a 1% limit. Seven trials missed the instruction
+or paired timing checks. The two latest covered header-free record parsing
+and the frame input reader. Both passed record and allocation checks.
+[Instruction gate](https://github.com/mingley/partitionline/actions/runs/44642981045/job/135978609101) · [Record parser](https://github.com/mingley/partitionline/actions/runs/44646514535) ·
+[Frame reader](https://github.com/mingley/partitionline/actions/runs/44647341685)
 
 ## Release gates
 

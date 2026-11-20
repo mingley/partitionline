@@ -1,0 +1,11 @@
+case	measured	frozen
+iai_compress_gzip/text	11243290	11243365
+iai_compress_lz4/text	2291428	2291524
+iai_compress_snappy/text	1578351	1578383
+iai_crc/f03	96702	96702
+iai_decode/f03	368394	368394
+iai_decompress_gzip/text	1175072	1174945
+iai_decompress_lz4/text	920084	903610
+iai_decompress_snappy/text	789514	789514
+iai_encode/f03	779897	779897
+iai_request/v9	195053	195053

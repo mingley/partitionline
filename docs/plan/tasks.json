@@ -10257,6 +10257,20 @@
           "source_sha": "e8e56d774020839bfee2a27384e1847520a37ce1",
           "artifact": "docs/plan/evidence/KL05-24.json",
           "validation": "60 passing tests on stable and Rust 1.85; 4 no-default tests; strict Clippy/Rustdoc, fmt and scaffold passed."
+        },
+        {
+          "source_sha": "0eb4e64be03c0f3905e8d07e360909172e7323c4",
+          "baseline_sha": "e7c6e3cca0deb18e406ac4da4e4ae899834993e5",
+          "scope": "One exact-source JSON parser performance study",
+          "results": "Fourteen fixtures and 168 matched pairs verified parsed values and cache charges. The 64 MiB median was 111.01 to 71.03 ms. The Avro 8192-field median rose 27.14% and peak RSS rose 28.96% at 8 MiB. Retained the rejected runtime trial.",
+          "artifacts": [
+            "docs/evidence/schema/registry-json-resources-20261120/combined/README.md",
+            "docs/evidence/schema/registry-json-resources-20261120/combined/pairs.jsonl",
+            "https://github.com/mingley/partitionline/actions/runs/44647583240"
+          ],
+          "limits": [
+            "Synchronous parser only, hosted x86_64. Peak child RSS includes process and input. Resource and concurrency qualification remains open."
+          ]
         }
       ],
       "write_set": [
@@ -13317,6 +13331,36 @@
           "limits": [
             "Shared x86_64 runner, one logical CPU, eight pairs per 14 shapes. These are encoder results.",
             "The broader hotspot ranking and the required matched broker/peer comparisons remain open."
+          ]
+        },
+        {
+          "source_sha": "4b927ae1b204d1e81ecd6708b278a7f01e759b88",
+          "baseline_sha": "e7c6e3cca0deb18e406ac4da4e4ae899834993e5",
+          "scope": "Isolated local decode trial",
+          "disposition": "rejected-regression",
+          "results": "Formatting, strict Clippy, record and Produce fixtures, and allocation checks passed. LZ4 decode measured +2.25% and uncompressed decode +1.04% against the frozen 1% limit. The runtime patch remained on its trial branch.",
+          "artifacts": [
+            "docs/evidence/client/record-slice-20261120/README.md",
+            "docs/evidence/client/record-slice-20261120/pairs.jsonl",
+            "https://github.com/mingley/partitionline/actions/runs/44646514535"
+          ],
+          "limits": [
+            "Hosted x86_64 runner, twelve alternating pairs per nine shapes, identical inputs and wire hashes. Peer comparisons and broader hotspot ranking remain open."
+          ]
+        },
+        {
+          "source_sha": "150751bc53ce32f28cdfcc23f00cf2088dd8ccf8",
+          "baseline_sha": "e7c6e3cca0deb18e406ac4da4e4ae899834993e5",
+          "scope": "Isolated local decode trial",
+          "disposition": "rejected-regression",
+          "results": "Formatting, strict Clippy, record and Produce fixtures, and allocation checks passed. LZ4 decode measured +1.82% against the 1% limit. Large random LZ4 timing medians fell 5.26–5.38%. The runtime patch remained on its trial branch.",
+          "artifacts": [
+            "docs/evidence/client/lz4-input-slice-20261120/README.md",
+            "docs/evidence/client/lz4-input-slice-20261120/pairs.jsonl",
+            "https://github.com/mingley/partitionline/actions/runs/44647341685"
+          ],
+          "limits": [
+            "Hosted x86_64 runner, twelve alternating pairs per nine shapes, identical inputs and wire hashes. Peer comparisons and broader hotspot ranking remain open."
           ]
         }
       ],
@@ -38608,7 +38652,23 @@
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": [
-        "docs/plan/evidence/KL11-54.json"
+        "docs/plan/evidence/KL11-54.json",
+        {
+          "source_sha": "747e22cee14fd6f29e26687ba530be87985b3b77",
+          "commands": [
+            "cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml --check (exit 0)",
+            "sh scripts/broker-package.sh (exit 0)"
+          ],
+          "results": "The actual 77-file archive passed locked Clippy and release installation under default and all features on Linux x86_64. The installed operator verified byte-identical admin journal backup and restore and unchanged bytes after rejected downgrade. Checkout-only qualification fixtures remain in the repository.",
+          "artifacts": [
+            "docs/evidence/broker/archive-20261120/README.md",
+            "docs/evidence/broker/archive-20261120/verification.json",
+            "https://github.com/mingley/partitionline/actions/runs/44647817744"
+          ],
+          "limits": [
+            "The local admin workflow starts no Kafka listener. Installed wire behavior, secure deployment, capacity, catalog and partition-data restore, and upgrade qualification remain open."
+          ]
+        }
       ]
     },
     {

@@ -1,0 +1,101 @@
+{
+  "card": "KL11-54",
+  "qualification": "Linux x86_64 broker source archive and local admin journal lifecycle",
+  "source_sha": "747e22cee14fd6f29e26687ba530be87985b3b77",
+  "base_sha": "e7c6e3cca0deb18e406ac4da4e4ae899834993e5",
+  "run_id": 44647817744,
+  "job_id": 135994792587,
+  "result": "passed",
+  "platform": "GitHub Actions ubuntu-latest, Linux x86_64",
+  "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+  "cargo": "cargo 1.100.0 (3acc79c0c 2026-11-05)",
+  "archive": {
+    "name": "partitionline-broker-0.1.0.crate",
+    "sha256": "69331a6e200e85f24a74b35f2564ac8d43fb9d2aaacfa14f6067c056525fb920",
+    "files": 77,
+    "uncompressed_reported": "3.1 MiB",
+    "compressed_reported": "615.5 KiB",
+    "publish": false,
+    "scope": [
+      "library",
+      "operator",
+      "examples",
+      "lockfile",
+      "licenses and notice",
+      "Clippy policy"
+    ]
+  },
+  "artifact": {
+    "id": 14590061739,
+    "name": "broker-archive-747e22cee14fd6f29e26687ba530be87985b3b77",
+    "zip_digest": "sha256:be7ba6acff2286021662b715485d8998a6c8616691858fcd206d52582e36b04e",
+    "size_in_bytes": 649566,
+    "expires_at": "2026-12-20T00:45:44Z"
+  },
+  "checks": {
+    "rustfmt": "pass",
+    "cargo_package_locked": "pass",
+    "clean_cargo_vcs_receipt": "pass",
+    "byte_identical_license_notice_and_lint_policy": "pass",
+    "broker_docs": {
+      "documents": 1,
+      "local_links": 0,
+      "pinned_repository_targets": 4
+    },
+    "client_docs": {
+      "documents": 30,
+      "local_links": 235,
+      "pinned_repository_targets": 58
+    },
+    "profiles": [
+      {
+        "profile": "default",
+        "locked_clippy": "pass",
+        "locked_release_install": "pass",
+        "init_register_assign_update": "pass",
+        "downgrade_error": "FeatureDowngrade",
+        "downgrade_preserved_journal_bytes": true,
+        "backup_restore_journal_bytes_equal": true,
+        "status_equal": true,
+        "feature": "metadata.version 3",
+        "assignment": "orders 0 data-a"
+      },
+      {
+        "profile": "all-features",
+        "locked_clippy": "pass",
+        "locked_release_install": "pass",
+        "init_register_assign_update": "pass",
+        "downgrade_error": "FeatureDowngrade",
+        "downgrade_preserved_journal_bytes": true,
+        "backup_restore_journal_bytes_equal": true,
+        "status_equal": true,
+        "feature": "metadata.version 3",
+        "assignment": "orders 0 data-a"
+      }
+    ]
+  },
+  "failed_attempts": [
+    {
+      "source_sha": "9b7d2e4991b5ac8d4c9f79c0e7ccf90691cfe26a",
+      "run_id": 44646682619,
+      "job_id": 135990938319,
+      "stage": "extracted default-profile verification",
+      "exit_code": 101,
+      "observed": "Package creation, license and README checks passed. The step stopped before the operator ran. The run retained the separate lint and install logs."
+    },
+    {
+      "source_sha": "83bc8ed4f14d6f3139bd5c96958feed292e42fd0",
+      "run_id": 44647091528,
+      "job_id": 135992321245,
+      "stage": "extracted default-profile Clippy",
+      "exit_code": 1,
+      "observed": "Clippy reported an unfulfilled disallowed_types expectation with the repository lint policy absent from the archive."
+    }
+  ],
+  "remaining_qualification": [
+    "Installed Kafka listener startup and record readback",
+    "Secure deployment and capacity guidance on declared supported platforms",
+    "Catalog and partition-data backup and restore",
+    "Upgrade workflows"
+  ]
+}
